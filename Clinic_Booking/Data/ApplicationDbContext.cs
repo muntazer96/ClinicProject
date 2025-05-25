@@ -14,6 +14,7 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.Specialization;
 using Clinic_Booking.Entities.SubscriptionPackage;
 using Clinic_Booking.Entities.User;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,8 @@ namespace Clinic_Booking.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            var hasher = new PasswordHasher<AspNetUsers>();
+
             base.OnModelCreating(modelBuilder);
 
             // User
@@ -55,6 +58,17 @@ namespace Clinic_Booking.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Property(e => e.UserName).IsRequired().HasMaxLength(100);
+
+
+                entity.HasData(new Entities.User.AspNetUsers()
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow,
+                    NormalizedUserName = "SUPARADMIN",
+                    PasswordHash = hasher.HashPassword(null, "password"),
+                    PhoneNumber = null,
+                    UserName = "superadmin",
+                });
             });
 
             // Specialization
