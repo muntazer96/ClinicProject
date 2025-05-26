@@ -1,6 +1,10 @@
 using Clinic_Booking.Data;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.Services.LoadServices;
+using Clinic_Booking.Services.UserServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +16,9 @@ var builder = WebApplication.CreateBuilder(args);
 ConfigurationManager configuration = builder.Configuration;
 
 // Add services to the container.
+builder.Services.AddScoped<IUserServices, UserServices>();
+builder.Services.AddScoped<ILoadServices, LoadServices>();
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

@@ -71,6 +71,28 @@ namespace Clinic_Booking.Data
                 });
             });
 
+            //Role
+            modelBuilder.Entity<AspNetRoles>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasData(new AspNetRoles()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "SuperAdmin",
+                    NormalizedName = "SUPERADMIN",
+                }, new AspNetRoles()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "NormalUser",
+                    NormalizedName = "NORMALUSER",
+                }, new AspNetRoles()
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "DoctorUser",
+                    NormalizedName = "DOCTORUSER",
+                });
+            });
+
             // Specialization
             modelBuilder.Entity<Specialization>(entity =>
             {

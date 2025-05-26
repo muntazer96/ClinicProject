@@ -3,6 +3,7 @@ using System;
 using Clinic_Booking.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Clinic_Booking.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250526082152_addDataToRole")]
+    partial class addDataToRole
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -667,24 +670,24 @@ namespace Clinic_Booking.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("bcdfc86a-fabb-4721-a2d2-ad1bf6834bbd"),
-                            CreatedAt = new DateTime(2025, 5, 26, 12, 1, 18, 829, DateTimeKind.Local).AddTicks(8884),
+                            Id = new Guid("83f61553-5ad6-4242-9c16-2a5d281a79ca"),
+                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8629),
                             IsDeleted = false,
                             Name = "SuperAdmin",
                             NormalizedName = "SUPERADMIN"
                         },
                         new
                         {
-                            Id = new Guid("ead8609c-ccb0-419b-a45d-b22f5d93a855"),
-                            CreatedAt = new DateTime(2025, 5, 26, 12, 1, 18, 829, DateTimeKind.Local).AddTicks(8897),
+                            Id = new Guid("b5a131d7-9b5a-41bd-9c78-8eb92e5856c9"),
+                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8713),
                             IsDeleted = false,
                             Name = "NormalUser",
                             NormalizedName = "NORMALUSER"
                         },
                         new
                         {
-                            Id = new Guid("cec4a900-4ab1-4d00-b870-e699fc710efb"),
-                            CreatedAt = new DateTime(2025, 5, 26, 12, 1, 18, 829, DateTimeKind.Local).AddTicks(8898),
+                            Id = new Guid("46b60ee5-b2d9-457e-845c-6eb032217d2b"),
+                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8716),
                             IsDeleted = false,
                             Name = "DoctorUser",
                             NormalizedName = "DOCTORUSER"
@@ -819,15 +822,6 @@ namespace Clinic_Booking.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsFirstLogin")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsLocked")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("LastLoginDate")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -888,18 +882,15 @@ namespace Clinic_Booking.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("78f80694-b939-42ae-be00-c55e94c6969c"),
+                            Id = new Guid("ed02984f-0dfd-4520-8a47-1a8f4bbf76e1"),
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "cad8028b-16c3-4f53-951f-74ca32c9db92",
-                            CreatedAt = new DateTime(2025, 5, 26, 9, 1, 18, 791, DateTimeKind.Utc).AddTicks(6824),
+                            ConcurrencyStamp = "0d45bd5c-9dd1-4f3c-a8d6-b3bc7b030dd2",
+                            CreatedAt = new DateTime(2025, 5, 26, 8, 21, 52, 144, DateTimeKind.Utc).AddTicks(2746),
                             EmailConfirmed = false,
                             IsDeleted = false,
-                            IsFirstLogin = true,
-                            IsLocked = false,
-                            LastLoginDate = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             LockoutEnabled = false,
                             NormalizedUserName = "SUPARADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEBmxkv50pXUIwi1JAua/UheMxPX03rEKsEdHYmQgKfzUncx9UlV/ns6IBAC+0WKrUg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMvJ0KGHDGWxET+Fx9/gZRmrEgfEVroqtP8TEhnZMRqS1lAYp+mgW33fcSX4uQu8+Q==",
                             PhoneNumberConfirmed = false,
                             TwoFactorEnabled = false,
                             UserName = "superadmin"
