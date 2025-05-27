@@ -37,50 +37,94 @@ namespace Clinic_Booking.Services.UserServices
         {
             try
             {
+                // تحقق إذا كان المستخدم موجود مسبقًا
+                var existingUser = await _userManager.FindByNameAsync(form.PhoneNumber.ToLower());
+                if (existingUser != null)
+                {
+                    return new ConflictObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 409,
+                        Message = "أسم المستخدم مضاف مسبقاً",
+                        Data = null
+                    });
+                }
+
+                // إنشاء كائن المستخدم الجديد
                 var user = new AspNetUsers
                 {
                     Name = form.Name,
                     UserName = form.PhoneNumber,
-                    ImageName = "default.png",
                     NormalizedUserName = form.PhoneNumber.ToUpper(),
                     PhoneNumber = form.PhoneNumber,
+                    ImageName = "default.png"
                 };
 
-                var userisexist = await _userManager.FindByNameAsync(form.PhoneNumber.ToLower());
-                if (userisexist != null)
-                {
-                    return new ConflictObjectResult(new ResponseDto<string> { Status = "Error", Code = 409, Message = "أسم المستخدم مضاف مسبقاً", Data = null });
-                }
-
+                // إنشاء المستخدم
                 var result = await _userManager.CreateAsync(user, form.Password);
                 if (result.Succeeded)
                 {
+                    // تعيين الدور "NormalUser" للمستخدم
                     var role = await _roleManager.FindByNameAsync("NormalUser");
                     if (role != null)
                     {
-                        await _userManager.AddToRoleAsync(user, role.Name);
-                        return new OkObjectResult(new ResponseDto<string> { Status = "Success", Code = 200, Message = "تمت اضافة المستخدم بنجاح", Data = null });
+                        var roleResult = await _userManager.AddToRoleAsync(user, role.Name);
+                        if (roleResult.Succeeded)
+                        {
+                            return new OkObjectResult(new ResponseDto<string>
+                            {
+                                Status = "Success",
+                                Code = 200,
+                                Message = "تمت اضافة المستخدم بنجاح",
+                                Data = null
+                            });
+                        }
+                        else
+                        {
+                            await _userManager.DeleteAsync(user);
+                            return new BadRequestObjectResult(new ResponseDto<string>
+                            {
+                                Status = "Error",
+                                Code = 400,
+                                Message = "لم يتم اضافة المستخدم يرجى المحاولة لاحقاً!"
+                            });
+                        }
                     }
                 }
 
-                return new BadRequestObjectResult(new ResponseDto<string> { Status = "Error", Code = 400, Message = "لم يتم اضافة المستخدم يرجى المحاولة لاحقاً!" });
+                // في حالة فشل إنشاء المستخدم أو فشل تعيين الدور
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لم يتم اضافة المستخدم يرجى المحاولة لاحقاً!"
+                });
             }
             catch (DbUpdateException ex)
             {
                 Console.WriteLine($"Database update exception: {ex.Message}");
                 Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
 
-                return new ObjectResult(new ResponseDto<string> { Status = "Error", Code = 500, Message = "لم يتم الاضافة يرجى المحاولة لاحقاً" })
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "لم يتم الاضافة يرجى المحاولة لاحقاً"
+                })
                 {
                     StatusCode = 500
                 };
             }
             catch (Exception ex)
             {
-                // Handle unexpected exceptions
                 Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
 
-                return new ObjectResult(new ResponseDto<string> { Status = "Error", Code = 500, Message = "لم يتم الاضافة يرجى المحاولة لاحقاً" })
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "لم يتم الاضافة يرجى المحاولة لاحقاً"
+                })
                 {
                     StatusCode = 500
                 };
@@ -90,72 +134,76 @@ namespace Clinic_Booking.Services.UserServices
         {
             try
             {
+                // البحث عن المستخدم بناءً على رقم الهاتف (اسم المستخدم)
                 var user = await _userManager.FindByNameAsync(form.PhoneNumber);
                 if (user == null)
                 {
                     return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "أسم المستخدم او كلمة المرور خاطئة!" });
+
                 }
 
-                if (form.PhoneNumber != "superadmin")
+                // تحقق من قفل الحساب إذا لم يكن SuperAdmin
+                if (form.PhoneNumber != "superadmin" && await _userManager.GetAccessFailedCountAsync(user) >= 5)
                 {
-                    if (await _userManager.GetAccessFailedCountAsync(user) >= 5)
-                    {
-                        user.IsLocked = true;
-                        await _userManager.UpdateAsync(user);
-                        await _userManager.SetLockoutEndDateAsync(user, DateTime.Now.AddMinutes(30));
-                        return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "تم اغلاق الحساب مؤقتا!" });
-                    }
+                    user.IsLocked = true;
+                    await _userManager.UpdateAsync(user);
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.Now.AddMinutes(30));
+
+                    return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "تم اغلاق الحساب مؤقتا!" });
+
                 }
 
+                // تحقق من صحة كلمة المرور
                 var isPassValid = await _userManager.CheckPasswordAsync(user, form.Password);
                 if (!isPassValid)
                 {
                     await _userManager.AccessFailedAsync(user);
-                    if (await _userManager.IsLockedOutAsync(user))
-                    {
-                        return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق مؤقتاً!" });
-                    }
-                    else
-                    {
-                        return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "كلمة المرور خاطئة!" });
-                    }
+
+                    var isLockedOut = await _userManager.IsLockedOutAsync(user);
+                    string message = isLockedOut ? "الحساب مغلق مؤقتًا!" : "كلمة المرور خاطئة!";
+
+                    return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق مؤقتاً!" });
+
                 }
-                else
+
+                // تحقق من حالة الحساب
+                if (user.IsLocked)
                 {
-                    if (user.IsLocked)
-                    {
-                        return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق يرجى الاتصال بادارة النظام!" });
-                    }
+                    return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق يرجى الاتصال بادارة النظام!" });
 
-                    await _userManager.ResetAccessFailedCountAsync(user);
-
-                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue);
-
-
-                    var userRoles = await _userManager.GetRolesAsync(user);
-
-                    var authClaims = new List<Claim>
-                    {
-                        new Claim("username", user.UserName),
-                        new Claim("id", user.Id.ToString()),
-                    };
-
-                    foreach (var userRole in userRoles)
-                    {
-                        authClaims.Add(new Claim("Role", userRole));
-                        authClaims.Add(new Claim("roleId", GetRoleIdByName(userRole))); // Assuming GetRoleIdByName is a method that retrieves role ID by name
-                    }
-
-                    var token = GetToken(authClaims);
-
-                    //await _userManager.SetAuthenticationTokenAsync(user, "MyAPIToken", "FirstToken", new JwtSecurityTokenHandler().WriteToken(token));
-
-                    user.LastLoginDate = DateTime.Now;
-
-                    await _userManager.UpdateAsync(user);
-
-                    return new OkObjectResult(new ResponseDto<object> { Status = "Success", Code = 200, Message = "تم تسجيل الدخول بنجاح", Data = new { token = new JwtSecurityTokenHandler().WriteToken(token) } });
                 }
+                if (user.IsDeleted)
+                {
+                    return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق يرجى الاتصال بادارة النظام!" });
+                }
+
+                // إعادة تعيين عداد المحاولات الفاشلة وإنهاء القفل إن وجد
+                await _userManager.ResetAccessFailedCountAsync(user);
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue);
+
+                // إعداد صلاحيات المستخدم
+                var userRoles = await _userManager.GetRolesAsync(user);
+                var authClaims = new List<Claim>
+                {
+                    new Claim("username", user.UserName),
+                    new Claim("id", user.Id.ToString())
+                };
+
+                foreach (var role in userRoles)
+                {
+                    authClaims.Add(new Claim("Role", role));
+                    authClaims.Add(new Claim("roleId", GetRoleIdByName(role)));
+                }
+
+                // توليد التوكن
+                var token = GetToken(authClaims);
+
+                // تحديث وقت تسجيل الدخول الأخير
+                user.LastLoginDate = DateTime.Now;
+                await _userManager.UpdateAsync(user);
+
+                return new OkObjectResult(new ResponseDto<object> { Status = "Success", Code = 200, Message = "تم تسجيل الدخول بنجاح", Data = new { token = new JwtSecurityTokenHandler().WriteToken(token) } });
+
             }
             catch (DbUpdateException ex)
             {
@@ -169,7 +217,7 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+                Console.WriteLine($"Unexpected exception: {ex.Message}");
 
                 return new ObjectResult(new ResponseDto<string> { Status = "Error", Code = 500, Message = "حاول مرة اخرى!" })
                 {
@@ -177,6 +225,200 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
         }
+        public async Task<IActionResult> SoftDeleteUserAsync(string id)
+        {
+            try
+            {
+                // البحث عن المستخدم
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 404,
+                        Message = "المستخدم غير موجود",
+                        Data = null
+                    });
+                }
+
+                // التحقق إذا كان محذوف مسبقًا
+                if (user.IsDeleted)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "المستخدم محذوف مسبقًا",
+                        Data = null
+                    });
+                }
+
+                // تفعيل Soft Delete
+                user.IsDeleted = true;
+                user.IsLocked = true; // اختياري: قفل الحساب إذا كان لا يزال بإمكانه تسجيل الدخول
+
+                var result = await _userManager.UpdateAsync(user);
+                if (result.Succeeded)
+                {
+                    return new OkObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Success",
+                        Code = 200,
+                        Message = "تم تعطيل حساب المستخدم بنجاح",
+                        Data = null
+                    });
+                }
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "حدث خطأ أثناء تعطيل الحساب",
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected error: {ex.Message}");
+
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ غير متوقع أثناء تعطيل الحساب"
+                });
+            }
+        }
+        public async Task<IActionResult> ToggleUserLockStatusAsync(string id)
+        {
+            try
+            {
+                // البحث عن المستخدم
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 404,
+                        Message = "المستخدم غير موجود",
+                        Data = null
+                    });
+                }
+
+                // التبديل بين القفل والفتح
+                if (user.IsLocked)
+                {
+                    // فتح الحساب
+                    user.IsLocked = false;
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue);
+
+                    var result = await _userManager.UpdateAsync(user);
+                    if (result.Succeeded)
+                    {
+                        return new OkObjectResult(new ResponseDto<string>
+                        {
+                            Status = "Success",
+                            Code = 200,
+                            Message = "تم فتح الحساب بنجاح",
+                            Data = null
+                        });
+                    }
+                }
+                else
+                {
+                    // قفل الحساب
+                    user.IsLocked = true;
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.Now.AddYears(100)); // قفل دائم أو مؤقت حسب ما تريد
+
+                    var result = await _userManager.UpdateAsync(user);
+                    if (result.Succeeded)
+                    {
+                        return new OkObjectResult(new ResponseDto<string>
+                        {
+                            Status = "Success",
+                            Code = 200,
+                            Message = "تم قفل الحساب بنجاح",
+                            Data = null
+                        });
+                    }
+                }
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "حدث خطأ أثناء تحديث حالة الحساب",
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected error: {ex.Message}");
+
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ غير متوقع أثناء تحديث حالة الحساب"
+                });
+            }
+        }
+        public async Task<IActionResult> GetPaginatedUsersAsync(Guid UserGUID, int page = 1, int pageSize = 10)
+        {
+            var query = _userManager.Users
+                .Where(u => !u.IsDeleted);
+
+            if (UserGUID != Guid.Empty)
+            {
+                query = query.Where(u => u.Id == UserGUID);
+            }
+
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var users = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userDtos = new List<UserGetDto>();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                var roleName = roles.FirstOrDefault();
+                var role = !string.IsNullOrEmpty(roleName) ? await _roleManager.FindByNameAsync(roleName) : null;
+
+                userDtos.Add(new UserGetDto
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    PhoneNumber = user.PhoneNumber,
+                    UserName = user.UserName,
+                    ImageName = user.ImageName,
+                    IsLocked = user.IsLocked,
+                    IsFirstLogin = user.IsFirstLogin,
+                    LastLoginDate = user.LastLoginDate,
+                    IsDeleted = user.IsDeleted,
+                    DeletedAt = user.DeletedAt,
+                    RoleName = roleName,
+                    RoleId = role?.Id
+                });
+            }
+
+            var pagedResult = new PaginationDto.PageResult<UserGetDto>(userDtos, totalItems, totalPages, page, pageSize);
+
+            return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<UserGetDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم استرجاع المستخدمين مع الترقيم",
+                Data = pagedResult
+            });
+        }
+
         private string GetRoleIdByName(string roleName)
         {
             var role = _context.Roles.FirstOrDefault(r => r.Name == roleName);
