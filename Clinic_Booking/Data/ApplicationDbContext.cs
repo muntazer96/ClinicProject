@@ -66,6 +66,7 @@ namespace Clinic_Booking.Data
                     CreatedAt = DateTime.UtcNow,
                     NormalizedUserName = "SUPARADMIN",
                     PasswordHash = hasher.HashPassword(null, "password"),
+                    SecurityStamp = Guid.NewGuid().ToString(),
                     PhoneNumber = null,
                     UserName = "superadmin",
                 });
