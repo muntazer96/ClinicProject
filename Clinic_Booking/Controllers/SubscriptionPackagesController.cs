@@ -12,7 +12,7 @@ namespace Clinic_Booking.Controllers
         {
             _service = services;
         }
-        [HttpGet("GetList")]
+        [HttpGet("GetAll")]
         public async Task<ActionResult<PaginationDto.PageResult<GetSubscriptionPackages>>> GetListAsync(int page = 1, int pageSize = 10)
         {
             return await _service.GetListAsync(page, pageSize);

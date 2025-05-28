@@ -3,6 +3,7 @@ using System;
 using Clinic_Booking.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Clinic_Booking.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250528175707_addNormailzedTodoctor")]
+    partial class addNormailzedTodoctor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,7 +78,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Appointments", (string)null);
+                    b.ToTable("Appointments");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Day.Day", b =>
@@ -118,7 +121,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Days", (string)null);
+                    b.ToTable("Days");
 
                     b.HasData(
                         new
@@ -241,7 +244,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("SpecializationId");
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.DoctorAvailability.DoctorAvailability", b =>
@@ -297,7 +300,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("DoctorAvailabilities", (string)null);
+                    b.ToTable("DoctorAvailabilities");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.DoctorFeature.DoctorFeature", b =>
@@ -344,7 +347,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("FeatureId");
 
-                    b.ToTable("DoctorFeature", (string)null);
+                    b.ToTable("DoctorFeature");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.DoctorSubscription.DoctorSubscription", b =>
@@ -394,7 +397,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("PackageId");
 
-                    b.ToTable("DoctorSubscriptions", (string)null);
+                    b.ToTable("DoctorSubscriptions");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Feature.Feature", b =>
@@ -439,7 +442,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Features", (string)null);
+                    b.ToTable("Features");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Message.Message", b =>
@@ -493,7 +496,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Notification.Notification", b =>
@@ -544,7 +547,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Payment.Payment", b =>
@@ -592,7 +595,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("AppointmentId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Referral.Referral", b =>
@@ -639,7 +642,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("InviterDoctorId");
 
-                    b.ToTable("Referrals", (string)null);
+                    b.ToTable("Referrals");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Review.Review", b =>
@@ -690,7 +693,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Role.AspNetRoles", b =>
@@ -807,7 +810,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Specializations", (string)null);
+                    b.ToTable("Specializations");
 
                     b.HasData(
                         new
@@ -1122,7 +1125,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SubscriptionPackages", (string)null);
+                    b.ToTable("SubscriptionPackages");
 
                     b.HasData(
                         new

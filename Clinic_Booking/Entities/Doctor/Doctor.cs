@@ -1,16 +1,21 @@
 ﻿using Clinic_Booking.Entities.Shared;
+using Clinic_Booking.Enums;
 
 namespace Clinic_Booking.Entities.Doctor
 {
     public class Doctor : BaseEntity<int>
     {
         public string Name { get; set; } // اسم الدكتور
+        public string NormalizedName { get; set; }
         public int SpecializationId { get; set; } // معرف التخصص
         public Specialization.Specialization Specialization { get; set; } // علاقة التخصص
         public string Description { get; set; } // وصف الدكتور أو خبرته
 
         // عدد مرات الاشتراك في النظام (حسب الاشتراك)
         public int SubscriptionRank { get; set; }
+        public IraqiProvince IraqiProvince { get; set; }
+        public string ImageName { get; set; }
+        public DateOnly BirthDay { get; set; }
 
         // مجموع الفترات التي يحددها الدكتور
         public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }

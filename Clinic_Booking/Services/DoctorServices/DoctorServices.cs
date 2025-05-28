@@ -1,14 +1,272 @@
 ﻿using Clinic_Booking.Data;
+using Clinic_Booking.DTOs.DoctorDTO;
+using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.Doctor;
+using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IDoctorServices;
+using Clinic_Booking.IServices.ILoadServices;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Clinic_Booking.Services.DoctorServices
 {
     public class DoctorServices : IDoctorServices
     {
         private readonly ApplicationDbContext _context;
-        public DoctorServices(ApplicationDbContext context)
+        private readonly ILoadServices _load;
+        public DoctorServices(ApplicationDbContext context , ILoadServices load)
         {
             _context = context;
+            _load = load;
+        }
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetListAsync(SearchDoctorDto form, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page <= 0 || pageSize <= 0)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "قيم الصفحة أو الحجم غير صحيحة.",
+                        Data = null
+                    });
+                }
+                var query = _context.Doctors
+    .Where(d => !d.IsDeleted)
+    .Where(d => form.Specialization == null || d.SpecializationId == form.Specialization)
+    .Where(d => form.IraqiProvince == null || d.IraqiProvince == form.IraqiProvince)
+    .Where(d => form.Id == null || d.Id == form.Id);
+
+                if (!string.IsNullOrWhiteSpace(form.Name))
+                {
+                    query = query.Where(d => d.Name.Contains(form.Name) || d.NormalizedName.Contains(form.Name));
+                }
+
+
+                var totalItems = await query.CountAsync();
+
+                if (totalItems == 0)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Not Found",
+                        Code = 404,
+                        Message = "لا توجد بيانات للعرض!",
+                        Data = null
+                    });
+                }
+
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                var docs = await query
+                    .OrderBy(d => d.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(d => new GetDoctorDto
+                    {
+                        Id = d.Id,
+                        Name = d.Name,
+                        NormalizedName = d.NormalizedName,
+                        Specialization = new DTOs.SharedDTO.GetItemsDto
+                        {
+                            Id = d.SpecializationId,
+                            Name = d.Specialization.Name,
+                            NormalizedName = d.Specialization.NormalizedName,
+                        },
+                        Description = d.Description,
+                        SubscriptionRank = d.SubscriptionRank,
+                        IraqiProvince = d.IraqiProvince,
+                        IraqiProvinceName = d.IraqiProvince.GetDisplayName(),
+                        IraqiProvinceNormalizedName = d.IraqiProvince.ToString(),
+                        BirthDay = d.BirthDay,
+                        ImageName = d.ImageName
+                    })
+                    .ToListAsync();
+
+                var result = new PaginationDto.PageResult<GetDoctorDto>(docs, totalItems, totalPages, page, pageSize);
+
+                return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<GetDoctorDto>>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم جلب البيانات بنجاح!",
+                    Data = result
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "خطأ في قاعدة البيانات!",
+                    Data = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ غير متوقع!",
+                    Data = ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> AddDoctorAsync(DoctorAddDto form)
+        {
+            try
+            {
+                var exists = await _context.Doctors.AnyAsync(d =>
+                    d.Name.Contains(form.Name) &&
+                    d.SpecializationId == form.SpecializationId &&
+                    d.BirthDay == form.BirthDay);
+
+                if (exists)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "الدكتور موجود مسبقًا!",
+                        Data = null
+                    });
+                }
+                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/DoctorImage");
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(form.ImageName.FileName);
+
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/DoctorImage", fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await form.ImageName.CopyToAsync(stream);
+                }
+
+                var doctor = new Doctor
+                {
+                    Name = form.Name,
+                    NormalizedName = form.NormalizedName,
+                    SpecializationId = form.SpecializationId,
+                    Description = form.Description,
+                    IraqiProvince = form.IraqiProvince,
+                    ImageName = fileName,
+                    BirthDay = form.BirthDay,
+                    //CreatorId = _load.GetCurrentUserId(),
+                };
+
+                _context.Doctors.Add(doctor);
+                await _context.SaveChangesAsync();
+
+                return new OkObjectResult(new ResponseDto<object>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تمت إضافة الدكتور بنجاح!",
+                    Data = new { doctor.Id }
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update exception: {ex.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message,
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
+        }
+        public async Task<IActionResult> DeleteAsync(int id)
+        {
+            try
+            {
+                var doctor = await _context.Doctors.Where(d=>d.Id == id && !d.IsDeleted).FirstOrDefaultAsync();
+                if(doctor != null)
+                {
+                    doctor.IsDeleted = true;
+                    //doctor.DeleterId = _load.GetCurrentUserId();
+                    doctor.DeletedAt = DateTime.Now;
+                    _context.Doctors.Update(doctor);
+                    await _context.SaveChangesAsync();
+                    return new OkObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Success",
+                        Code = 200,
+                        Message = "تم الحذف بنجاح."
+                    });
+                }
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update exception: {ex.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message,
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
         }
     }
 }
