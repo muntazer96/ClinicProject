@@ -1,4 +1,4 @@
-using Clinic_Booking.Data;
+﻿using Clinic_Booking.Data;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.IServices.IEmailServices;
@@ -107,6 +107,11 @@ builder.Services.Configure<IdentityOptions>(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromMinutes(15); // ⏰ صلاحية التوكن 15 دقيقة
+});
+
 
 var app = builder.Build();
 

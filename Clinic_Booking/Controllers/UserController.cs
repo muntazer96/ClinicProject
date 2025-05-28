@@ -51,5 +51,16 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.ConfirmEmailAsync(userId, token);
         }
+        [HttpPost("SandResetPasswordLink")]
+        public async Task<IActionResult> SendResetPasswordLinkAsync(string guid)
+        {
+            return await _service.SendResetPasswordLinkAsync(guid);
+        }
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordDto form)
+        {
+            return await _service.ResetPasswordAsync(form);
+        }
+
     }
 }

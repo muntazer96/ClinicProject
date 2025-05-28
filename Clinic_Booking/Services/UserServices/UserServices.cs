@@ -5,6 +5,7 @@ using Clinic_Booking.Entities.User;
 using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IUserServices;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -553,85 +554,7 @@ namespace Clinic_Booking.Services.UserServices
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = $"{scheme}://{host}/api/User/ConfirmEmail?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
-            // قالب البريد HTML
-            var htmlBody = $@"
-<!DOCTYPE html>
-<html lang='ar' dir='rtl'>
-<head>
-    <meta charset='UTF-8'>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-        }}
-        .email-container {{
-            max-width: 600px;
-            margin: auto;
-            background-color: #ffffff;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            direction: rtl;
-        }}
-        .header {{
-            background-color: #2a9d8f;
-            color: #ffffff;
-            padding: 20px;
-            text-align: center;
-        }}
-        .header h1 {{
-            margin: 0;
-            font-size: 24px;
-        }}
-        .body {{
-            padding: 30px;
-            color: #333333;
-            line-height: 1.8;
-        }}
-        .body p {{
-            margin: 0 0 15px;
-        }}
-        .button {{
-            display: inline-block;
-            padding: 12px 25px;
-            background-color: #2a9d8f;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 6px;
-            margin-top: 20px;
-        }}
-        .footer {{
-            padding: 15px;
-            text-align: center;
-            font-size: 13px;
-            color: #999999;
-        }}
-    </style>
-</head>
-<body>
-    <div class='email-container'>
-        <div class='header'>
-            <h1>تأكيد بريدك الإلكتروني</h1>
-        </div>
-        <div class='body'>
-            <p>مرحباً بك في نظام حجز العيادات الإلكترونية،</p>
-            <p>يرجى تأكيد بريدك الإلكتروني لتفعيل حسابك والوصول إلى خدمات النظام.</p>
-            <p style='text-align: center;'>
-                <a href='{confirmationLink}' class='button'>تأكيد البريد</a>
-            </p>
-            <p>إذا لم تقم بإنشاء حساب، يمكنك تجاهل هذه الرسالة.</p>
-        </div>
-        <div class='footer'>
-            &copy; 2025 نظام حجز العيادات الإلكترونية. جميع الحقوق محفوظة.
-        </div>
-    </div>
-</body>
-</html>
-";
-
-            await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", htmlBody);
+            await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
 
             return new OkObjectResult(new ResponseDto<string>
             {
@@ -640,7 +563,6 @@ namespace Clinic_Booking.Services.UserServices
                 Message = "تم إرسال رابط التفعيل إلى بريدك الإلكتروني."
             });
         }
-
         public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -670,6 +592,75 @@ namespace Clinic_Booking.Services.UserServices
                 Status = "Error",
                 Code = 400,
                 Message = "فشل تأكيد البريد الإلكتروني، الرابط غير صالح أو منتهي"
+            });
+        }
+        public async Task<IActionResult> SendResetPasswordLinkAsync(string guid)
+        {
+            var user = await _userManager.FindByIdAsync(guid);
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "هذا البريد غير مسجل لدينا."
+                });
+            }
+
+            var request = _httpContextAccessor.HttpContext.Request;
+            var scheme = request.Scheme;
+            var host = request.Host.Value;
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            Console.WriteLine(token);
+            var resetLink = $"{scheme}://{host}/api/User/ResetPassword?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+
+
+
+            await _emailServices.SendAsync(user.Email, "إعادة تعيين كلمة المرور", _load.ResetPasswordHTMLTemplate(resetLink));
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني."
+            });
+        }
+        public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form)
+        {
+            var user = await _userManager.FindByIdAsync(form.UserId.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, form.Token, form.NewPassword);
+
+            if (!result.Succeeded)
+            {
+                var isExpired = result.Errors.Any(e => e.Code == "InvalidToken");
+                var message = isExpired
+                    ? "انتهت صلاحية الرابط، الرجاء طلب رابط جديد."
+                    : $"فشل في تغيير كلمة المرور: {string.Join(" | ", result.Errors.Select(e => e.Description))}";
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = message
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تغيير كلمة المرور بنجاح."
             });
         }
         private string GetRoleIdByName(string roleName)

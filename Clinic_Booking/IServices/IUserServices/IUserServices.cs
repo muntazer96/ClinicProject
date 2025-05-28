@@ -13,5 +13,7 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> UploadImgAsync(IFormFile file);
         Task<IActionResult> SendEmailConfirmationAsync(string email);
         Task<IActionResult> ConfirmEmailAsync(Guid userId, string token);
+        Task<IActionResult> SendResetPasswordLinkAsync(string guid);
+        Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form);
     }
 }
