@@ -36,5 +36,20 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.GetPaginatedUsersAsync(UserGUID, page, pageSize);
         }
+        [HttpPost("UpProfileImage")]
+        public async Task<IActionResult> UploadImgAsync(IFormFile file)
+        {
+            return await _service.UploadImgAsync(file);
+        }
+        [HttpPost("EmailConfirmation")]
+        public async Task<IActionResult> SendEmailConfirmationAsync(string guid)
+        {
+            return await _service.SendEmailConfirmationAsync(guid);
+        }
+        [HttpPost("ConfirmEmail")]
+        public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
+        {
+            return await _service.ConfirmEmailAsync(userId, token);
+        }
     }
 }

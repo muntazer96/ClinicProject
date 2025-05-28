@@ -2,13 +2,16 @@
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IUserServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 
@@ -22,9 +25,19 @@ namespace Clinic_Booking.Services.UserServices
         private readonly RoleManager<AspNetRoles> _roleManager;
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IEmailServices _emailServices;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
 
-        public UserServices(UserManager<AspNetUsers> userManager, SignInManager<AspNetUsers> signInManager, RoleManager<AspNetRoles> roleManager, ILoadServices load, ApplicationDbContext context, IConfiguration configuration)
+
+        public UserServices(UserManager<AspNetUsers> userManager,
+            SignInManager<AspNetUsers> signInManager,
+            RoleManager<AspNetRoles> roleManager,
+            ILoadServices load,
+            ApplicationDbContext context,
+            IConfiguration configuration,
+            IEmailServices emailServices,
+            IHttpContextAccessor httpContextAccessor)
         {
             _load = load;
             _userManager = userManager;
@@ -32,6 +45,8 @@ namespace Clinic_Booking.Services.UserServices
             _roleManager = roleManager;
             _context = context;
             _configuration = configuration;
+            _emailServices = emailServices;
+            _httpContextAccessor = httpContextAccessor;
         }
         public async Task<IActionResult> CreateUserAsync(SignUpDto form)
         {
@@ -57,6 +72,7 @@ namespace Clinic_Booking.Services.UserServices
                     UserName = form.PhoneNumber,
                     NormalizedUserName = form.PhoneNumber.ToUpper(),
                     PhoneNumber = form.PhoneNumber,
+                    Email = form.Email,
                     ImageName = "default.png"
                 };
 
@@ -160,7 +176,6 @@ namespace Clinic_Booking.Services.UserServices
                     await _userManager.AccessFailedAsync(user);
 
                     var isLockedOut = await _userManager.IsLockedOutAsync(user);
-                    string message = isLockedOut ? "الحساب مغلق مؤقتًا!" : "كلمة المرور خاطئة!";
 
                     return new UnauthorizedObjectResult(new ResponseDto<string> { Status = "Error", Code = 401, Message = "الحساب مغلق مؤقتاً!" });
 
@@ -186,7 +201,7 @@ namespace Clinic_Booking.Services.UserServices
                 var authClaims = new List<Claim>
                 {
                     new Claim("username", user.UserName),
-                    new Claim("id", user.Id.ToString())
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
                 };
 
                 foreach (var role in userRoles)
@@ -418,7 +433,245 @@ namespace Clinic_Booking.Services.UserServices
                 Data = pagedResult
             });
         }
+        public async Task<IActionResult> UploadImgAsync(IFormFile file)
+        {
+            try
+            {
+                var user = _context.AspNetUsers.Where(d => d.Id == _load.GetCurrentUserId()).FirstOrDefault();
 
+                if (user == null)
+                {
+                    var responseNotFound = new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 404,
+                        Message = "المستخدم غير موجود",
+                        Data = null
+                    };
+                    return new NotFoundObjectResult(responseNotFound)
+                    {
+                        StatusCode = 404
+                    };
+                }
+
+                var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/UserImgProfile");
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/UserImgProfile", fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                if (user.ImageName != "default.png" && File.Exists(folderPath))
+                {
+                    File.Delete(folderPath);
+                }
+
+                user.ImageName = fileName;
+
+                var result = await _userManager.UpdateAsync(user);
+                if (result.Succeeded)
+                {
+                    var successResponse = new ResponseDto<string>
+                    {
+                        Code = 200,
+                        Message = "تم رفع الصورة بنجاح",
+                        Data = null,
+                        Status = "Success"
+                    };
+                    return new OkObjectResult(successResponse);
+                }
+
+                var bdResponse = new ResponseDto<string>
+                {
+                    Code = 400,
+                    Message = "لم يتم رفع الصورة يرجى المحاولة لاحقا",
+                    Data = null,
+                    Status = "Error"
+                };
+
+                return new BadRequestObjectResult(bdResponse);
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update exception: {ex.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message,
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message
+                };
+
+                return new ObjectResult(errorResponse)
+                {
+                    StatusCode = 500
+                };
+            }
+        }
+        public async Task<IActionResult> SendEmailConfirmationAsync(string guid)
+        {
+            var user = await _userManager.FindByIdAsync(guid);
+            if (user == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            var request = _httpContextAccessor.HttpContext.Request;
+            var scheme = request.Scheme;
+            var host = request.Host.Value;
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = $"{scheme}://{host}/api/User/ConfirmEmail?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+
+            // قالب البريد HTML
+            var htmlBody = $@"
+<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }}
+        .email-container {{
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            direction: rtl;
+        }}
+        .header {{
+            background-color: #2a9d8f;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .body {{
+            padding: 30px;
+            color: #333333;
+            line-height: 1.8;
+        }}
+        .body p {{
+            margin: 0 0 15px;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #2a9d8f;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 20px;
+        }}
+        .footer {{
+            padding: 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #999999;
+        }}
+    </style>
+</head>
+<body>
+    <div class='email-container'>
+        <div class='header'>
+            <h1>تأكيد بريدك الإلكتروني</h1>
+        </div>
+        <div class='body'>
+            <p>مرحباً بك في نظام حجز العيادات الإلكترونية،</p>
+            <p>يرجى تأكيد بريدك الإلكتروني لتفعيل حسابك والوصول إلى خدمات النظام.</p>
+            <p style='text-align: center;'>
+                <a href='{confirmationLink}' class='button'>تأكيد البريد</a>
+            </p>
+            <p>إذا لم تقم بإنشاء حساب، يمكنك تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            &copy; 2025 نظام حجز العيادات الإلكترونية. جميع الحقوق محفوظة.
+        </div>
+    </div>
+</body>
+</html>
+";
+
+            await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", htmlBody);
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم إرسال رابط التفعيل إلى بريدك الإلكتروني."
+            });
+        }
+
+        public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود"
+                });
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+            {
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تأكيد البريد الإلكتروني بنجاح"
+                });
+            }
+
+            return new BadRequestObjectResult(new ResponseDto<string>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = "فشل تأكيد البريد الإلكتروني، الرابط غير صالح أو منتهي"
+            });
+        }
         private string GetRoleIdByName(string roleName)
         {
             var role = _context.Roles.FirstOrDefault(r => r.Name == roleName);
