@@ -411,6 +411,38 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
+
+                entity.HasData(new Feature
+                {
+                    Id = 1,
+                    Name = "تفعيل التقييم والردود",
+                    NormalizedName = "ShowReviews",
+                    Description = "",
+                    IsPremiumOnly = true,
+                }, new Feature
+                {
+                    Id = 2,
+                    Name = "تفعيل زر الرسائل",
+                    NormalizedName = "ShowMessages",
+                    Description = "",
+                    IsPremiumOnly = true,
+                },
+                new Feature
+                {
+                    Id = 3,
+                    Name = "تفعيل الحجز الالكتروني",
+                    NormalizedName = "EBooking",
+                    Description = "",
+                    IsPremiumOnly = true,
+                },
+                new Feature
+                {
+                    Id =4,
+                    Name = "تفعيل الدفع الالكتروني",
+                    NormalizedName = "EPayments",
+                    Description = "",
+                    IsPremiumOnly = true,
+                });
             });
 
 
