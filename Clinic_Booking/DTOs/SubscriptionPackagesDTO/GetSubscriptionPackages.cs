@@ -1,9 +1,8 @@
-﻿using Clinic_Booking.Entities.Shared;
-
-namespace Clinic_Booking.Entities.SubscriptionPackage
+﻿namespace Clinic_Booking.DTOs.SubscriptionPackagesDTO
 {
-    public class SubscriptionPackage : BaseEntity<int>
+    public class GetSubscriptionPackages
     {
+        public int Id { get; set; }
         public string Name { get; set; } // اسم الباقة (مجاني، ذهبي، فضي ...)
         public string NormalizedName { get; set; } // اسم الباقة (مجاني، ذهبي، فضي ...)
         public decimal Price { get; set; } // سعر الاشتراك

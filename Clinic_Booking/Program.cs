@@ -1,11 +1,17 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.IServices.IDayServices;
 using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.ISpecializationServices;
+using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.Services.DayServices;
 using Clinic_Booking.Services.EmailServices;
 using Clinic_Booking.Services.LoadServices;
+using Clinic_Booking.Services.SpecializationServices;
+using Clinic_Booking.Services.SubscriptionPackagesServices;
 using Clinic_Booking.Services.UserServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -20,6 +26,10 @@ ConfigurationManager configuration = builder.Configuration;
 // Add services to the container.
 builder.Services.AddScoped<IUserServices, UserServices>();
 builder.Services.AddScoped<ILoadServices, LoadServices>();
+builder.Services.AddScoped<ISubscriptionPackagesServices, SubscriptionPackagesServices>();
+builder.Services.AddScoped<IDayServices, DayServices>();
+builder.Services.AddScoped<ISpecializationServices, SpecializationServices>();
+
 
 builder.Services.AddTransient<IEmailServices, EmailServices>();
 

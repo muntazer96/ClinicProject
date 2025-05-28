@@ -99,6 +99,37 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.HasData(
+    new Specialization { Id = 1, Name = "أخصائي باطنية", NormalizedName = "Internal Medicine Specialist" },
+    new Specialization { Id = 2, Name = "أخصائي أنف وأذن وحنجرة", NormalizedName = "ENT Specialist (Ear, Nose, and Throat)" },
+    new Specialization { Id = 3, Name = "أخصائي قلب", NormalizedName = "Cardiologist" },
+    new Specialization { Id = 4, Name = "أخصائي عيون", NormalizedName = "Ophthalmologist" },
+    new Specialization { Id = 5, Name = "أخصائي جلدية", NormalizedName = "Dermatologist" },
+    new Specialization { Id = 6, Name = "أخصائي أعصاب", NormalizedName = "Neurologist" },
+    new Specialization { Id = 7, Name = "أخصائي جراحة عامة", NormalizedName = "General Surgeon" },
+    new Specialization { Id = 8, Name = "أخصائي جراحة عظام", NormalizedName = "Orthopedic Surgeon" },
+    new Specialization { Id = 9, Name = "أخصائي نسائية وتوليد", NormalizedName = "Obstetrician-Gynecologist (OB-GYN)" },
+    new Specialization { Id = 10, Name = "أخصائي أطفال", NormalizedName = "Pediatrician" },
+    new Specialization { Id = 11, Name = "أخصائي أورام", NormalizedName = "Oncologist" },
+    new Specialization { Id = 12, Name = "أخصائي كلى", NormalizedName = "Nephrologist" },
+    new Specialization { Id = 13, Name = "أخصائي جهاز هضمي", NormalizedName = "Gastroenterologist" },
+    new Specialization { Id = 14, Name = "أخصائي غدد صماء", NormalizedName = "Endocrinologist" },
+    new Specialization { Id = 15, Name = "أخصائي جراحة تجميل", NormalizedName = "Plastic Surgeon" },
+    new Specialization { Id = 16, Name = "أخصائي جراحة دماغ وأعصاب", NormalizedName = "Neurosurgeon" },
+    new Specialization { Id = 17, Name = "أخصائي تخدير", NormalizedName = "Anesthesiologist" },
+    new Specialization { Id = 18, Name = "أخصائي طب الأسرة", NormalizedName = "Family Medicine Specialist" },
+    new Specialization { Id = 19, Name = "أخصائي الطب النفسي", NormalizedName = "Psychiatrist" },
+    new Specialization { Id = 20, Name = "أخصائي أمراض معدية", NormalizedName = "Infectious Disease Specialist" },
+    new Specialization { Id = 21, Name = "أخصائي أشعة", NormalizedName = "Radiologist" },
+    new Specialization { Id = 22, Name = "أخصائي طب طوارئ", NormalizedName = "Emergency Medicine Specialist" },
+    new Specialization { Id = 23, Name = "أخصائي روماتيزم", NormalizedName = "Rheumatologist" },
+    new Specialization { Id = 24, Name = "أخصائي صدرية", NormalizedName = "Pulmonologist" },
+    new Specialization { Id = 25, Name = "أخصائي طب مهني", NormalizedName = "Occupational Medicine Specialist" },
+    new Specialization { Id = 26, Name = "أخصائي طب رياضي", NormalizedName = "Sports Medicine Specialist" },
+    new Specialization { Id = 27, Name = "أخصائي أمراض الدم", NormalizedName = "Hematologist" },
+    new Specialization { Id = 28, Name = "أخصائي علاج طبيعي", NormalizedName = "Physiotherapist" },
+    new Specialization { Id = 29, Name = "أخصائي تغذية", NormalizedName = "Nutritionist" },
+    new Specialization { Id = 30, Name = "أخصائي نطق وتخاطب", NormalizedName = "Speech Therapist" });
             });
 
             // Doctor
@@ -140,6 +171,70 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.HasData(new SubscriptionPackage
+                {
+                    Id = 1,
+                    Name = "أساسي",
+                    NormalizedName = "Basic",
+                    MaxWeeklyDays = 4,
+                    MaxDailyAppointments = 15,
+                    ShowReviews = false,
+                    ShowMessages = false,
+                    MakeOffers = false,
+                    MaxActiveOffers = 0,
+                    EBooking = false,
+                    EPayments = false,
+                    Price = 0,
+                    YearlyPrice = 0,
+
+                }, new SubscriptionPackage
+                {
+                    Id = 2,
+                    Name = "ذهبي",
+                    NormalizedName = "Gold",
+                    MaxWeeklyDays = 5,
+                    MaxDailyAppointments = 25,
+                    ShowReviews = true,
+                    ShowMessages = false,
+                    MakeOffers = false,
+                    MaxActiveOffers = 0,
+                    EBooking = false,
+                    EPayments = false,
+                    Price = 25,
+                    YearlyPrice = 250,
+
+                }, new SubscriptionPackage
+                {
+                    Id = 3,
+                    Name = "ألماس",
+                    NormalizedName = "Diamond ",
+                    MaxWeeklyDays = 6,
+                    MaxDailyAppointments = 35,
+                    ShowReviews = true,
+                    ShowMessages = true,
+                    MakeOffers = true,
+                    MaxActiveOffers = 1,
+                    EBooking = true,
+                    EPayments = true,
+                    Price = 35,
+                    YearlyPrice = 350
+
+                }, new SubscriptionPackage
+                {
+                    Id = 4,
+                    Name = "فاخر",
+                    NormalizedName = "Premium",
+                    MaxWeeklyDays = 7,
+                    MaxDailyAppointments = 1000,
+                    ShowReviews = true,
+                    ShowMessages = true,
+                    MakeOffers = true,
+                    MaxActiveOffers = 2,
+                    EBooking = true,
+                    EPayments = true,
+                    Price = 45,
+                    YearlyPrice = 450
+                });
             });
 
             // DoctorSubscription
@@ -251,6 +346,47 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+                entity.HasData(new Day
+                {
+                    Id = 1,
+                    Name = "السبت",
+                    NormalizedName = "Saturday"
+                }, new Day
+                {
+                    Id = 2,
+                    Name = "الاحد",
+                    NormalizedName = "Sunday"
+                },
+                new Day
+                {
+                    Id = 3,
+                    Name = "الاثنين",
+                    NormalizedName = "Monday"
+                },
+                new Day
+                {
+                    Id = 4,
+                    Name = "الثلاثاء",
+                    NormalizedName = "Tuesday"
+                },
+                new Day
+                {
+                    Id = 5,
+                    Name = "الاربعاء",
+                    NormalizedName = "Wednesday"
+                },
+                new Day
+                {
+                    Id = 6,
+                    Name = "الخميس",
+                    NormalizedName = "Thursday"
+                },
+                new Day
+                {
+                    Id = 7,
+                    Name = "الجمعة",
+                    NormalizedName = "Friday"
+                });
             });
 
             // DoctorAvailability
