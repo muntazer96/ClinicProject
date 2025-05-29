@@ -16,7 +16,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
         {
             _context = context;
         }
-        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync( int page = 1, int pageSize = 10)
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync(SearchDoctorFeatureDto form, int page = 1, int pageSize = 10)
         {
             try
             {
@@ -35,7 +35,12 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
 
                 var query = _context.DoctorFeature
                     .Include(ds => ds.Doctor).ThenInclude(i => i.Specialization)
-                    .Include(ds => ds.Feature);
+                    .Include(ds => ds.Feature)
+                    .Where(d=>!d.IsDeleted)
+                    .Where(d=> form.Id == null || d.Id == form.Id)
+                    .Where(d=> form.DoctorId == null || d.DoctorId == form.DoctorId)
+
+                    ;
 
 
 
@@ -123,6 +128,86 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                     Data = ex.Message
                 });
             }
+        }
+
+        public async Task<IActionResult> ToggleDoctorFeatureAsync(int id)
+        {
+            var doctorFeature = await _context.DoctorFeature
+                .Include(df => df.Doctor)
+                .Include(df => df.Feature)
+                .FirstOrDefaultAsync(df => df.Id == id && !df.IsDeleted);
+
+            if (doctorFeature == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "الميزة غير موجودة!",
+                    Data = null
+                });
+            }
+
+            // Only check on enabling
+            if (!doctorFeature.IsEnabled)
+            {
+                var now = DateTime.UtcNow;
+
+                var activeSubscription = await _context.DoctorSubscriptions
+                    .Include(ds => ds.Package)
+                    .Where(ds => ds.DoctorId == doctorFeature.DoctorId &&
+                                 ds.StartDate <= now && ds.EndDate >= now)
+                    .OrderByDescending(ds => ds.StartDate)
+                    .FirstOrDefaultAsync();
+
+                if (activeSubscription == null)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "لا يوجد اشتراك نشط للطبيب!",
+                        Data = null
+                    });
+                }
+
+                var package = activeSubscription.Package;
+                var normalizedName = doctorFeature.Feature.NormalizedName;
+
+                // Check if the feature is allowed in the current package
+                bool isFeatureAvailable = normalizedName switch
+                {
+                    "ShowReviews" => package.ShowReviews,
+                    "ShowMessages" => package.ShowMessages,
+                    "MakeOffers" => package.MakeOffers,
+                    "EBooking" => package.EBooking,
+                    "EPayments" => package.EPayments,
+                    _ => false
+                };
+
+                if (!isFeatureAvailable)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "الميزة غير متاحة في الاشتراك الحالي!",
+                        Data = null
+                    });
+                }
+            }
+
+            // Toggle the feature
+            doctorFeature.IsEnabled = !doctorFeature.IsEnabled;
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = doctorFeature.IsEnabled ? "تم تفعيل الميزة." : "تم تعطيل الميزة.",
+                Data = null
+            });
         }
 
     }

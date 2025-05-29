@@ -14,9 +14,14 @@ namespace Clinic_Booking.Controllers
             _services = services;
         }
         [HttpGet("GetAll")]
-        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync(int page = 1, int pageSize = 10)
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync([FromQuery]SearchDoctorFeatureDto form,int page = 1, int pageSize = 10)
         {
-            return await _services.GetListAsync(page, pageSize);
+            return await _services.GetListAsync(form,page, pageSize);
+        }
+        [HttpPost("EnableFeature/{id}")]
+        public async Task<IActionResult> ToggleDoctorFeatureAsync(int id)
+        {
+            return await _services.ToggleDoctorFeatureAsync(id);
         }
     }
 }

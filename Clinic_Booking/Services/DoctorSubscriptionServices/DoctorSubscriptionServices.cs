@@ -225,15 +225,12 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                     _ => false
                 };
 
-                if (isEnabled)
+                doctorFeatures.Add(new DoctorFeature
                 {
-                    doctorFeatures.Add(new DoctorFeature
-                    {
-                        DoctorId = form.DoctorId,
-                        FeatureId = feature.Id,
-                        IsEnabled = true
-                    });
-                }
+                    DoctorId = form.DoctorId,
+                    FeatureId = feature.Id,
+                    IsEnabled = isEnabled
+                });
             }
 
             _context.DoctorFeature.AddRange(doctorFeatures);

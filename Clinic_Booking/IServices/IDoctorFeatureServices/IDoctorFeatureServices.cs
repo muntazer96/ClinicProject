@@ -6,6 +6,7 @@ namespace Clinic_Booking.IServices.IDoctorFeatureServices
 {
     public interface IDoctorFeatureServices
     {
-        Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync(int page = 1, int pageSize = 10);
+        Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync(SearchDoctorFeatureDto form,int page = 1, int pageSize = 10);
+        Task<IActionResult> ToggleDoctorFeatureAsync(int id);
     }
 }
