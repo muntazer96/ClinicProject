@@ -2,6 +2,7 @@
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.IServices.IDayServices;
+using Clinic_Booking.IServices.IDoctorFeatureServices;
 using Clinic_Booking.IServices.IDoctorServices;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
 using Clinic_Booking.IServices.IEmailServices;
@@ -11,6 +12,7 @@ using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.Services.DayServices;
+using Clinic_Booking.Services.DoctorFeatureServices;
 using Clinic_Booking.Services.DoctorServices;
 using Clinic_Booking.Services.DoctorSubscriptionServices;
 using Clinic_Booking.Services.EmailServices;
@@ -38,6 +40,7 @@ builder.Services.AddScoped<ISpecializationServices, SpecializationServices>();
 builder.Services.AddScoped<IDoctorServices, DoctorServices>();
 builder.Services.AddScoped<IDoctorSubscriptionServices, DoctorSubscriptionServices>();
 builder.Services.AddScoped<IFeatureServices, FeatureServices>();
+builder.Services.AddScoped<IDoctorFeatureServices, DoctorFeatureServices>();
 
 
 builder.Services.AddTransient<IEmailServices, EmailServices>();

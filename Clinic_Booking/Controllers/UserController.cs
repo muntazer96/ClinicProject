@@ -21,17 +21,17 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.LoginAsync(form);
         }
-        [HttpDelete("DeleteAsync/{id}")]
+        [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> SoftDeleteUserAsync(string id)
         {
             return await _service.SoftDeleteUserAsync(id);
         }
-        [HttpPost("LockAsync/{id}")]
+        [HttpPost("LockA/{id}")]
         public async Task<IActionResult> ToggleUserLockStatusAsync(string id)
         {
             return await _service.ToggleUserLockStatusAsync(id);
         }
-        [HttpGet("GetListAsync")]
+        [HttpGet("GetList")]
         public async Task<IActionResult> GetPaginatedUsersAsync(Guid UserGUID, int page = 1, int pageSize = 10)
         {
             return await _service.GetPaginatedUsersAsync(UserGUID, page, pageSize);

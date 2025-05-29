@@ -18,12 +18,12 @@ namespace Clinic_Booking.Controllers
         {
             return await _services.GetListAsync(form,page, pageSize);
         }
-        [HttpPost("CreateAsync")]
+        [HttpPost("Create")]
         public async Task<IActionResult> AddDoctorAsync(DoctorAddDto form)
         {
             return await _services.AddDoctorAsync(form);
         }
-        [HttpDelete("DeleteAsync/{id}")]
+        [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
             return await _services.DeleteAsync(id);
