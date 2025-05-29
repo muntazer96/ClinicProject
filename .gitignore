@@ -366,6 +366,10 @@ FodyWeavers.xsd
 .idea/
 .vscode/
 /launchSettings.json
-/appsettings.json
+appsettings.json
 
-.png
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.tiff
