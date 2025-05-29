@@ -20,5 +20,7 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         
         public string ImageName { get; set; }
         public DateOnly BirthDay { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Location { get; set; }
     }
 }

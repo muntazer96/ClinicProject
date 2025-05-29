@@ -23,6 +23,11 @@ namespace Clinic_Booking.Controllers
         {
             return await _services.CreateSubscriptionAsync(form);
         }
+        [HttpDelete("Delete/{id}")]
+        public async Task<IActionResult> RemoveSubscriptionAsync(int id)
+        {
+            return await _services.RemoveSubscriptionAsync(id);
+        }
 
     }
 }

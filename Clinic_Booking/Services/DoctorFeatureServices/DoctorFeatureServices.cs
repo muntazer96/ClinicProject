@@ -84,7 +84,9 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                             IraqiProvinceName = ds.Doctor.IraqiProvince.GetDisplayName(),
                             IraqiProvinceNormalizedName = ds.Doctor.IraqiProvince.ToString(),
                             BirthDay = ds.Doctor.BirthDay,
-                            ImageName = ds.Doctor.ImageName
+                            ImageName = ds.Doctor.ImageName,
+                            PhoneNumber = ds.Doctor.PhoneNumber,
+                            Location = ds.Doctor.Location,
                         },
                         Feature = new DTOs.FeatureDTO.GetFeatureDto
                         {

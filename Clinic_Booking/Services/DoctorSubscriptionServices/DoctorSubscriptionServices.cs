@@ -99,7 +99,9 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                             IraqiProvinceName = ds.Doctor.IraqiProvince.GetDisplayName(),
                             IraqiProvinceNormalizedName = ds.Doctor.IraqiProvince.ToString(),
                             BirthDay = ds.Doctor.BirthDay,
-                            ImageName = ds.Doctor.ImageName
+                            ImageName = ds.Doctor.ImageName,
+                            PhoneNumber = ds.Doctor.PhoneNumber,
+                            Location = ds.Doctor.Location,
                         },
                         Package = new GetSubscriptionPackages
                         {
@@ -249,5 +251,61 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 Data = null
             });
         }
+
+        public async Task<IActionResult> RemoveSubscriptionAsync(int id)
+        {
+            var now = DateTime.UtcNow;
+
+            // Get active subscription
+            var subscription = await _context.DoctorSubscriptions
+                .Where(ds => ds.Id == id && ds.StartDate <= now && ds.EndDate >= now)
+                .OrderByDescending(ds => ds.StartDate)
+                .FirstOrDefaultAsync();
+
+            if (subscription == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "لا يوجد اشتراك نشط !",
+                    Data = null
+                });
+            }
+
+            // Option 1: Hard delete the subscription
+            //_context.DoctorSubscriptions.Remove(subscription);
+
+            // Option 2: Mark subscription as expired by setting EndDate in the past
+            subscription.EndDate = now.AddSeconds(-1);
+
+            // Disable all features for this doctor
+            var doctorFeatures = await _context.DoctorFeature
+                .Where(df => df.DoctorId == subscription.DoctorId && !df.IsDeleted)
+                .ToListAsync();
+
+            foreach (var feature in doctorFeatures)
+            {
+                _context.DoctorFeature.Remove(feature);
+            }
+
+            // Optionally reduce subscription rank
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == subscription.DoctorId);
+            if (doctor != null && doctor.SubscriptionRank > 0)
+            {
+                doctor.SubscriptionRank--;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم إلغاء الاشتراك وتعطيل الميزات بنجاح.",
+                Data = null
+            });
+        }
+
     }
 }

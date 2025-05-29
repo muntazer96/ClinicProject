@@ -16,6 +16,8 @@ namespace Clinic_Booking.Entities.Doctor
         public IraqiProvince IraqiProvince { get; set; }
         public string ImageName { get; set; }
         public DateOnly BirthDay { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Location { get; set; }
 
         // مجموع الفترات التي يحددها الدكتور
         public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }

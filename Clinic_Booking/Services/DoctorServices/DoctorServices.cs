@@ -81,7 +81,9 @@ namespace Clinic_Booking.Services.DoctorServices
                         IraqiProvinceName = d.IraqiProvince.GetDisplayName(),
                         IraqiProvinceNormalizedName = d.IraqiProvince.ToString(),
                         BirthDay = d.BirthDay,
-                        ImageName = d.ImageName
+                        ImageName = d.ImageName,
+                        Location = d.Location,
+                        PhoneNumber = d.PhoneNumber,
                     })
                     .ToListAsync();
 
@@ -160,6 +162,8 @@ namespace Clinic_Booking.Services.DoctorServices
                     IraqiProvince = form.IraqiProvince,
                     ImageName = fileName,
                     BirthDay = form.BirthDay,
+                    Location = form.Location,
+                    PhoneNumber = form.PhoneNumber,
                     //CreatorId = _load.GetCurrentUserId(),
                 };
 
@@ -208,6 +212,114 @@ namespace Clinic_Booking.Services.DoctorServices
                 };
             }
         }
+        public async Task<IActionResult> UpdateDoctorAsync(DoctorUpdateDto form)
+        {
+            try
+            {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == form.Id && !d.IsDeleted);
+                if (doctor == null)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 404,
+                        Message = "الدكتور غير موجود!",
+                        Data = null
+                    });
+                }
+
+                // Check for duplicates (excluding the same record)
+                var duplicate = await _context.Doctors.AnyAsync(d =>
+                    d.Id != form.Id &&
+                    d.Name.Contains(form.Name) &&
+                    d.SpecializationId == form.SpecializationId &&
+                    d.BirthDay == form.BirthDay);
+
+                if (duplicate)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "دكتور بنفس المعلومات موجود مسبقًا!",
+                        Data = null
+                    });
+                }
+
+                doctor.Name = form.Name;
+                doctor.NormalizedName = form.NormalizedName;
+                doctor.SpecializationId = form.SpecializationId;
+                doctor.Description = form.Description;
+                doctor.IraqiProvince = form.IraqiProvince;
+                doctor.BirthDay = form.BirthDay;
+                doctor.PhoneNumber = form.PhoneNumber;
+                doctor.Location = form.Location;
+
+                if (form.ImageName != null)
+                {
+                    var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/DoctorImage");
+                    if (!Directory.Exists(folderPath))
+                    {
+                        Directory.CreateDirectory(folderPath);
+                    }
+
+                    // Optionally delete the old image
+                    var oldImagePath = Path.Combine(folderPath, doctor.ImageName ?? "");
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+
+                    var fileName = Guid.NewGuid().ToString() + Path.GetExtension(form.ImageName.FileName);
+                    var filePath = Path.Combine(folderPath, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await form.ImageName.CopyToAsync(stream);
+                    }
+
+                    doctor.ImageName = fileName;
+                }
+
+                _context.Doctors.Update(doctor);
+                await _context.SaveChangesAsync();
+
+                return new OkObjectResult(new ResponseDto<object>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تحديث معلومات الدكتور بنجاح!",
+                    Data = null
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine($"Database update exception: {ex.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message,
+                };
+
+                return new ObjectResult(errorResponse) { StatusCode = 500 };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Unexpected exception: {ex.Message}");
+
+                var errorResponse = new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message
+                };
+
+                return new ObjectResult(errorResponse) { StatusCode = 500 };
+            }
+        }
+
         public async Task<IActionResult> DeleteAsync(int id)
         {
             try
