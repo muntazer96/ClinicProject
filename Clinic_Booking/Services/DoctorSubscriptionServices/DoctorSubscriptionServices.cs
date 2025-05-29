@@ -3,6 +3,7 @@ using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.DoctorSubscriptionDTO;
 using Clinic_Booking.DTOs.SubscriptionPackagesDTO;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.DoctorFeature;
 using Clinic_Booking.Entities.DoctorSubscription;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
@@ -153,8 +154,11 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
 
         public async Task<IActionResult> CreateSubscriptionAsync(DoctorSubscriptionAddDto form)
         {
-            var doctor = await _context.Doctors.Where(d=>d.Id == form.DoctorId && !d.IsDeleted).FirstOrDefaultAsync();
-            if(doctor == null)
+            var doctor = await _context.Doctors
+                .Where(d => d.Id == form.DoctorId && !d.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (doctor == null)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -164,6 +168,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                     Data = null
                 });
             }
+
             var now = DateTime.UtcNow;
 
             bool hasActive = await _context.DoctorSubscriptions
@@ -180,6 +185,20 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 });
             }
 
+            var package = await _context.SubscriptionPackages
+                .FirstOrDefaultAsync(p => p.Id == form.PackageId);
+
+            if (package == null)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "الباقة غير موجودة!",
+                    Data = null
+                });
+            }
+
             var subscription = new DoctorSubscription
             {
                 DoctorId = form.DoctorId,
@@ -189,8 +208,39 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             };
 
             _context.DoctorSubscriptions.Add(subscription);
+
+            // 🔁 Add matching features to DoctorFeature table
+            var features = await _context.Features.ToListAsync();
+            var doctorFeatures = new List<DoctorFeature>();
+
+            foreach (var feature in features)
+            {
+                bool isEnabled = feature.NormalizedName switch
+                {
+                    "ShowReviews" => package.ShowReviews,
+                    "ShowMessages" => package.ShowMessages,
+                    "MakeOffers" => package.MakeOffers,
+                    "EBooking" => package.EBooking,
+                    "EPayments" => package.EPayments,
+                    _ => false
+                };
+
+                if (isEnabled)
+                {
+                    doctorFeatures.Add(new DoctorFeature
+                    {
+                        DoctorId = form.DoctorId,
+                        FeatureId = feature.Id,
+                        IsEnabled = true
+                    });
+                }
+            }
+
+            _context.DoctorFeature.AddRange(doctorFeatures);
+
+            // Update doctor's subscription rank
             var currentRank = doctor.SubscriptionRank;
-            doctor.SubscriptionRank  = currentRank + 1;
+            doctor.SubscriptionRank = currentRank + 1;
 
             await _context.SaveChangesAsync();
 
