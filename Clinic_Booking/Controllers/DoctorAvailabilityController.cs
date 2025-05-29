@@ -1,22 +1,34 @@
 ﻿using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
-
     public class DoctorAvailabilityController : BaseApiController
     {
         private readonly IDoctorAvailabilityServices _services;
+
         public DoctorAvailabilityController(IDoctorAvailabilityServices services)
         {
             _services = services;
         }
-        [HttpPost("Create")]
-        public async Task<IActionResult> SetWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
+
+        [HttpPost]
+        public async Task<IActionResult> CreateOrUpdateWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         {
-            return await _services.SetWeeklyAvailabilityAsync(dto);
+            return await _services.UpsertWeeklyAvailabilityAsync(dto);
+        }
+
+        [HttpGet("{doctorId}")]
+        public async Task<IActionResult> GetWeeklyAvailabilityByDoctorIdAsync(int doctorId)
+        {
+            return await _services.GetWeeklyAvailabilityAsync(doctorId);
+        }
+
+        [HttpPut("single-day")]
+        public async Task<IActionResult> UpdateSingleDayAvailabilityAsync(UpdateSingleDayAvailabilityDto dto)
+        {
+            return await _services.UpdateSingleDayAvailabilityAsync(dto);
         }
     }
 }

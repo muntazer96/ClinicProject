@@ -8,12 +8,15 @@ namespace Clinic_Booking.Controllers
     public class SubscriptionPackagesController : BaseApiController
     {
         private readonly ISubscriptionPackagesServices _service;
+
         public SubscriptionPackagesController(ISubscriptionPackagesServices services)
         {
             _service = services;
         }
-        [HttpGet("GetAll")]
-        public async Task<ActionResult<PaginationDto.PageResult<GetSubscriptionPackages>>> GetListAsync(int page = 1, int pageSize = 10)
+
+        [HttpGet]
+        public async Task<ActionResult<PaginationDto.PageResult<GetSubscriptionPackages>>> GetSubscriptionPackagesAsync(
+            int page = 1, int pageSize = 10)
         {
             return await _service.GetListAsync(page, pageSize);
         }

@@ -5,26 +5,32 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
-
     public class DoctorController : BaseApiController
     {
         private readonly IDoctorServices _services;
-        public DoctorController(IDoctorServices services) 
-        { 
+
+        public DoctorController(IDoctorServices services)
+        {
             _services = services;
         }
-        [HttpGet("GetAll")]
-        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetListAsync([FromQuery]SearchDoctorDto form,int page = 1, int pageSize = 10)
+
+        [HttpGet]
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetDoctorsAsync(
+            [FromQuery] SearchDoctorDto filter,
+            int page = 1,
+            int pageSize = 10)
         {
-            return await _services.GetListAsync(form,page, pageSize);
+            return await _services.GetListAsync(filter, page, pageSize);
         }
-        [HttpPost("Create")]
-        public async Task<IActionResult> AddDoctorAsync(DoctorAddDto form)
+
+        [HttpPost]
+        public async Task<IActionResult> CreateDoctorAsync(DoctorAddDto form)
         {
             return await _services.AddDoctorAsync(form);
         }
-        [HttpDelete("Delete/{id}")]
-        public async Task<IActionResult> DeleteAsync(int id)
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteDoctorAsync(int id)
         {
             return await _services.DeleteAsync(id);
         }

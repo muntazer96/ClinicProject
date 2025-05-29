@@ -5,20 +5,25 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
-
     public class DoctorFeatureController : BaseApiController
     {
         private readonly IDoctorFeatureServices _services;
+
         public DoctorFeatureController(IDoctorFeatureServices services)
         {
             _services = services;
         }
-        [HttpGet("GetAll")]
-        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync([FromQuery]SearchDoctorFeatureDto form,int page = 1, int pageSize = 10)
+
+        [HttpGet]
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetDoctorFeaturesAsync(
+            [FromQuery] SearchDoctorFeatureDto filter,
+            int page = 1,
+            int pageSize = 10)
         {
-            return await _services.GetListAsync(form,page, pageSize);
+            return await _services.GetListAsync(filter, page, pageSize);
         }
-        [HttpPost("EnableFeature/{id}")]
+
+        [HttpPatch("{id}/toggle")]
         public async Task<IActionResult> ToggleDoctorFeatureAsync(int id)
         {
             return await _services.ToggleDoctorFeatureAsync(id);

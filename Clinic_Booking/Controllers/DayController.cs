@@ -11,10 +11,11 @@ namespace Clinic_Booking.Controllers
         {
             _services = services;
         }
-        [HttpGet("GetItems")]
-        public async Task<IActionResult> GetItemsAsync()
+        [HttpGet]
+        public async Task<IActionResult> GetAllDaysAsync()
         {
             return await _services.GetItemsAsync();
         }
+
     }
 }
