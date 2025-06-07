@@ -1,4 +1,5 @@
-﻿using Clinic_Booking.Entities.Shared;
+﻿using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.Shared;
 
 namespace Clinic_Booking.Entities.Review
 {
@@ -12,7 +13,7 @@ namespace Clinic_Booking.Entities.Review
 
         public int Rating { get; set; } // التقييم من 1 إلى 5
         public string Comment { get; set; } // تعليق المستخدم
-
-        public DateTime CreatedAt { get; set; } // وقت إنشاء التقييم
+        public int? AppoinmentId { get; set; }
+        public Appointment.Appointment? Appointment { get; set; }
     }
 }

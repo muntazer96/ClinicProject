@@ -291,6 +291,12 @@ namespace Clinic_Booking.Data
                     .WithMany(d => d.Reviews)
                     .HasForeignKey(r => r.DoctorId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.Appointment)
+                .WithMany()
+                .HasForeignKey(r=>r.AppoinmentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             });
 
             // Message
