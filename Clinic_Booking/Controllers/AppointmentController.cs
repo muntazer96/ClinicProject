@@ -1,4 +1,5 @@
 ﻿using Clinic_Booking.DTOs.AppointmentDTO;
+using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +12,11 @@ namespace Clinic_Booking.Controllers
         public AppointmentController(IAppointmentServices service)
         {
             _service = service;
+        }
+        [HttpGet("GetListAsync")]
+        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(SearchAppointmentDto form, int page = 1, int pageSize = 10)
+        {
+            return await _service.GetListAsync(form, page, pageSize);
         }
         [HttpGet]
         public async Task<IActionResult> GetAppointmentsAsync([FromQuery]SearchAppointmentDto form)

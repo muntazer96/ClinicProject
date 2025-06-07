@@ -19,6 +19,107 @@ namespace Clinic_Booking.Services.AppointmentServices
             _context = context;
             _load = load;
         }
+        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(SearchAppointmentDto form, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page <= 0 || pageSize <= 0)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "قيم الصفحة أو الحجم غير صحيحة.",
+                        Data = null
+                    });
+                }
+                var query = _context.Appointments
+                    .Include(i=>i.Doctor)
+                    .Include(i=>i.User)
+    .Where(d => !d.IsDeleted)
+    //.Where(d => form.Specialization == null || d.SpecializationId == form.Specialization)
+    //.Where(d => form.IraqiProvince == null || d.IraqiProvince == form.IraqiProvince)
+    .Where(d => form.Id == null || d.Id == form.Id);
+
+                //if (!string.IsNullOrWhiteSpace(form.Name))
+                //{
+                //    query = query.Where(d => d.Name.Contains(form.Name) || d.NormalizedName.Contains(form.Name));
+                //}
+
+
+                var totalItems = await query.CountAsync();
+
+                if (totalItems == 0)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Not Found",
+                        Code = 404,
+                        Message = "لا توجد بيانات للعرض!",
+                        Data = null
+                    });
+                }
+
+                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+                var docs = await query
+                    .OrderBy(d => d.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(d => new GetApponitmentDto
+                    {
+                        Id = d.Id,
+                        User = new DTOs.ReviewDTO.GetUserReivew
+                        {
+                            Id = d.UserId,
+                            Name = d.User.Name,
+                            NormalizedName = d.User.NormalizedUserName
+                        },
+                        Doctor = new DTOs.ReviewDTO.GetDoctorReview
+                        {
+                            Id = d.Doctor.Id,
+                            Name = d.Doctor.Name,
+                            NormalizedName = d.Doctor.NormalizedName
+                        },
+                        AppointmentDate = d.AppointmentDate,
+                        Status = d.Status,
+                        PaymentStatus = d.PaymentStatus,
+                        PaymentAmount = d.PaymentAmount
+                    })
+                    .ToListAsync();
+
+                var result = new PaginationDto.PageResult<GetApponitmentDto>(docs, totalItems, totalPages, page, pageSize);
+
+                return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<GetApponitmentDto>>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم جلب البيانات بنجاح!",
+                    Data = result
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "خطأ في قاعدة البيانات!",
+                    Data = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ غير متوقع!",
+                    Data = ex.Message
+                });
+            }
+        }
+
         public async Task<IActionResult> GetAppointmentsAsync(SearchAppointmentDto form)
         {
             var query = _context.Appointments

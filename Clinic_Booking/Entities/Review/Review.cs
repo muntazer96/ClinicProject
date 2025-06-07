@@ -1,5 +1,4 @@
-﻿using Clinic_Booking.Entities.Appointment;
-using Clinic_Booking.Entities.Shared;
+﻿using Clinic_Booking.Entities.Shared;
 
 namespace Clinic_Booking.Entities.Review
 {
