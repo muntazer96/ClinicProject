@@ -23,7 +23,7 @@ namespace Clinic_Booking.Controllers
             return await _services.GetListAsync(filter, page, pageSize);
         }
 
-        [HttpPatch("{id}/toggle")]
+        [HttpPost("{id}/toggle")]
         public async Task<IActionResult> ToggleDoctorFeatureAsync(int id)
         {
             return await _services.ToggleDoctorFeatureAsync(id);

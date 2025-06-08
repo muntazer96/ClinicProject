@@ -1,9 +1,9 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
 using Clinic_Booking.DTOs.UserDTO;
-using Clinic_Booking.Entities.Day;
 using Clinic_Booking.Entities.DoctorAvailability;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
+using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +12,11 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
     public class DoctorAvailabilityService : IDoctorAvailabilityServices
     {
         private readonly ApplicationDbContext _context;
-        public DoctorAvailabilityService(ApplicationDbContext context)
+        private readonly ILoadServices _load;
+        public DoctorAvailabilityService(ApplicationDbContext context,ILoadServices load)
         {
             _context = context;
+            _load = load;
         }
         //public async Task<IActionResult> SetWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         //{
@@ -217,6 +219,8 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                     existing.EndTime = day.EndTime;
                     existing.MaxAppointments = day.MaxAppointments;
                     existing.IsAvailable = true;
+                    existing.ModifierId = _load.GetCurrentUserId();
+                    existing.ModifiedAt = DateTime.UtcNow;
                 }
                 else
                 {
@@ -228,7 +232,8 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                         StartTime = day.StartTime,
                         EndTime = day.EndTime,
                         MaxAppointments = day.MaxAppointments,
-                        IsAvailable = true
+                        IsAvailable = true,
+                        CreatorId = _load.GetCurrentUserId(),
                     };
                     _context.DoctorAvailabilities.Add(newAvailability);
                 }
@@ -379,6 +384,8 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             availability.EndTime = dto.EndTime;
             availability.MaxAppointments = dto.MaxAppointments;
             availability.IsAvailable = dto.IsAvailable;
+            availability.ModifierId = _load.GetCurrentUserId();
+            availability.ModifiedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 

@@ -198,7 +198,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             // اسم اليوم الموحد (يُفضل تحويله للـ UpperInvariant للتطابق مع NormalizedName)
-            var dayName = form.AppointmentDate.DayOfWeek.ToString().ToUpperInvariant();
+            var dayName = form.AppointmentDate.DayOfWeek.ToString();
 
             var day = await _context.Days
                 .Where(d => d.NormalizedName == dayName)
@@ -267,6 +267,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            string uniqueCode;
+            do
+            {
+                uniqueCode = GenerateRandomCode();
+            } while (await _context.Appointments.AnyAsync(a => a.Code == uniqueCode));
+
             var newAppointment = new Appointment
             {
                 UserId = userId,
@@ -274,7 +280,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                 AppointmentDate = form.AppointmentDate,
                 Status = AppointmentStatus.Pending,
                 PaymentStatus = PaymentStatus.Pending,
-                PaymentAmount = null
+                PaymentAmount = null,
+                CreatorId = userId,
+                Code = uniqueCode // ✅ Assign the generated code
+
             };
 
             _context.Appointments.Add(newAppointment);
@@ -285,7 +294,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Status = "Success",
                 Code = 200,
                 Message = "تم إنشاء الحجز بنجاح.",
-                Data = new { AppointmentId = newAppointment.Id }
+                Data = new { AppointmentId = newAppointment.Id , Code = newAppointment.Code }
             });
         }
         public async Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId)
@@ -323,7 +332,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             {
                 appointment.Status = AppointmentStatus.Confirmed;
             }
-
+            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>
@@ -362,6 +372,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             appointment.Status = AppointmentStatus.Completed;
+            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifierId = _load.GetCurrentUserId() ;
 
             await _context.SaveChangesAsync();
 
@@ -372,6 +384,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Message = "تم تحديث حالة الحجز إلى مكتمل.",
                 Data = null
             });
+        }
+        private static string GenerateRandomCode(int length = 6)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
     }

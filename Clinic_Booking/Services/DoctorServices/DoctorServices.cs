@@ -164,7 +164,7 @@ namespace Clinic_Booking.Services.DoctorServices
                     BirthDay = form.BirthDay,
                     Location = form.Location,
                     PhoneNumber = form.PhoneNumber,
-                    //CreatorId = _load.GetCurrentUserId(),
+                    CreatorId = _load.GetCurrentUserId(),
                 };
 
                 _context.Doctors.Add(doctor);
@@ -254,6 +254,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 doctor.BirthDay = form.BirthDay;
                 doctor.PhoneNumber = form.PhoneNumber;
                 doctor.Location = form.Location;
+                doctor.ModifierId = _load.GetCurrentUserId();
+                doctor.ModifiedAt = DateTime.Now;
 
                 if (form.ImageName != null)
                 {
@@ -328,7 +330,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 if(doctor != null)
                 {
                     doctor.IsDeleted = true;
-                    //doctor.DeleterId = _load.GetCurrentUserId();
+                    doctor.DeleterId = _load.GetCurrentUserId();
                     doctor.DeletedAt = DateTime.Now;
                     _context.Doctors.Update(doctor);
                     await _context.SaveChangesAsync();

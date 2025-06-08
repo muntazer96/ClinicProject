@@ -63,7 +63,8 @@ namespace Clinic_Booking.Services.ReviewServices
                     UserId = (Guid)userId,
                     Rating = form.Rating,
                     Comment = form.Comment,
-                    AppoinmentId = form.AppointmentId
+                    AppoinmentId = form.AppointmentId,
+                    CreatorId = userId
                 };
 
                 _context.Reviews.Add(review);

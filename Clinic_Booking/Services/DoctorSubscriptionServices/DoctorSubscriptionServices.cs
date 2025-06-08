@@ -7,6 +7,7 @@ using Clinic_Booking.Entities.DoctorFeature;
 using Clinic_Booking.Entities.DoctorSubscription;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
+using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,9 +16,11 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
     public class DoctorSubscriptionServices : IDoctorSubscriptionServices
     {
         private readonly ApplicationDbContext _context;
-        public DoctorSubscriptionServices(ApplicationDbContext context)
+        private readonly ILoadServices _load;
+        public DoctorSubscriptionServices(ApplicationDbContext context,ILoadServices load)
         {
             _context = context;
+            _load = load;
         }
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorSubscriptionDto>>> GetListAsync(SearchDoctorSubscriptionDto form,int page = 1, int pageSize = 10)
         {
@@ -206,7 +209,8 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 DoctorId = form.DoctorId,
                 PackageId = form.PackageId,
                 StartDate = now,
-                EndDate = now.AddMonths(1)
+                EndDate = now.AddMonths(1),
+                CreatorId = _load.GetCurrentUserId(),
             };
 
             _context.DoctorSubscriptions.Add(subscription);
@@ -231,7 +235,8 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 {
                     DoctorId = form.DoctorId,
                     FeatureId = feature.Id,
-                    IsEnabled = isEnabled
+                    IsEnabled = isEnabled,
+                    CreatorId = _load.GetCurrentUserId()
                 });
             }
 

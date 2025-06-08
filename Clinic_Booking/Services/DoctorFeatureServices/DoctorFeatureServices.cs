@@ -4,6 +4,7 @@ using Clinic_Booking.DTOs.DoctorFeatureDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IDoctorFeatureServices;
+using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +13,11 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
     public class DoctorFeatureServices : IDoctorFeatureServices
     {
         private readonly ApplicationDbContext _context;
-        public DoctorFeatureServices(ApplicationDbContext context)
+        private readonly ILoadServices _load;
+        public DoctorFeatureServices(ApplicationDbContext context , ILoadServices load)
         {
             _context = context;
+            _load = load;
         }
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorFeatureDto>>> GetListAsync(SearchDoctorFeatureDto form, int page = 1, int pageSize = 10)
         {
@@ -201,6 +204,8 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
 
             // Toggle the feature
             doctorFeature.IsEnabled = !doctorFeature.IsEnabled;
+            doctorFeature.ModifiedAt = DateTime.UtcNow;
+            doctorFeature.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>

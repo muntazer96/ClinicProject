@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Clinic_Booking.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250526082152_addDataToRole")]
-    partial class addDataToRole
+    [Migration("20250608192227_addCodeForApp")]
+    partial class addCodeForApp
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,17 +36,21 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime>("AppointmentDate")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
@@ -57,8 +61,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal?>("PaymentAmount")
                         .HasColumnType("numeric");
@@ -92,14 +96,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -107,17 +111,79 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.ToTable("Days");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5856),
+                            IsDeleted = false,
+                            Name = "السبت",
+                            NormalizedName = "Saturday"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5865),
+                            IsDeleted = false,
+                            Name = "الاحد",
+                            NormalizedName = "Sunday"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5866),
+                            IsDeleted = false,
+                            Name = "الاثنين",
+                            NormalizedName = "Monday"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5867),
+                            IsDeleted = false,
+                            Name = "الثلاثاء",
+                            NormalizedName = "Tuesday"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5868),
+                            IsDeleted = false,
+                            Name = "الاربعاء",
+                            NormalizedName = "Wednesday"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5869),
+                            IsDeleted = false,
+                            Name = "الخميس",
+                            NormalizedName = "Thursday"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(5870),
+                            IsDeleted = false,
+                            Name = "الجمعة",
+                            NormalizedName = "Friday"
+                        });
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Doctor.Doctor", b =>
@@ -128,35 +194,55 @@ namespace Clinic_Booking.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateOnly>("BirthDay")
+                        .HasColumnType("date");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ImageName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("IraqiProvince")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
 
                     b.Property<int>("SpecializationId")
                         .HasColumnType("integer");
@@ -182,8 +268,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DayId")
                         .HasColumnType("integer");
@@ -191,8 +277,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
@@ -212,8 +298,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("interval");
@@ -238,14 +324,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
@@ -262,8 +348,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -285,14 +371,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
@@ -306,8 +392,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("PackageId")
                         .HasColumnType("integer");
@@ -335,14 +421,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -356,17 +442,63 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.ToTable("Features");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(8282),
+                            Description = "",
+                            IsDeleted = false,
+                            IsPremiumOnly = true,
+                            Name = "تفعيل التقييم والردود",
+                            NormalizedName = "ShowReviews"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(8289),
+                            Description = "",
+                            IsDeleted = false,
+                            IsPremiumOnly = true,
+                            Name = "تفعيل زر الرسائل",
+                            NormalizedName = "ShowMessages"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(8291),
+                            Description = "",
+                            IsDeleted = false,
+                            IsPremiumOnly = true,
+                            Name = "تفعيل الحجز الالكتروني",
+                            NormalizedName = "EBooking"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 605, DateTimeKind.Local).AddTicks(8292),
+                            Description = "",
+                            IsDeleted = false,
+                            IsPremiumOnly = true,
+                            Name = "تفعيل الدفع الالكتروني",
+                            NormalizedName = "EPayments"
+                        });
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Message.Message", b =>
@@ -384,14 +516,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -399,8 +531,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ReceiverId")
                         .HasColumnType("integer");
@@ -434,14 +566,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("DoctorId")
                         .HasColumnType("integer");
@@ -456,8 +588,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -491,14 +623,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -506,8 +638,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("PaidAt")
                         .HasColumnType("timestamp without time zone");
@@ -533,14 +665,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("InvitedDoctorId")
                         .HasColumnType("integer");
@@ -554,8 +686,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("ReferredAt")
                         .HasColumnType("timestamp without time zone");
@@ -577,21 +709,24 @@ namespace Clinic_Booking.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AppoinmentId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Comment")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("integer");
@@ -602,8 +737,8 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
@@ -612,6 +747,8 @@ namespace Clinic_Booking.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppoinmentId");
 
                     b.HasIndex("DoctorId");
 
@@ -670,24 +807,24 @@ namespace Clinic_Booking.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("83f61553-5ad6-4242-9c16-2a5d281a79ca"),
-                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8629),
+                            Id = new Guid("00a49b8c-dfef-4d6a-aa52-9d872936b523"),
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3160),
                             IsDeleted = false,
                             Name = "SuperAdmin",
                             NormalizedName = "SUPERADMIN"
                         },
                         new
                         {
-                            Id = new Guid("b5a131d7-9b5a-41bd-9c78-8eb92e5856c9"),
-                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8713),
+                            Id = new Guid("fb2757cc-fe02-478a-9a49-7103566879eb"),
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3184),
                             IsDeleted = false,
                             Name = "NormalUser",
                             NormalizedName = "NORMALUSER"
                         },
                         new
                         {
-                            Id = new Guid("46b60ee5-b2d9-457e-845c-6eb032217d2b"),
-                            CreatedAt = new DateTime(2025, 5, 26, 11, 21, 52, 184, DateTimeKind.Local).AddTicks(8716),
+                            Id = new Guid("8babf235-ca0b-4e0f-a645-f8e97d659598"),
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3186),
                             IsDeleted = false,
                             Name = "DoctorUser",
                             NormalizedName = "DOCTORUSER"
@@ -705,14 +842,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -720,17 +857,263 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.ToTable("Specializations");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3764),
+                            IsDeleted = false,
+                            Name = "أخصائي باطنية",
+                            NormalizedName = "Internal Medicine Specialist"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3767),
+                            IsDeleted = false,
+                            Name = "أخصائي أنف وأذن وحنجرة",
+                            NormalizedName = "ENT Specialist (Ear, Nose, and Throat)"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3768),
+                            IsDeleted = false,
+                            Name = "أخصائي قلب",
+                            NormalizedName = "Cardiologist"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3770),
+                            IsDeleted = false,
+                            Name = "أخصائي عيون",
+                            NormalizedName = "Ophthalmologist"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3771),
+                            IsDeleted = false,
+                            Name = "أخصائي جلدية",
+                            NormalizedName = "Dermatologist"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3771),
+                            IsDeleted = false,
+                            Name = "أخصائي أعصاب",
+                            NormalizedName = "Neurologist"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3772),
+                            IsDeleted = false,
+                            Name = "أخصائي جراحة عامة",
+                            NormalizedName = "General Surgeon"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3773),
+                            IsDeleted = false,
+                            Name = "أخصائي جراحة عظام",
+                            NormalizedName = "Orthopedic Surgeon"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3774),
+                            IsDeleted = false,
+                            Name = "أخصائي نسائية وتوليد",
+                            NormalizedName = "Obstetrician-Gynecologist (OB-GYN)"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3775),
+                            IsDeleted = false,
+                            Name = "أخصائي أطفال",
+                            NormalizedName = "Pediatrician"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3776),
+                            IsDeleted = false,
+                            Name = "أخصائي أورام",
+                            NormalizedName = "Oncologist"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3777),
+                            IsDeleted = false,
+                            Name = "أخصائي كلى",
+                            NormalizedName = "Nephrologist"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3778),
+                            IsDeleted = false,
+                            Name = "أخصائي جهاز هضمي",
+                            NormalizedName = "Gastroenterologist"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3779),
+                            IsDeleted = false,
+                            Name = "أخصائي غدد صماء",
+                            NormalizedName = "Endocrinologist"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3780),
+                            IsDeleted = false,
+                            Name = "أخصائي جراحة تجميل",
+                            NormalizedName = "Plastic Surgeon"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3781),
+                            IsDeleted = false,
+                            Name = "أخصائي جراحة دماغ وأعصاب",
+                            NormalizedName = "Neurosurgeon"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3782),
+                            IsDeleted = false,
+                            Name = "أخصائي تخدير",
+                            NormalizedName = "Anesthesiologist"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3782),
+                            IsDeleted = false,
+                            Name = "أخصائي طب الأسرة",
+                            NormalizedName = "Family Medicine Specialist"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3783),
+                            IsDeleted = false,
+                            Name = "أخصائي الطب النفسي",
+                            NormalizedName = "Psychiatrist"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3784),
+                            IsDeleted = false,
+                            Name = "أخصائي أمراض معدية",
+                            NormalizedName = "Infectious Disease Specialist"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3785),
+                            IsDeleted = false,
+                            Name = "أخصائي أشعة",
+                            NormalizedName = "Radiologist"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3786),
+                            IsDeleted = false,
+                            Name = "أخصائي طب طوارئ",
+                            NormalizedName = "Emergency Medicine Specialist"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3787),
+                            IsDeleted = false,
+                            Name = "أخصائي روماتيزم",
+                            NormalizedName = "Rheumatologist"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3788),
+                            IsDeleted = false,
+                            Name = "أخصائي صدرية",
+                            NormalizedName = "Pulmonologist"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3789),
+                            IsDeleted = false,
+                            Name = "أخصائي طب مهني",
+                            NormalizedName = "Occupational Medicine Specialist"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3790),
+                            IsDeleted = false,
+                            Name = "أخصائي طب رياضي",
+                            NormalizedName = "Sports Medicine Specialist"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3791),
+                            IsDeleted = false,
+                            Name = "أخصائي أمراض الدم",
+                            NormalizedName = "Hematologist"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3791),
+                            IsDeleted = false,
+                            Name = "أخصائي علاج طبيعي",
+                            NormalizedName = "Physiotherapist"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3792),
+                            IsDeleted = false,
+                            Name = "أخصائي تغذية",
+                            NormalizedName = "Nutritionist"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 602, DateTimeKind.Local).AddTicks(3793),
+                            IsDeleted = false,
+                            Name = "أخصائي نطق وتخاطب",
+                            NormalizedName = "Speech Therapist"
+                        });
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.SubscriptionPackage.SubscriptionPackage", b =>
@@ -744,17 +1127,29 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("CreatorId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("DeleterId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EBooking")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EPayments")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("MakeOffers")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxActiveOffers")
+                        .HasColumnType("integer");
 
                     b.Property<int>("MaxDailyAppointments")
                         .HasColumnType("integer");
@@ -765,23 +1160,107 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ModifierId")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
+
+                    b.Property<bool>("ShowMessages")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("ShowReviews")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal>("YearlyPrice")
+                        .HasColumnType("numeric");
+
                     b.HasKey("Id");
 
                     b.ToTable("SubscriptionPackages");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 603, DateTimeKind.Local).AddTicks(5324),
+                            EBooking = false,
+                            EPayments = false,
+                            IsDeleted = false,
+                            MakeOffers = false,
+                            MaxActiveOffers = 0,
+                            MaxDailyAppointments = 15,
+                            MaxWeeklyDays = 4,
+                            Name = "أساسي",
+                            NormalizedName = "Basic",
+                            Price = 0m,
+                            ShowMessages = false,
+                            ShowReviews = false,
+                            YearlyPrice = 0m
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 603, DateTimeKind.Local).AddTicks(5334),
+                            EBooking = false,
+                            EPayments = false,
+                            IsDeleted = false,
+                            MakeOffers = false,
+                            MaxActiveOffers = 0,
+                            MaxDailyAppointments = 25,
+                            MaxWeeklyDays = 5,
+                            Name = "ذهبي",
+                            NormalizedName = "Gold",
+                            Price = 25m,
+                            ShowMessages = false,
+                            ShowReviews = true,
+                            YearlyPrice = 250m
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 603, DateTimeKind.Local).AddTicks(5339),
+                            EBooking = true,
+                            EPayments = true,
+                            IsDeleted = false,
+                            MakeOffers = true,
+                            MaxActiveOffers = 1,
+                            MaxDailyAppointments = 35,
+                            MaxWeeklyDays = 6,
+                            Name = "ألماس",
+                            NormalizedName = "Diamond ",
+                            Price = 35m,
+                            ShowMessages = true,
+                            ShowReviews = true,
+                            YearlyPrice = 350m
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2025, 6, 8, 22, 22, 25, 603, DateTimeKind.Local).AddTicks(5341),
+                            EBooking = true,
+                            EPayments = true,
+                            IsDeleted = false,
+                            MakeOffers = true,
+                            MaxActiveOffers = 2,
+                            MaxDailyAppointments = 1000,
+                            MaxWeeklyDays = 7,
+                            Name = "فاخر",
+                            NormalizedName = "Premium",
+                            Price = 45m,
+                            ShowMessages = true,
+                            ShowReviews = true,
+                            YearlyPrice = 450m
+                        });
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.User.AspNetUsers", b =>
@@ -821,6 +1300,15 @@ namespace Clinic_Booking.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFirstLogin")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastLoginDate")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -882,16 +1370,20 @@ namespace Clinic_Booking.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("ed02984f-0dfd-4520-8a47-1a8f4bbf76e1"),
+                            Id = new Guid("65afe713-0f8f-4822-aed3-5df510502f1a"),
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "0d45bd5c-9dd1-4f3c-a8d6-b3bc7b030dd2",
-                            CreatedAt = new DateTime(2025, 5, 26, 8, 21, 52, 144, DateTimeKind.Utc).AddTicks(2746),
+                            ConcurrencyStamp = "3fbabba7-7ae9-40e5-8e6f-22f47341ad7f",
+                            CreatedAt = new DateTime(2025, 6, 8, 19, 22, 25, 540, DateTimeKind.Utc).AddTicks(9375),
                             EmailConfirmed = false,
                             IsDeleted = false,
+                            IsFirstLogin = true,
+                            IsLocked = false,
+                            LastLoginDate = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             LockoutEnabled = false,
                             NormalizedUserName = "SUPARADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMvJ0KGHDGWxET+Fx9/gZRmrEgfEVroqtP8TEhnZMRqS1lAYp+mgW33fcSX4uQu8+Q==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJNUOOV63KkXWy3NNLrwpS2acmSKFc5MCd7SPxSCVQIwFdwqk6jvPF5PDAOCPoW26g==",
                             PhoneNumberConfirmed = false,
+                            SecurityStamp = "4d5423af-e08c-426a-99f6-0e20fe23eb86",
                             TwoFactorEnabled = false,
                             UserName = "superadmin"
                         });
@@ -1155,6 +1647,11 @@ namespace Clinic_Booking.Migrations
 
             modelBuilder.Entity("Clinic_Booking.Entities.Review.Review", b =>
                 {
+                    b.HasOne("Clinic_Booking.Entities.Appointment.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppoinmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
                         .WithMany("Reviews")
                         .HasForeignKey("DoctorId")
@@ -1166,6 +1663,8 @@ namespace Clinic_Booking.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Appointment");
 
                     b.Navigation("Doctor");
 
