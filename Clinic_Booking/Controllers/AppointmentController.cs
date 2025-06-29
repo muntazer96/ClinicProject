@@ -14,12 +14,12 @@ namespace Clinic_Booking.Controllers
             _service = service;
         }
         [HttpGet("GetListAsync")]
-        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(SearchAppointmentDto form, int page = 1, int pageSize = 10)
+        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync([FromQuery] SearchAppointmentDto form, int page = 1, int pageSize = 10)
         {
             return await _service.GetListAsync(form, page, pageSize);
         }
         [HttpGet]
-        public async Task<IActionResult> GetAppointmentsAsync([FromQuery]SearchAppointmentDto form)
+        public async Task<IActionResult> GetAppointmentsAsync([FromQuery] SearchAppointmentDto form)
         {
             return await _service.GetAppointmentsAsync(form);
         }
@@ -29,7 +29,7 @@ namespace Clinic_Booking.Controllers
             return await _service.CreateAppointmentAsync(form);
         }
         [HttpPost("toggle-status")]
-        public async Task<IActionResult> ToggleAppointmentStatusAsync([FromBody]int appointmentId)
+        public async Task<IActionResult> ToggleAppointmentStatusAsync([FromQuery] int appointmentId)
         {
             return await _service.ToggleAppointmentStatusAsync(appointmentId);
         }
