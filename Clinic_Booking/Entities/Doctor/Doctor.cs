@@ -19,8 +19,8 @@ namespace Clinic_Booking.Entities.Doctor
         public string? PhoneNumber { get; set; }
         public string? Location { get; set; }
 
-        // مجموع الفترات التي يحددها الدكتور
-        public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }
+        // العيادات التابعة للطبيب، ولكل عيادة عنوان وجدول مستقل
+        public ICollection<Clinic.Clinic> Clinics { get; set; }
 
         // مراجعات المرضى عن الدكتور
         public ICollection<Review.Review> Reviews { get; set; }

@@ -3,6 +3,7 @@
     public class GetDoctorDayAvailabilityDto
     {
         public int Id { get; set; }
+        public int ClinicId { get; set; }
         public int DayId { get; set; } // رقم اليوم من الأسبوع
         public string DayName { get; set; } // اسم اليوم (اختياري)
         public string DayNormailzedName { get; set; }

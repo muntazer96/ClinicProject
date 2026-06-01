@@ -37,6 +37,18 @@ namespace Clinic_Booking.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ClinicId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -55,6 +67,15 @@ namespace Clinic_Booking.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPhoneConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("GuestName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GuestPhoneNumber")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -64,22 +85,100 @@ namespace Clinic_Booking.Migrations
                     b.Property<decimal?>("PaymentAmount")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
                     b.Property<int>("PaymentStatus")
                         .HasColumnType("integer");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<int>("QueueNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
 
+                    b.HasIndex("ClinicId", "AppointmentDate", "QueueNumber")
+                        .IsUnique();
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Appointments");
+                });
+
+            modelBuilder.Entity("Clinic_Booking.Entities.Clinic.Clinic", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IraqiProvince")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("numeric(9,6)");
+
+                    b.Property<string>("MapUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("Clinics");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Day.Day", b =>
@@ -277,7 +376,7 @@ namespace Clinic_Booking.Migrations
                     b.Property<Guid?>("DeleterId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("DoctorId")
+                    b.Property<int>("ClinicId")
                         .HasColumnType("integer");
 
                     b.Property<TimeSpan>("EndTime")
@@ -305,7 +404,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("DayId");
 
-                    b.HasIndex("DoctorId");
+                    b.HasIndex("ClinicId");
 
                     b.ToTable("DoctorAvailabilities");
                 });
@@ -1491,6 +1590,12 @@ namespace Clinic_Booking.Migrations
 
             modelBuilder.Entity("Clinic_Booking.Entities.Appointment.Appointment", b =>
                 {
+                    b.HasOne("Clinic_Booking.Entities.Clinic.Clinic", "Clinic")
+                        .WithMany("Appointments")
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
                         .WithMany()
                         .HasForeignKey("DoctorId")
@@ -1500,12 +1605,24 @@ namespace Clinic_Booking.Migrations
                     b.HasOne("Clinic_Booking.Entities.User.AspNetUsers", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
 
                     b.Navigation("Doctor");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Clinic_Booking.Entities.Clinic.Clinic", b =>
+                {
+                    b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
+                        .WithMany("Clinics")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Doctor.Doctor", b =>
@@ -1527,15 +1644,15 @@ namespace Clinic_Booking.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
+                    b.HasOne("Clinic_Booking.Entities.Clinic.Clinic", "Clinic")
                         .WithMany("Availabilities")
-                        .HasForeignKey("DoctorId")
+                        .HasForeignKey("ClinicId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Day");
+                    b.Navigation("Clinic");
 
-                    b.Navigation("Doctor");
+                    b.Navigation("Day");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.DoctorFeature.DoctorFeature", b =>
@@ -1721,7 +1838,7 @@ namespace Clinic_Booking.Migrations
 
             modelBuilder.Entity("Clinic_Booking.Entities.Doctor.Doctor", b =>
                 {
-                    b.Navigation("Availabilities");
+                    b.Navigation("Clinics");
 
                     b.Navigation("DoctorFeatures");
 
@@ -1732,6 +1849,13 @@ namespace Clinic_Booking.Migrations
                     b.Navigation("ReceivedMessages");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Clinic_Booking.Entities.Clinic.Clinic", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Availabilities");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.Feature.Feature", b =>

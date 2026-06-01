@@ -2,7 +2,7 @@
 {
     public class AddDoctorAvailabilityDto
     {
-        public int DoctorId { get; set; }
+        public int ClinicId { get; set; }
 
         public List<DailyAvailabilityDto> Days { get; set; }
     }

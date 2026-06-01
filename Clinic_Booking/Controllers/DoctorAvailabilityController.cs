@@ -19,10 +19,10 @@ namespace Clinic_Booking.Controllers
             return await _services.UpsertWeeklyAvailabilityAsync(dto);
         }
 
-        [HttpGet("{doctorId}")]
-        public async Task<IActionResult> GetWeeklyAvailabilityByDoctorIdAsync(int doctorId)
+        [HttpGet("{clinicId}")]
+        public async Task<IActionResult> GetWeeklyAvailabilityByClinicIdAsync(int clinicId)
         {
-            return await _services.GetWeeklyAvailabilityAsync(doctorId);
+            return await _services.GetWeeklyAvailabilityAsync(clinicId);
         }
 
         [HttpPut("single-day")]

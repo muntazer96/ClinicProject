@@ -125,18 +125,18 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
         //}
         public async Task<IActionResult> UpsertWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         {
-            var doctor = await _context.Doctors
-                .Include(d => d.DoctorSubscriptions)
-                .Where(d => d.Id == dto.DoctorId && !d.IsDeleted)
+            var clinic = await _context.Clinics
+                .Include(c => c.Doctor)
+                .Where(c => c.Id == dto.ClinicId && !c.IsDeleted && !c.Doctor.IsDeleted)
                 .FirstOrDefaultAsync();
 
-            if (doctor == null)
+            if (clinic == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 404,
-                    Message = "الدكتور غير موجود.",
+                    Message = "العيادة غير موجودة.",
                     Data = null
                 });
             }
@@ -145,7 +145,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
-                .Where(ds => ds.DoctorId == dto.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
+                .Where(ds => ds.DoctorId == clinic.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
                 .OrderByDescending(ds => ds.StartDate)
                 .FirstOrDefaultAsync();
 
@@ -199,7 +199,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             }
 
             var existingAvailabilities = await _context.DoctorAvailabilities
-                .Where(a => a.DoctorId == dto.DoctorId)
+                .Where(a => a.ClinicId == dto.ClinicId)
                 .ToListAsync();
 
             var incomingDayIds = dto.Days.Select(d => d.DayId).ToList();
@@ -227,7 +227,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                     // إضافة
                     var newAvailability = new DoctorAvailability
                     {
-                        DoctorId = dto.DoctorId,
+                        ClinicId = dto.ClinicId,
                         DayId = day.DayId,
                         StartTime = day.StartTime,
                         EndTime = day.EndTime,
@@ -249,32 +249,33 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 Data = null
             });
         }
-        public async Task<IActionResult> GetWeeklyAvailabilityAsync(int doctorId)
+        public async Task<IActionResult> GetWeeklyAvailabilityAsync(int clinicId)
         {
             try
             {
-                var doctor = await _context.Doctors
-                .Where(d => d.Id == doctorId && !d.IsDeleted)
+                var clinic = await _context.Clinics
+                .Where(c => c.Id == clinicId && !c.IsDeleted)
                 .FirstOrDefaultAsync();
 
-                if (doctor == null)
+                if (clinic == null)
                 {
                     return new NotFoundObjectResult(new ResponseDto<object>
                     {
                         Status = "Error",
                         Code = 404,
-                        Message = "الدكتور غير موجود.",
+                        Message = "العيادة غير موجودة.",
                         Data = null
                     });
                 }
 
                 // اجلب التوفر الحالي
                 var availabilities = await _context.DoctorAvailabilities
-        .Where(a => a.DoctorId == doctorId)
+        .Where(a => a.ClinicId == clinicId)
         .Include(a => a.Day)
         .Select(availability => new GetDoctorDayAvailabilityDto
         {
             Id=availability.Id,
+            ClinicId = availability.ClinicId,
             DayId = availability.DayId,
             DayName = availability.Day.Name,
             DayNormailzedName = availability.Day.NormalizedName,
@@ -317,17 +318,18 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
         }
         public async Task<IActionResult> UpdateSingleDayAvailabilityAsync(UpdateSingleDayAvailabilityDto dto)
         {
-            var doctor = await _context.Doctors
-                .Where(d => d.Id == dto.DoctorId && !d.IsDeleted)
+            var clinic = await _context.Clinics
+                .Include(c => c.Doctor)
+                .Where(c => c.Id == dto.ClinicId && !c.IsDeleted && !c.Doctor.IsDeleted)
                 .FirstOrDefaultAsync();
 
-            if (doctor == null)
+            if (clinic == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 404,
-                    Message = "الدكتور غير موجود.",
+                    Message = "العيادة غير موجودة.",
                     Data = null
                 });
             }
@@ -336,7 +338,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
-                .Where(ds => ds.DoctorId == dto.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
+                .Where(ds => ds.DoctorId == clinic.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
                 .OrderByDescending(ds => ds.StartDate)
                 .FirstOrDefaultAsync();
 
@@ -365,7 +367,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             }
 
             var availability = await _context.DoctorAvailabilities
-                .Where(a => a.DoctorId == dto.DoctorId && a.DayId == dto.DayId)
+                .Where(a => a.ClinicId == dto.ClinicId && a.DayId == dto.DayId)
                 .FirstOrDefaultAsync();
 
             if (availability == null)

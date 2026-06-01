@@ -4,8 +4,8 @@ namespace Clinic_Booking.Entities.DoctorAvailability
 {
     public class DoctorAvailability : BaseEntity<int>
     {
-        public int DoctorId { get; set; }
-        public Doctor.Doctor Doctor { get; set; }
+        public int ClinicId { get; set; }
+        public Clinic.Clinic Clinic { get; set; }
 
         public int DayId { get; set; }
         public Day.Day Day { get; set; }

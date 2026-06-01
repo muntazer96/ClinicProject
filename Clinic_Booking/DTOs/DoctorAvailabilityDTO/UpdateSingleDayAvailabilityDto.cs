@@ -2,7 +2,7 @@
 {
     public class UpdateSingleDayAvailabilityDto
     {
-        public int DoctorId { get; set; }
+        public int ClinicId { get; set; }
         public int DayId { get; set; } 
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }

@@ -1,4 +1,5 @@
 ﻿using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.Clinic;
 using Clinic_Booking.Entities.Day;
 using Clinic_Booking.Entities.Doctor;
 using Clinic_Booking.Entities.DoctorAvailability;
@@ -31,6 +32,7 @@ namespace Clinic_Booking.Data
         // الجداول
         public DbSet<AspNetUsers> AspNetUsers { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
+        public DbSet<Clinic> Clinics { get; set; }
         public DbSet<Specialization> Specializations { get; set; }
         public DbSet<SubscriptionPackage> SubscriptionPackages { get; set; }
         public DbSet<DoctorSubscription> DoctorSubscriptions { get; set; }
@@ -144,9 +146,9 @@ namespace Clinic_Booking.Data
                     .HasForeignKey(d => d.SpecializationId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasMany(d => d.Availabilities)
-                    .WithOne(a => a.Doctor)
-                    .HasForeignKey(a => a.DoctorId);
+                entity.HasMany(d => d.Clinics)
+                    .WithOne(c => c.Doctor)
+                    .HasForeignKey(c => c.DoctorId);
 
                 entity.HasMany(d => d.Reviews)
                     .WithOne(r => r.Doctor)
@@ -164,6 +166,21 @@ namespace Clinic_Booking.Data
                 entity.HasMany(d => d.Notifications)
                     .WithOne(n => n.Doctor)
                     .HasForeignKey(n => n.DoctorId);
+            });
+
+            // Clinic
+            modelBuilder.Entity<Clinic>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Latitude).HasPrecision(9, 6);
+                entity.Property(e => e.Longitude).HasPrecision(9, 6);
+
+                entity.HasOne(c => c.Doctor)
+                    .WithMany(d => d.Clinics)
+                    .HasForeignKey(c => c.DoctorId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // SubscriptionPackage
@@ -265,6 +282,14 @@ namespace Clinic_Booking.Data
                     .WithMany()
                     .HasForeignKey(a => a.DoctorId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(a => a.Clinic)
+                    .WithMany(c => c.Appointments)
+                    .HasForeignKey(a => a.ClinicId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => new { a.ClinicId, a.AppointmentDate, a.QueueNumber })
+                    .IsUnique();
             });
 
             // Payment
@@ -400,9 +425,10 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
 
-                entity.HasOne(da => da.Doctor)
-                    .WithMany(d => d.Availabilities)
-                    .HasForeignKey(da => da.DoctorId);
+                entity.HasOne(da => da.Clinic)
+                    .WithMany(c => c.Availabilities)
+                    .HasForeignKey(da => da.ClinicId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(da => da.Day)
                     .WithMany()

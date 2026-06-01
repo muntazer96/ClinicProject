@@ -1,8 +1,10 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.AppointmentDTO;
+using Clinic_Booking.DTOs.ClinicDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Enums;
+using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
@@ -14,141 +16,133 @@ namespace Clinic_Booking.Services.AppointmentServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
-        public AppointmentServices(ApplicationDbContext context, ILoadServices load) 
-        { 
+
+        public AppointmentServices(ApplicationDbContext context, ILoadServices load)
+        {
             _context = context;
             _load = load;
         }
-        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(SearchAppointmentDto form, int page = 1, int pageSize = 10)
+
+        public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(
+            SearchAppointmentDto form, int page = 1, int pageSize = 10)
         {
-            try
+            if (page <= 0 || pageSize <= 0)
             {
-                if (page <= 0 || pageSize <= 0)
-                {
-                    return new BadRequestObjectResult(new ResponseDto<string>
-                    {
-                        Status = "Error",
-                        Code = 400,
-                        Message = "قيم الصفحة أو الحجم غير صحيحة.",
-                        Data = null
-                    });
-                }
-                var query = _context.Appointments
-                    .Include(i=>i.Doctor)
-                    .Include(i=>i.User)
-    .Where(d => !d.IsDeleted)
-    //.Where(d => form.Specialization == null || d.SpecializationId == form.Specialization)
-    //.Where(d => form.IraqiProvince == null || d.IraqiProvince == form.IraqiProvince)
-    .Where(d => form.Id == null || d.Id == form.Id);
-
-                //if (!string.IsNullOrWhiteSpace(form.Name))
-                //{
-                //    query = query.Where(d => d.Name.Contains(form.Name) || d.NormalizedName.Contains(form.Name));
-                //}
-
-
-                var totalItems = await query.CountAsync();
-
-                if (totalItems == 0)
-                {
-                    return new NotFoundObjectResult(new ResponseDto<string>
-                    {
-                        Status = "Not Found",
-                        Code = 404,
-                        Message = "لا توجد بيانات للعرض!",
-                        Data = null
-                    });
-                }
-
-                var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-                var docs = await query
-                    .OrderBy(d => d.Id)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(d => new GetApponitmentDto
-                    {
-                        Id = d.Id,
-                        User = new DTOs.ReviewDTO.GetUserReivew
-                        {
-                            Id = d.UserId,
-                            Name = d.User.Name,
-                            NormalizedName = d.User.NormalizedUserName
-                        },
-                        Doctor = new DTOs.ReviewDTO.GetDoctorReview
-                        {
-                            Id = d.Doctor.Id,
-                            Name = d.Doctor.Name,
-                            NormalizedName = d.Doctor.NormalizedName
-                        },
-                        AppointmentDate = d.AppointmentDate,
-                        Status = d.Status,
-                        PaymentStatus = d.PaymentStatus,
-                        PaymentAmount = d.PaymentAmount
-                    })
-                    .ToListAsync();
-
-                var result = new PaginationDto.PageResult<GetApponitmentDto>(docs, totalItems, totalPages, page, pageSize);
-
-                return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<GetApponitmentDto>>
-                {
-                    Status = "Success",
-                    Code = 200,
-                    Message = "تم جلب البيانات بنجاح!",
-                    Data = result
-                });
-            }
-            catch (DbUpdateException ex)
-            {
-                return new ObjectResult(new ResponseDto<string>
+                return new BadRequestObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
-                    Code = 500,
-                    Message = "خطأ في قاعدة البيانات!",
-                    Data = ex.InnerException?.Message ?? ex.Message
+                    Code = 400,
+                    Message = "قيم الصفحة أو الحجم غير صحيحة.",
+                    Data = null
                 });
             }
-            catch (Exception ex)
+
+            var query = _context.Appointments
+                .Where(a => !a.IsDeleted)
+                .Where(a => form.Id == null || a.Id == form.Id)
+                .Where(a => form.DoctorId == null || a.DoctorId == form.DoctorId)
+                .Where(a => form.ClinicId == null || a.ClinicId == form.ClinicId)
+                .Where(a => form.UserId == null || a.UserId == form.UserId)
+                .Where(a => form.Status == null || a.Status == form.Status);
+
+            var totalItems = await query.CountAsync();
+            if (totalItems == 0)
             {
-                return new ObjectResult(new ResponseDto<string>
+                return new NotFoundObjectResult(new ResponseDto<string>
                 {
-                    Status = "Error",
-                    Code = 500,
-                    Message = "حدث خطأ غير متوقع!",
-                    Data = ex.Message
+                    Status = "Not Found",
+                    Code = 404,
+                    Message = "لا توجد بيانات للعرض!",
+                    Data = null
                 });
             }
+
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            var appointments = await query
+                .OrderByDescending(a => a.AppointmentDate)
+                .ThenBy(a => a.QueueNumber)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new GetApponitmentDto
+                {
+                    Id = a.Id,
+                    User = a.UserId.HasValue
+                        ? new DTOs.ReviewDTO.GetUserReivew
+                        {
+                            Id = a.UserId.Value,
+                            Name = a.User.Name,
+                            NormalizedName = a.User.NormalizedUserName
+                        }
+                        : null,
+                    Doctor = new DTOs.ReviewDTO.GetDoctorReview
+                    {
+                        Id = a.Doctor.Id,
+                        Name = a.Doctor.Name,
+                        NormalizedName = a.Doctor.NormalizedName
+                    },
+                    Clinic = new GetClinicDto
+                    {
+                        Id = a.Clinic.Id,
+                        DoctorId = a.Clinic.DoctorId,
+                        Name = a.Clinic.Name,
+                        IraqiProvince = a.Clinic.IraqiProvince,
+                        IraqiProvinceName = a.Clinic.IraqiProvince.GetDisplayName(),
+                        Address = a.Clinic.Address,
+                        Latitude = a.Clinic.Latitude,
+                        Longitude = a.Clinic.Longitude,
+                        MapUrl = a.Clinic.MapUrl,
+                        PhoneNumber = a.Clinic.PhoneNumber,
+                        IsVisible = a.Clinic.IsVisible
+                    },
+                    AppointmentDate = a.AppointmentDate,
+                    QueueNumber = a.QueueNumber,
+                    GuestName = a.GuestName,
+                    GuestPhoneNumber = a.GuestPhoneNumber,
+                    IsPhoneConfirmed = a.IsPhoneConfirmed,
+                    Status = a.Status,
+                    PaymentStatus = a.PaymentStatus,
+                    PaymentAmount = a.PaymentAmount
+                })
+                .ToListAsync();
+
+            return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<GetApponitmentDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب البيانات بنجاح!",
+                Data = new PaginationDto.PageResult<GetApponitmentDto>(
+                    appointments, totalItems, totalPages, page, pageSize)
+            });
         }
 
         public async Task<IActionResult> GetAppointmentsAsync(SearchAppointmentDto form)
         {
             var query = _context.Appointments
-                .Include(a => a.Doctor)
-                .Include(a => a.User)
-                .AsQueryable();
-
-            if (form.DoctorId.HasValue)
-                query = query.Where(a => a.DoctorId == form.DoctorId.Value);
-
-            if (form.UserId.HasValue)
-                query = query.Where(a => a.UserId == form.UserId.Value);
-
-            if(form.Status.HasValue)
-                query = query.Where(a=> a.Status == form.Status.Value);
+                .Where(a => !a.IsDeleted)
+                .Where(a => form.DoctorId == null || a.DoctorId == form.DoctorId)
+                .Where(a => form.ClinicId == null || a.ClinicId == form.ClinicId)
+                .Where(a => form.UserId == null || a.UserId == form.UserId)
+                .Where(a => form.Status == null || a.Status == form.Status);
 
             var appointments = await query
                 .OrderByDescending(a => a.AppointmentDate)
+                .ThenBy(a => a.QueueNumber)
                 .Select(a => new
                 {
                     a.Id,
                     a.UserId,
-                    Name = a.User.Name, // أو أي خاصية مناسبة للمستخدم
-                    PhoneNumer = a.User.PhoneNumber,
+                    Name = a.UserId.HasValue ? a.User.Name : a.GuestName,
+                    PhoneNumber = a.UserId.HasValue ? a.User.PhoneNumber : a.GuestPhoneNumber,
                     a.DoctorId,
-                    DoctorName = a.Doctor.Name, // افترض ان Doctor عنده خاصية Name
+                    DoctorName = a.Doctor.Name,
+                    a.ClinicId,
+                    ClinicName = a.Clinic.Name,
                     a.AppointmentDate,
+                    a.QueueNumber,
+                    a.Code,
+                    a.IsPhoneConfirmed,
                     Status = a.Status.ToString(),
-                    PaymentAmount = a.PaymentAmount,
+                    a.PaymentAmount,
                     PaymentStatus = a.PaymentStatus.ToString()
                 })
                 .ToListAsync();
@@ -161,32 +155,37 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Data = appointments
             });
         }
+
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
-            var doctor = await _context.Doctors
-                .Where(d => d.Id == form.DoctorId && !d.IsDeleted)
-                .FirstOrDefaultAsync();
+            var clinic = await _context.Clinics
+                .Include(c => c.Doctor)
+                .FirstOrDefaultAsync(c =>
+                    c.Id == form.ClinicId &&
+                    c.DoctorId == form.DoctorId &&
+                    !c.IsDeleted &&
+                    c.IsVisible &&
+                    !c.Doctor.IsDeleted);
 
-            if (doctor == null)
+            if (clinic == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 404,
-                    Message = "الدكتور غير موجود.",
+                    Message = "العيادة غير موجودة أو لا تتبع الطبيب المحدد.",
                     Data = null
                 });
             }
 
-            // التحقق من خاصية الحجز الالكتروني (EBooking)
-            var eBookingFeature = await _context.DoctorFeature
-                .Include(df => df.Feature)
-                .Where(df => df.DoctorId == form.DoctorId
-                             && df.Feature.NormalizedName == "EBooking"
-                             && df.IsEnabled)
-                .FirstOrDefaultAsync();
+            var eBookingEnabled = await _context.DoctorFeature
+                .AnyAsync(df =>
+                    df.DoctorId == clinic.DoctorId &&
+                    df.Feature.NormalizedName == "EBooking" &&
+                    df.IsEnabled &&
+                    !df.IsDeleted);
 
-            if (eBookingFeature == null)
+            if (!eBookingEnabled)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -197,27 +196,39 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            // اسم اليوم الموحد (يُفضل تحويله للـ UpperInvariant للتطابق مع NormalizedName)
-            var dayName = form.AppointmentDate.DayOfWeek.ToString();
-
-            var day = await _context.Days
-                .Where(d => d.NormalizedName == dayName)
-                .FirstOrDefaultAsync();
-
-            if (day == null)
+            if (form.AppointmentDate.Date < DateTime.Today)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "اليوم المحدد للحجز غير معرف في النظام.",
+                    Message = "لا يمكن الحجز بتاريخ سابق.",
                     Data = null
                 });
             }
 
+            var currentUserId = _load.GetCurrentUserId();
+            var userId = currentUserId == Guid.Empty ? null : currentUserId;
+            if (!userId.HasValue &&
+                (string.IsNullOrWhiteSpace(form.GuestName) || string.IsNullOrWhiteSpace(form.GuestPhoneNumber)))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يرجى إدخال اسم ورقم هاتف الزائر.",
+                    Data = null
+                });
+            }
+
+            var dayName = form.AppointmentDate.DayOfWeek.ToString();
             var availability = await _context.DoctorAvailabilities
-                .Where(a => a.DoctorId == form.DoctorId && a.DayId == day.Id && a.IsAvailable)
-                .FirstOrDefaultAsync();
+                .Include(a => a.Day)
+                .FirstOrDefaultAsync(a =>
+                    a.ClinicId == form.ClinicId &&
+                    a.Day.NormalizedName == dayName &&
+                    a.IsAvailable &&
+                    !a.IsDeleted);
 
             if (availability == null)
             {
@@ -225,44 +236,42 @@ namespace Clinic_Booking.Services.AppointmentServices
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "الطبيب غير متوفر في هذا اليوم.",
+                    Message = "العيادة غير متوفرة في هذا اليوم.",
                     Data = null
                 });
             }
 
-            var existingAppointmentsCount = await _context.Appointments
-                .Where(ap => ap.DoctorId == form.DoctorId
-                        && ap.AppointmentDate.Date == form.AppointmentDate.Date
-                        && ap.Status != AppointmentStatus.Cancelled)
-                .CountAsync();
+            var appointmentDate = form.AppointmentDate.Date;
+            var activeAppointments = _context.Appointments.Where(a =>
+                a.ClinicId == form.ClinicId &&
+                a.AppointmentDate.Date == appointmentDate &&
+                a.Status != AppointmentStatus.Cancelled &&
+                !a.IsDeleted);
 
+            var existingAppointmentsCount = await activeAppointments.CountAsync();
             if (existingAppointmentsCount >= availability.MaxAppointments)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "تم الوصول إلى الحد الأقصى للحجوزات لهذا اليوم لدى الطبيب.",
+                    Message = "تم الوصول إلى الحد الأقصى للأدوار في هذه العيادة لهذا اليوم.",
                     Data = null
                 });
             }
 
-            var userId = (Guid)_load.GetCurrentUserId();
+            var guestPhoneNumber = form.GuestPhoneNumber?.Trim();
+            var hasDuplicate = userId.HasValue
+                ? await activeAppointments.AnyAsync(a => a.UserId == userId)
+                : await activeAppointments.AnyAsync(a => a.GuestPhoneNumber == guestPhoneNumber);
 
-            var userExistingAppointment = await _context.Appointments
-                .Where(ap => ap.DoctorId == form.DoctorId
-                          && ap.UserId == userId
-                          && ap.AppointmentDate.Date == form.AppointmentDate.Date
-                          && ap.Status != AppointmentStatus.Cancelled)
-                .FirstOrDefaultAsync();
-
-            if (userExistingAppointment != null)
+            if (hasDuplicate)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "لديك حجز مسبق مع هذا الطبيب في نفس اليوم.",
+                    Message = "يوجد حجز مسبق في هذه العيادة لنفس اليوم.",
                     Data = null
                 });
             }
@@ -273,35 +282,58 @@ namespace Clinic_Booking.Services.AppointmentServices
                 uniqueCode = GenerateRandomCode();
             } while (await _context.Appointments.AnyAsync(a => a.Code == uniqueCode));
 
-            var newAppointment = new Appointment
+            var queueNumber = await _context.Appointments
+                .Where(a =>
+                    a.ClinicId == form.ClinicId &&
+                    a.AppointmentDate.Date == appointmentDate)
+                .Select(a => (int?)a.QueueNumber)
+                .MaxAsync() ?? 0;
+
+            var appointment = new Appointment
             {
                 UserId = userId,
-                DoctorId = form.DoctorId,
-                AppointmentDate = form.AppointmentDate,
+                DoctorId = clinic.DoctorId,
+                ClinicId = clinic.Id,
+                AppointmentDate = appointmentDate,
+                QueueNumber = queueNumber + 1,
+                GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
+                GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
+                Notes = form.Notes?.Trim(),
+                IsPhoneConfirmed = true, // OTP becomes configurable in its dedicated phase.
                 Status = AppointmentStatus.Pending,
                 PaymentStatus = PaymentStatus.Pending,
-                PaymentAmount = null,
                 CreatorId = userId,
-                Code = uniqueCode // ✅ Assign the generated code
-
+                Code = uniqueCode
             };
 
-            _context.Appointments.Add(newAppointment);
-            await _context.SaveChangesAsync();
+            _context.Appointments.Add(appointment);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return new ConflictObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 409,
+                    Message = "تعذر تثبيت الدور بسبب حجز متزامن. يرجى إعادة المحاولة.",
+                    Data = null
+                });
+            }
 
             return new OkObjectResult(new ResponseDto<object>
             {
                 Status = "Success",
                 Code = 200,
                 Message = "تم إنشاء الحجز بنجاح.",
-                Data = new { AppointmentId = newAppointment.Id , Code = newAppointment.Code }
+                Data = new { AppointmentId = appointment.Id, appointment.Code, appointment.QueueNumber }
             });
         }
+
         public async Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId)
         {
-            var appointment = await _context.Appointments
-                .FirstOrDefaultAsync(a => a.Id == appointmentId);
-
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
             if (appointment == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<object>
@@ -313,29 +345,30 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            // Toggle logic:
-            if(appointment.Status == AppointmentStatus.Completed)
+            if (appointment.Status == AppointmentStatus.Completed)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = " لا يمكن تغيير حاله الحجز.",
+                    Message = "لا يمكن تغيير حالة الحجز المكتمل.",
                     Data = null
                 });
             }
-            else if (appointment.Status == AppointmentStatus.Confirmed)
-            {
-                appointment.Status = AppointmentStatus.Cancelled;
-            }
-            else if(appointment.Status == AppointmentStatus.Pending || appointment.Status == AppointmentStatus.Cancelled) 
-            {
-                appointment.Status = AppointmentStatus.Confirmed;
-            }
+
+            appointment.Status = appointment.Status == AppointmentStatus.Confirmed
+                ? AppointmentStatus.Cancelled
+                : AppointmentStatus.Confirmed;
             appointment.ModifiedAt = DateTime.UtcNow;
             appointment.ModifierId = _load.GetCurrentUserId();
-            await _context.SaveChangesAsync();
 
+            if (appointment.Status == AppointmentStatus.Cancelled)
+            {
+                appointment.CancelledAt = DateTime.UtcNow;
+                appointment.CancelledByUserId = _load.GetCurrentUserId();
+            }
+
+            await _context.SaveChangesAsync();
             return new OkObjectResult(new ResponseDto<object>
             {
                 Status = "Success",
@@ -344,11 +377,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Data = null
             });
         }
+
         public async Task<IActionResult> CompleteAppointmentAsync(int appointmentId)
         {
-            var appointment = await _context.Appointments
-                .FirstOrDefaultAsync(a => a.Id == appointmentId);
-
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
             if (appointment == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<object>
@@ -366,15 +398,14 @@ namespace Clinic_Booking.Services.AppointmentServices
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "لا يمكن إكمال الحجز إلا إذا كان في حالة مقبول.",
+                    Message = "لا يمكن إكمال الحجز إلا إذا كان مؤكداً.",
                     Data = null
                 });
             }
 
             appointment.Status = AppointmentStatus.Completed;
             appointment.ModifiedAt = DateTime.UtcNow;
-            appointment.ModifierId = _load.GetCurrentUserId() ;
-
+            appointment.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>
@@ -385,13 +416,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Data = null
             });
         }
+
         private static string GenerateRandomCode(int length = 6)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            var random = new Random();
             return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+                .Select(chars => chars[Random.Shared.Next(chars.Length)])
+                .ToArray());
         }
-
     }
 }

@@ -2,8 +2,11 @@
 {
     public class AddAppointmentDto
     {
-        //public Guid UserId { get; set; }
         public int DoctorId { get; set; }
+        public int ClinicId { get; set; }
         public DateTime AppointmentDate { get; set; }
+        public string? GuestName { get; set; }
+        public string? GuestPhoneNumber { get; set; }
+        public string? Notes { get; set; }
     }
 }

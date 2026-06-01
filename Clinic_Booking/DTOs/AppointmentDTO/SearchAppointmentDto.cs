@@ -9,6 +9,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
         public Guid? UserId { get; set; }
         public string? UserFullName { get; set; }
         public int? DoctorId { get; set; }
+        public int? ClinicId { get; set; }
         public string? DoctorFullName { get; set; }
         public DateOnly? FromDate { get; set; }
         public DateOnly? ToDate { get; set; }

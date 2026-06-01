@@ -7,7 +7,7 @@ namespace Clinic_Booking.IServices.IDoctorAvailabilityServices
     {
         //Task<IActionResult> SetWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto);
         Task<IActionResult> UpsertWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto);
-        Task<IActionResult> GetWeeklyAvailabilityAsync(int doctorId);
+        Task<IActionResult> GetWeeklyAvailabilityAsync(int clinicId);
         Task<IActionResult> UpdateSingleDayAvailabilityAsync(UpdateSingleDayAvailabilityDto dto);
     }
 }
