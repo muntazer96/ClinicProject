@@ -142,6 +142,8 @@ namespace Clinic_Booking.Data
                 entity.HasKey(e => e.Id);
 
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.HasIndex(e => new { e.IsPubliclyVisible, e.SpecializationId });
+                entity.HasIndex(e => e.NormalizedName);
 
                 entity.HasOne(d => d.Specialization)
                     .WithMany()
@@ -183,6 +185,7 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Latitude).HasPrecision(9, 6);
                 entity.Property(e => e.Longitude).HasPrecision(9, 6);
+                entity.HasIndex(e => new { e.IraqiProvince, e.IsVisible, e.IsDeleted });
 
                 entity.HasOne(c => c.Doctor)
                     .WithMany(d => d.Clinics)
@@ -200,6 +203,7 @@ namespace Clinic_Booking.Data
                     Id = 1,
                     Name = "أساسي",
                     NormalizedName = "Basic",
+                    MaxClinics = 1,
                     MaxWeeklyDays = 4,
                     MaxDailyAppointments = 15,
                     ShowReviews = false,
@@ -216,6 +220,7 @@ namespace Clinic_Booking.Data
                     Id = 2,
                     Name = "ذهبي",
                     NormalizedName = "Gold",
+                    MaxClinics = 2,
                     MaxWeeklyDays = 5,
                     MaxDailyAppointments = 25,
                     ShowReviews = true,
@@ -232,6 +237,7 @@ namespace Clinic_Booking.Data
                     Id = 3,
                     Name = "ألماس",
                     NormalizedName = "Diamond ",
+                    MaxClinics = 3,
                     MaxWeeklyDays = 6,
                     MaxDailyAppointments = 35,
                     ShowReviews = true,
@@ -248,6 +254,7 @@ namespace Clinic_Booking.Data
                     Id = 4,
                     Name = "فاخر",
                     NormalizedName = "Premium",
+                    MaxClinics = 5,
                     MaxWeeklyDays = 7,
                     MaxDailyAppointments = 1000,
                     ShowReviews = true,
@@ -265,6 +272,7 @@ namespace Clinic_Booking.Data
             modelBuilder.Entity<DoctorSubscription>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.DoctorId, e.Status, e.EndDate });
 
                 entity.HasOne(ds => ds.Doctor)
                     .WithMany(d => d.DoctorSubscriptions)

@@ -145,7 +145,11 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
-                .Where(ds => ds.DoctorId == clinic.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
+                .Where(ds =>
+                    ds.DoctorId == clinic.DoctorId &&
+                    ds.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                    ds.StartDate <= now &&
+                    ds.EndDate >= now)
                 .OrderByDescending(ds => ds.StartDate)
                 .FirstOrDefaultAsync();
 
@@ -338,7 +342,11 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
-                .Where(ds => ds.DoctorId == clinic.DoctorId && ds.StartDate <= now && ds.EndDate >= now)
+                .Where(ds =>
+                    ds.DoctorId == clinic.DoctorId &&
+                    ds.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                    ds.StartDate <= now &&
+                    ds.EndDate >= now)
                 .OrderByDescending(ds => ds.StartDate)
                 .FirstOrDefaultAsync();
 

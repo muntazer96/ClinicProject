@@ -24,6 +24,225 @@ namespace Clinic_Booking.Services.DoctorServices
             _userManager = userManager;
         }
 
+        public async Task<ActionResult<PaginationDto.PageResult<PublicDoctorListDto>>> SearchPublicAsync(
+            SearchDoctorDto form, int page = 1, int pageSize = 10)
+        {
+            if (page <= 0 || pageSize <= 0)
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "قيم الصفحة أو الحجم غير صحيحة."
+                });
+            }
+
+            var now = DateTime.UtcNow;
+            var query = GetPublicDoctorsQuery(form);
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var doctors = await query
+                .OrderByDescending(d => d.SubscriptionRank)
+                .ThenBy(d => d.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(d => new PublicDoctorListDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    NormalizedName = d.NormalizedName,
+                    SpecializationId = d.SpecializationId,
+                    SpecializationName = d.Specialization.Name,
+                    SpecializationNormalizedName = d.Specialization.NormalizedName,
+                    Description = d.Description,
+                    ImageName = d.ImageName,
+                    CanBookOnline =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.EBooking) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "EBooking"),
+                    AverageRating =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews.Where(review => !review.IsDeleted)
+                                .Select(review => (double?)review.Rating)
+                                .Average()
+                            : null,
+                    ReviewCount =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews.Count(review => !review.IsDeleted)
+                            : 0,
+                    Clinics = d.Clinics
+                        .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
+                        .OrderBy(clinic => clinic.Id)
+                        .Select(clinic => new PublicDoctorClinicSummaryDto
+                        {
+                            Id = clinic.Id,
+                            Name = clinic.Name,
+                            IraqiProvince = clinic.IraqiProvince,
+                            IraqiProvinceName = clinic.IraqiProvince.GetDisplayName(),
+                            Address = clinic.Address
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return new OkObjectResult(new ResponseDto<PaginationDto.PageResult<PublicDoctorListDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب الأطباء المتاحين للعامة بنجاح.",
+                Data = new PaginationDto.PageResult<PublicDoctorListDto>(
+                    doctors, totalItems, totalPages, page, pageSize)
+            });
+        }
+
+        public async Task<IActionResult> GetPublicProfileAsync(int doctorId)
+        {
+            var now = DateTime.UtcNow;
+            var doctor = await GetPublicDoctorsQuery(new SearchDoctorDto { Id = doctorId })
+                .Select(d => new PublicDoctorProfileDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    NormalizedName = d.NormalizedName,
+                    SpecializationId = d.SpecializationId,
+                    SpecializationName = d.Specialization.Name,
+                    SpecializationNormalizedName = d.Specialization.NormalizedName,
+                    Description = d.Description,
+                    ImageName = d.ImageName,
+                    CanBookOnline =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.EBooking) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "EBooking"),
+                    AverageRating =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews.Where(review => !review.IsDeleted)
+                                .Select(review => (double?)review.Rating)
+                                .Average()
+                            : null,
+                    ReviewCount =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews.Count(review => !review.IsDeleted)
+                            : 0,
+                    Clinics = d.Clinics
+                        .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
+                        .OrderBy(clinic => clinic.Id)
+                        .Select(clinic => new PublicDoctorClinicDto
+                        {
+                            Id = clinic.Id,
+                            Name = clinic.Name,
+                            IraqiProvince = clinic.IraqiProvince,
+                            IraqiProvinceName = clinic.IraqiProvince.GetDisplayName(),
+                            Address = clinic.Address,
+                            Latitude = clinic.Latitude,
+                            Longitude = clinic.Longitude,
+                            MapUrl = clinic.MapUrl,
+                            PhoneNumber = clinic.PhoneNumber,
+                            Availabilities = clinic.Availabilities
+                                .Where(availability => !availability.IsDeleted && availability.IsAvailable)
+                                .OrderBy(availability => availability.DayId)
+                                .Select(availability => new PublicClinicAvailabilityDto
+                                {
+                                    DayId = availability.DayId,
+                                    DayName = availability.Day.Name,
+                                    DayNormalizedName = availability.Day.NormalizedName,
+                                    StartTime = availability.StartTime,
+                                    EndTime = availability.EndTime,
+                                    MaxAppointments = availability.MaxAppointments
+                                })
+                                .ToList()
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "الطبيب غير موجود أو غير متاح للعرض العام."
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<PublicDoctorProfileDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب صفحة الطبيب بنجاح.",
+                Data = doctor
+            });
+        }
+
+        private IQueryable<Doctor> GetPublicDoctorsQuery(SearchDoctorDto form)
+        {
+            var query = _context.Doctors
+                .AsNoTracking()
+                .Where(d =>
+                    !d.IsDeleted &&
+                    d.IsPubliclyVisible &&
+                    d.Clinics.Any(clinic => !clinic.IsDeleted && clinic.IsVisible))
+                .Where(d => form.Id == null || d.Id == form.Id)
+                .Where(d => form.Specialization == null || d.SpecializationId == form.Specialization)
+                .Where(d => form.IraqiProvince == null || d.Clinics.Any(clinic =>
+                    !clinic.IsDeleted &&
+                    clinic.IsVisible &&
+                    clinic.IraqiProvince == form.IraqiProvince));
+
+            if (!string.IsNullOrWhiteSpace(form.Name))
+            {
+                var name = form.Name.Trim();
+                query = query.Where(d => d.Name.Contains(name) || d.NormalizedName.Contains(name));
+            }
+
+            return query;
+        }
+
         public async Task<IActionResult> GetMyProfileAsync()
         {
             var userId = _load.GetCurrentUserId();
@@ -59,6 +278,7 @@ namespace Clinic_Booking.Services.DoctorServices
                     ImageName = d.ImageName,
                     Location = d.Location,
                     PhoneNumber = d.PhoneNumber,
+                    IsPubliclyVisible = d.IsPubliclyVisible,
                 })
                 .FirstOrDefaultAsync();
 
@@ -214,6 +434,36 @@ namespace Clinic_Booking.Services.DoctorServices
                 Message = "تم فصل حساب الطبيب بنجاح."
             });
         }
+
+        public async Task<IActionResult> UpdateVisibilityAsync(int doctorId, DoctorVisibilityUpdateDto form)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.Id == doctorId && !d.IsDeleted);
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "الدكتور غير موجود."
+                });
+            }
+
+            doctor.IsPubliclyVisible = form.IsPubliclyVisible;
+            doctor.ModifierId = _load.GetCurrentUserId();
+            doctor.ModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = form.IsPubliclyVisible
+                    ? "تمت الموافقة على ظهور الطبيب للعامة."
+                    : "تم إخفاء الطبيب عن العرض العام.",
+                Data = new { doctor.Id, doctor.IsPubliclyVisible }
+            });
+        }
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetListAsync(SearchDoctorDto form, int page = 1, int pageSize = 10)
         {
             try
@@ -279,6 +529,7 @@ namespace Clinic_Booking.Services.DoctorServices
                         ImageName = d.ImageName,
                         Location = d.Location,
                         PhoneNumber = d.PhoneNumber,
+                        IsPubliclyVisible = d.IsPubliclyVisible,
                     })
                     .ToListAsync();
 

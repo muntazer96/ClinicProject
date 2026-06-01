@@ -965,6 +965,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             var hasActivePackage = await _context.DoctorSubscriptions
                 .AnyAsync(subscription =>
                     subscription.DoctorId == doctorId &&
+                    subscription.Status == SubscriptionStatus.Active &&
                     subscription.StartDate <= now &&
                     subscription.EndDate >= now &&
                     subscription.Package.EBooking);

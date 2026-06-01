@@ -12,5 +12,7 @@ namespace Clinic_Booking.Entities.DoctorSubscription
 
         public DateTime StartDate { get; set; } // تاريخ بداية الاشتراك
         public DateTime EndDate { get; set; } // تاريخ نهاية الاشتراك
+        public Clinic_Booking.Enums.SubscriptionStatus Status { get; set; } = Clinic_Booking.Enums.SubscriptionStatus.Active;
+        public DateTime? CancelledAt { get; set; }
     }
 }

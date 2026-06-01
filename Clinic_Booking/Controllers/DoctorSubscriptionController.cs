@@ -34,5 +34,23 @@ namespace Clinic_Booking.Controllers
         {
             return await _services.RemoveSubscriptionAsync(id);
         }
+
+        [HttpPost("{id}/activate")]
+        public async Task<IActionResult> ActivateDoctorSubscriptionAsync(int id)
+        {
+            return await _services.ActivateSubscriptionAsync(id);
+        }
+
+        [HttpPost("{id}/renew")]
+        public async Task<IActionResult> RenewDoctorSubscriptionAsync(int id, RenewDoctorSubscriptionDto form)
+        {
+            return await _services.RenewSubscriptionAsync(id, form);
+        }
+
+        [HttpPost("{id}/upgrade")]
+        public async Task<IActionResult> UpgradeDoctorSubscriptionAsync(int id, UpgradeDoctorSubscriptionDto form)
+        {
+            return await _services.UpgradeSubscriptionAsync(id, form);
+        }
     }
 }

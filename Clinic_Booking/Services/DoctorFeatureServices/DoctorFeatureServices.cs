@@ -90,6 +90,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                             ImageName = ds.Doctor.ImageName,
                             PhoneNumber = ds.Doctor.PhoneNumber,
                             Location = ds.Doctor.Location,
+                            IsPubliclyVisible = ds.Doctor.IsPubliclyVisible,
                         },
                         Feature = new DTOs.FeatureDTO.GetFeatureDto
                         {
@@ -161,6 +162,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                 var activeSubscription = await _context.DoctorSubscriptions
                     .Include(ds => ds.Package)
                     .Where(ds => ds.DoctorId == doctorFeature.DoctorId &&
+                                 ds.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
                                  ds.StartDate <= now && ds.EndDate >= now)
                     .OrderByDescending(ds => ds.StartDate)
                     .FirstOrDefaultAsync();

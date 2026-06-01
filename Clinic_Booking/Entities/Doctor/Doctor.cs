@@ -20,6 +20,7 @@ namespace Clinic_Booking.Entities.Doctor
         public string? Location { get; set; }
         public Guid? UserId { get; set; }
         public User.AspNetUsers? User { get; set; }
+        public bool IsPubliclyVisible { get; set; }
 
         // العيادات التابعة للطبيب، ولكل عيادة عنوان وجدول مستقل
         public ICollection<Clinic.Clinic> Clinics { get; set; }

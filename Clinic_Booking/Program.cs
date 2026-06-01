@@ -29,6 +29,7 @@ using Clinic_Booking.Services.FeatureServices;
 using Clinic_Booking.Services.LoadServices;
 using Clinic_Booking.Services.SpecializationServices;
 using Clinic_Booking.Services.SubscriptionPackagesServices;
+using Clinic_Booking.Services.SubscriptionExpirationServices;
 using Clinic_Booking.Services.UserServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -54,6 +55,7 @@ builder.Services.AddScoped<IDoctorAvailabilityServices, DoctorAvailabilityServic
 builder.Services.AddScoped<IAppointmentServices, AppointmentServices>();
 builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>();
 builder.Services.AddScoped<IClinicServices, ClinicServices>();
+builder.Services.AddHostedService<SubscriptionExpirationService>();
 builder.Services.Configure<BookingOtpOptions>(
     builder.Configuration.GetSection(BookingOtpOptions.SectionName));
 

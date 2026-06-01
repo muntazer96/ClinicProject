@@ -77,6 +77,29 @@ namespace Clinic_Booking.Services.ClinicServices
                 return validation;
             }
 
+            var now = DateTime.UtcNow;
+            var activePackage = await _context.DoctorSubscriptions
+                .Where(subscription =>
+                    subscription.DoctorId == doctorId &&
+                    subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                    subscription.StartDate <= now &&
+                    subscription.EndDate >= now)
+                .OrderByDescending(subscription => subscription.StartDate)
+                .Select(subscription => subscription.Package)
+                .FirstOrDefaultAsync();
+            if (activePackage == null)
+            {
+                return BadRequest("لا يمكن إضافة عيادة بدون اشتراك نشط.");
+            }
+
+            var clinicCount = await _context.Clinics.CountAsync(clinic =>
+                clinic.DoctorId == doctorId &&
+                !clinic.IsDeleted);
+            if (clinicCount >= activePackage.MaxClinics)
+            {
+                return BadRequest($"وصلت إلى الحد الأعلى لعدد العيادات ({activePackage.MaxClinics}) في باقتك.");
+            }
+
             var duplicate = await _context.Clinics.AnyAsync(c =>
                 c.DoctorId == doctorId &&
                 !c.IsDeleted &&

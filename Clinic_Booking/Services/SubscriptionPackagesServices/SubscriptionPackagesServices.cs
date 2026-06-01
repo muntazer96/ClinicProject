@@ -61,6 +61,7 @@ namespace Clinic_Booking.Services.SubscriptionPackagesServices
                         NormalizedName = d.NormalizedName,
                         Price = d.Price,
                         YearlyPrice = d.YearlyPrice,
+                        MaxClinics = d.MaxClinics,
                         MaxWeeklyDays = d.MaxWeeklyDays,
                         MaxDailyAppointments = d.MaxDailyAppointments,
                         ShowReviews = d.ShowReviews,

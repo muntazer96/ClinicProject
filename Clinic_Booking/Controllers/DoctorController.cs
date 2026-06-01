@@ -24,6 +24,21 @@ namespace Clinic_Booking.Controllers
             return await _services.GetListAsync(filter, page, pageSize);
         }
 
+        [HttpGet("public")]
+        public async Task<ActionResult<PaginationDto.PageResult<PublicDoctorListDto>>> SearchPublicAsync(
+            [FromQuery] SearchDoctorDto filter,
+            int page = 1,
+            int pageSize = 10)
+        {
+            return await _services.SearchPublicAsync(filter, page, pageSize);
+        }
+
+        [HttpGet("public/{doctorId}")]
+        public async Task<IActionResult> GetPublicProfileAsync(int doctorId)
+        {
+            return await _services.GetPublicProfileAsync(doctorId);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateDoctorAsync(DoctorAddDto form)
         {
@@ -63,6 +78,13 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> UnlinkAccountAsync(int doctorId)
         {
             return await _services.UnlinkAccountAsync(doctorId);
+        }
+
+        [HttpPut("{doctorId}/visibility")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> UpdateVisibilityAsync(int doctorId, DoctorVisibilityUpdateDto form)
+        {
+            return await _services.UpdateVisibilityAsync(doctorId, form);
         }
 
         [HttpDelete("{id}")]

@@ -11,6 +11,8 @@ namespace Clinic_Booking.DTOs.DoctorSubscriptionDTO
         public DateTime StartDate { get; set; } // تاريخ بداية الاشتراك
         public DateTime EndDate { get; set; } // تاريخ نهاية الاشتراكpublic int DoctorId { get; set; }
         public bool IsActive { get; set; }
+        public Clinic_Booking.Enums.SubscriptionStatus Status { get; set; }
+        public DateTime? CancelledAt { get; set; }
 
     }
 }
