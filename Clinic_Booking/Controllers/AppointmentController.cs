@@ -23,10 +23,30 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.GetAppointmentsAsync(form);
         }
+        [HttpGet("queue-availability/{clinicId}")]
+        public async Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, [FromQuery] DateOnly? fromDate, int days = 7)
+        {
+            return await _service.GetQueueAvailabilityAsync(clinicId, fromDate, days);
+        }
+        [HttpGet("guest")]
+        public async Task<IActionResult> GetGuestAppointmentAsync([FromQuery] string phoneNumber, [FromQuery] string code)
+        {
+            return await _service.GetGuestAppointmentAsync(phoneNumber, code);
+        }
         [HttpPost]
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
             return await _service.CreateAppointmentAsync(form);
+        }
+        [HttpPost("guest/cancel")]
+        public async Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form)
+        {
+            return await _service.CancelGuestAppointmentAsync(form);
+        }
+        [HttpPost("my/cancel")]
+        public async Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form)
+        {
+            return await _service.CancelMyAppointmentAsync(form);
         }
         [HttpPost("toggle-status")]
         public async Task<IActionResult> ToggleAppointmentStatusAsync([FromQuery] int appointmentId)

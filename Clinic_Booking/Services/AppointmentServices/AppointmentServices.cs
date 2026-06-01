@@ -43,6 +43,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .Where(a => form.DoctorId == null || a.DoctorId == form.DoctorId)
                 .Where(a => form.ClinicId == null || a.ClinicId == form.ClinicId)
                 .Where(a => form.UserId == null || a.UserId == form.UserId)
+                .Where(a => form.FromDate == null || a.AppointmentDate.Date >= form.FromDate.Value.ToDateTime(TimeOnly.MinValue))
+                .Where(a => form.ToDate == null || a.AppointmentDate.Date <= form.ToDate.Value.ToDateTime(TimeOnly.MinValue))
                 .Where(a => form.Status == null || a.Status == form.Status);
 
             var totalItems = await query.CountAsync();
@@ -122,6 +124,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .Where(a => form.DoctorId == null || a.DoctorId == form.DoctorId)
                 .Where(a => form.ClinicId == null || a.ClinicId == form.ClinicId)
                 .Where(a => form.UserId == null || a.UserId == form.UserId)
+                .Where(a => form.FromDate == null || a.AppointmentDate.Date >= form.FromDate.Value.ToDateTime(TimeOnly.MinValue))
+                .Where(a => form.ToDate == null || a.AppointmentDate.Date <= form.ToDate.Value.ToDateTime(TimeOnly.MinValue))
                 .Where(a => form.Status == null || a.Status == form.Status);
 
             var appointments = await query
@@ -156,6 +160,179 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
+        public async Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, DateOnly? fromDate, int days = 7)
+        {
+            if (days <= 0 || days > 31)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Days must be between 1 and 31.",
+                    Data = null
+                });
+            }
+
+            var clinic = await _context.Clinics
+                .Include(c => c.Doctor)
+                .FirstOrDefaultAsync(c => c.Id == clinicId && !c.IsDeleted && c.IsVisible && !c.Doctor.IsDeleted);
+
+            if (clinic == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Clinic not found.",
+                    Data = null
+                });
+            }
+
+            var eBookingEnabled = await IsElectronicBookingEnabledAsync(clinic.DoctorId);
+
+            if (!eBookingEnabled)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Electronic booking is not enabled for this doctor.",
+                    Data = null
+                });
+            }
+
+            var startDate = fromDate ?? DateOnly.FromDateTime(DateTime.Today);
+            if (startDate < DateOnly.FromDateTime(DateTime.Today))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Availability cannot be requested for a past date.",
+                    Data = null
+                });
+            }
+
+            var endDate = startDate.AddDays(days - 1);
+            var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
+            var endDateTime = endDate.ToDateTime(TimeOnly.MaxValue);
+
+            var weeklyAvailability = await _context.DoctorAvailabilities
+                .Include(a => a.Day)
+                .Where(a => a.ClinicId == clinicId && !a.IsDeleted)
+                .ToListAsync();
+
+            var bookedAppointments = await _context.Appointments
+                .Where(a =>
+                    a.ClinicId == clinicId &&
+                    a.AppointmentDate >= startDateTime &&
+                    a.AppointmentDate <= endDateTime &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    !a.IsDeleted)
+                .GroupBy(a => a.AppointmentDate.Date)
+                .Select(group => new { Date = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(item => DateOnly.FromDateTime(item.Date), item => item.Count);
+
+            var availability = Enumerable.Range(0, days)
+                .Select(offset => startDate.AddDays(offset))
+                .Select(date =>
+                {
+                    var day = weeklyAvailability.FirstOrDefault(a =>
+                        a.Day.NormalizedName == date.DayOfWeek.ToString());
+                    var booked = bookedAppointments.GetValueOrDefault(date);
+                    var maxAppointments = day?.MaxAppointments ?? 0;
+                    var isAvailable = day is { IsAvailable: true } && booked < maxAppointments;
+
+                    return new QueueAvailabilityDto
+                    {
+                        ClinicId = clinicId,
+                        Date = date,
+                        DayName = day?.Day.Name ?? date.DayOfWeek.ToString(),
+                        DayNormalizedName = date.DayOfWeek.ToString(),
+                        StartTime = day?.StartTime,
+                        EndTime = day?.EndTime,
+                        MaxAppointments = maxAppointments,
+                        BookedAppointments = booked,
+                        RemainingAppointments = Math.Max(0, maxAppointments - booked),
+                        IsAvailable = isAvailable
+                    };
+                })
+                .ToList();
+
+            return new OkObjectResult(new ResponseDto<List<QueueAvailabilityDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Queue availability retrieved successfully.",
+                Data = availability
+            });
+        }
+
+        public async Task<IActionResult> GetGuestAppointmentAsync(string phoneNumber, string code)
+        {
+            var normalizedPhoneNumber = phoneNumber?.Trim();
+            var normalizedCode = code?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedPhoneNumber) || string.IsNullOrWhiteSpace(normalizedCode))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Phone number and booking code are required.",
+                    Data = null
+                });
+            }
+
+            var appointment = await _context.Appointments
+                .Where(a =>
+                    !a.IsDeleted &&
+                    a.UserId == null &&
+                    a.GuestPhoneNumber == normalizedPhoneNumber &&
+                    a.Code == normalizedCode)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Code,
+                    a.GuestName,
+                    a.GuestPhoneNumber,
+                    a.AppointmentDate,
+                    a.QueueNumber,
+                    a.Status,
+                    a.IsPhoneConfirmed,
+                    a.CancellationReason,
+                    a.CancelledAt,
+                    a.DoctorId,
+                    DoctorName = a.Doctor.Name,
+                    a.ClinicId,
+                    ClinicName = a.Clinic.Name,
+                    ClinicAddress = a.Clinic.Address,
+                    ClinicPhoneNumber = a.Clinic.PhoneNumber,
+                    a.Clinic.MapUrl,
+                    a.Clinic.Latitude,
+                    a.Clinic.Longitude
+                })
+                .FirstOrDefaultAsync();
+
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Guest booking not found.",
+                    Data = null
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Guest booking retrieved successfully.",
+                Data = appointment
+            });
+        }
+
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
             var clinic = await _context.Clinics
@@ -178,12 +355,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            var eBookingEnabled = await _context.DoctorFeature
-                .AnyAsync(df =>
-                    df.DoctorId == clinic.DoctorId &&
-                    df.Feature.NormalizedName == "EBooking" &&
-                    df.IsEnabled &&
-                    !df.IsDeleted);
+            var eBookingEnabled = await IsElectronicBookingEnabledAsync(clinic.DoctorId);
 
             if (!eBookingEnabled)
             {
@@ -331,6 +503,72 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
+        public async Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form)
+        {
+            if (string.IsNullOrWhiteSpace(form.PhoneNumber) || string.IsNullOrWhiteSpace(form.Code))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Phone number and booking code are required.",
+                    Data = null
+                });
+            }
+
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a =>
+                !a.IsDeleted &&
+                a.UserId == null &&
+                a.GuestPhoneNumber == form.PhoneNumber.Trim() &&
+                a.Code == form.Code.Trim());
+
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Guest booking not found.",
+                    Data = null
+                });
+            }
+
+            return await CancelAppointmentAsync(appointment, form.Reason, null);
+        }
+
+        public async Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (!userId.HasValue || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "Login is required.",
+                    Data = null
+                });
+            }
+
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a =>
+                !a.IsDeleted &&
+                a.Id == form.AppointmentId &&
+                a.UserId == userId);
+
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Booking not found.",
+                    Data = null
+                });
+            }
+
+            return await CancelAppointmentAsync(appointment, form.Reason, userId);
+        }
+
         public async Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId)
         {
             var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
@@ -423,6 +661,71 @@ namespace Clinic_Booking.Services.AppointmentServices
             return new string(Enumerable.Repeat(chars, length)
                 .Select(chars => chars[Random.Shared.Next(chars.Length)])
                 .ToArray());
+        }
+
+        private async Task<bool> IsElectronicBookingEnabledAsync(int doctorId)
+        {
+            var now = DateTime.UtcNow;
+            var hasActivePackage = await _context.DoctorSubscriptions
+                .AnyAsync(subscription =>
+                    subscription.DoctorId == doctorId &&
+                    subscription.StartDate <= now &&
+                    subscription.EndDate >= now &&
+                    subscription.Package.EBooking);
+
+            if (!hasActivePackage)
+            {
+                return false;
+            }
+
+            return await _context.DoctorFeature
+                .AnyAsync(feature =>
+                    feature.DoctorId == doctorId &&
+                    feature.Feature.NormalizedName == "EBooking" &&
+                    feature.IsEnabled &&
+                    !feature.IsDeleted);
+        }
+
+        private async Task<IActionResult> CancelAppointmentAsync(
+            Appointment appointment, string? reason, Guid? cancelledByUserId)
+        {
+            if (appointment.Status == AppointmentStatus.Cancelled)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Booking is already cancelled.",
+                    Data = null
+                });
+            }
+
+            if (appointment.Status == AppointmentStatus.Completed)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Completed booking cannot be cancelled.",
+                    Data = null
+                });
+            }
+
+            appointment.Status = AppointmentStatus.Cancelled;
+            appointment.CancellationReason = reason?.Trim();
+            appointment.CancelledAt = DateTime.UtcNow;
+            appointment.CancelledByUserId = cancelledByUserId;
+            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifierId = cancelledByUserId;
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Booking cancelled successfully.",
+                Data = null
+            });
         }
     }
 }
