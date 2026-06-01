@@ -1,6 +1,7 @@
 ﻿using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IDoctorServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
@@ -27,6 +28,41 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> CreateDoctorAsync(DoctorAddDto form)
         {
             return await _services.AddDoctorAsync(form);
+        }
+
+        [HttpGet("my")]
+        [Authorize(Roles = "DoctorUser")]
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            return await _services.GetMyProfileAsync();
+        }
+
+        [HttpPut("my")]
+        [Authorize(Roles = "DoctorUser")]
+        public async Task<IActionResult> UpdateMyProfileAsync(DoctorProfileUpdateDto form)
+        {
+            return await _services.UpdateMyProfileAsync(form);
+        }
+
+        [HttpPut]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> UpdateDoctorAsync(DoctorUpdateDto form)
+        {
+            return await _services.UpdateDoctorAsync(form);
+        }
+
+        [HttpPost("{doctorId}/link-account")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form)
+        {
+            return await _services.LinkAccountAsync(doctorId, form);
+        }
+
+        [HttpDelete("{doctorId}/link-account")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> UnlinkAccountAsync(int doctorId)
+        {
+            return await _services.UnlinkAccountAsync(doctorId);
         }
 
         [HttpDelete("{id}")]

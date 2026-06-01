@@ -148,6 +148,11 @@ namespace Clinic_Booking.Data
                     .HasForeignKey(d => d.SpecializationId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasOne(d => d.User)
+                    .WithOne()
+                    .HasForeignKey<Doctor>(d => d.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasMany(d => d.Clinics)
                     .WithOne(c => c.Doctor)
                     .HasForeignKey(c => c.DoctorId);

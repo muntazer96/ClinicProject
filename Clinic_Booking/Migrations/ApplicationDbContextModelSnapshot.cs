@@ -415,9 +415,15 @@ namespace Clinic_Booking.Migrations
                     b.Property<int>("SubscriptionRank")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SpecializationId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Doctors");
                 });
@@ -1713,7 +1719,14 @@ namespace Clinic_Booking.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Clinic_Booking.Entities.User.AspNetUsers", "User")
+                        .WithOne()
+                        .HasForeignKey("Clinic_Booking.Entities.Doctor.Doctor", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Specialization");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Clinic_Booking.Entities.DoctorAvailability.DoctorAvailability", b =>

@@ -5,6 +5,8 @@ using Clinic_Booking.Entities.Doctor;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IDoctorServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.Entities.User;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,10 +16,203 @@ namespace Clinic_Booking.Services.DoctorServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
-        public DoctorServices(ApplicationDbContext context , ILoadServices load)
+        private readonly UserManager<AspNetUsers> _userManager;
+        public DoctorServices(ApplicationDbContext context, ILoadServices load, UserManager<AspNetUsers> userManager)
         {
             _context = context;
             _load = load;
+            _userManager = userManager;
+        }
+
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يجب تسجيل الدخول أولاً."
+                });
+            }
+
+            var doctor = await _context.Doctors
+                .Where(d => d.UserId == userId && !d.IsDeleted)
+                .Select(d => new GetDoctorDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    NormalizedName = d.NormalizedName,
+                    Specialization = new DTOs.SharedDTO.GetItemsDto
+                    {
+                        Id = d.SpecializationId,
+                        Name = d.Specialization.Name,
+                        NormalizedName = d.Specialization.NormalizedName,
+                    },
+                    Description = d.Description,
+                    SubscriptionRank = d.SubscriptionRank,
+                    IraqiProvince = d.IraqiProvince,
+                    IraqiProvinceName = d.IraqiProvince.GetDisplayName(),
+                    IraqiProvinceNormalizedName = d.IraqiProvince.ToString(),
+                    BirthDay = d.BirthDay,
+                    ImageName = d.ImageName,
+                    Location = d.Location,
+                    PhoneNumber = d.PhoneNumber,
+                })
+                .FirstOrDefaultAsync();
+
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "لا يوجد ملف طبيب مرتبط بهذا الحساب."
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<GetDoctorDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب ملف الطبيب بنجاح.",
+                Data = doctor
+            });
+        }
+
+        public async Task<IActionResult> UpdateMyProfileAsync(DoctorProfileUpdateDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يجب تسجيل الدخول أولاً."
+                });
+            }
+
+            var doctorId = await _context.Doctors
+                .Where(d => d.UserId == userId && !d.IsDeleted)
+                .Select(d => (int?)d.Id)
+                .FirstOrDefaultAsync();
+
+            if (doctorId == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "لا يوجد ملف طبيب مرتبط بهذا الحساب."
+                });
+            }
+
+            return await UpdateDoctorAsync(new DoctorUpdateDto
+            {
+                Id = doctorId.Value,
+                Name = form.Name,
+                NormalizedName = form.NormalizedName,
+                SpecializationId = form.SpecializationId,
+                Description = form.Description,
+                IraqiProvince = form.IraqiProvince,
+                ImageName = form.ImageName,
+                BirthDay = form.BirthDay,
+                PhoneNumber = form.PhoneNumber,
+                Location = form.Location
+            });
+        }
+
+        public async Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.Id == doctorId && !d.IsDeleted);
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "الدكتور غير موجود."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(form.UserId.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "حساب المستخدم غير موجود."
+                });
+            }
+
+            var accountAlreadyLinked = await _context.Doctors
+                .AnyAsync(d => d.Id != doctorId && d.UserId == form.UserId && !d.IsDeleted);
+            if (accountAlreadyLinked)
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "هذا الحساب مرتبط بطبيب آخر."
+                });
+            }
+
+            doctor.UserId = form.UserId;
+            doctor.ModifierId = _load.GetCurrentUserId();
+            doctor.ModifiedAt = DateTime.UtcNow;
+
+            if (!await _userManager.IsInRoleAsync(user, "DoctorUser"))
+            {
+                var roleResult = await _userManager.AddToRoleAsync(user, "DoctorUser");
+                if (!roleResult.Succeeded)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = string.Join(" ", roleResult.Errors.Select(e => e.Description))
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم ربط حساب الطبيب بنجاح."
+            });
+        }
+
+        public async Task<IActionResult> UnlinkAccountAsync(int doctorId)
+        {
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.Id == doctorId && !d.IsDeleted);
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "الدكتور غير موجود."
+                });
+            }
+
+            doctor.UserId = null;
+            doctor.ModifierId = _load.GetCurrentUserId();
+            doctor.ModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم فصل حساب الطبيب بنجاح."
+            });
         }
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetListAsync(SearchDoctorDto form, int page = 1, int pageSize = 10)
         {

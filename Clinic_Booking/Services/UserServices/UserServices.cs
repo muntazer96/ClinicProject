@@ -206,6 +206,7 @@ namespace Clinic_Booking.Services.UserServices
                 foreach (var role in userRoles)
                 {
                     authClaims.Add(new Claim("Role", role));
+                    authClaims.Add(new Claim(ClaimTypes.Role, role));
                     authClaims.Add(new Claim("roleId", GetRoleIdByName(role)));
                 }
 
