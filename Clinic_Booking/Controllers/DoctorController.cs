@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Authorization;
 using Clinic_Booking.IServices.IDoctorServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetDoctorsAsync(
             [FromQuery] SearchDoctorDto filter,
             int page = 1,
@@ -40,6 +42,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> CreateDoctorAsync(DoctorAddDto form)
         {
             return await _services.AddDoctorAsync(form);
@@ -88,6 +91,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteDoctorAsync(int id)
         {
             return await _services.DeleteAsync(id);

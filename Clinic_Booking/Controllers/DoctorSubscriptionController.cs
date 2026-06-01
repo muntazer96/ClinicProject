@@ -1,10 +1,13 @@
 ﻿using Clinic_Booking.DTOs.DoctorSubscriptionDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
+using Clinic_Booking.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
+    [Authorize(Roles = AppRoles.SuperAdmin)]
     public class DoctorSubscriptionController : BaseApiController
     {
         private readonly IDoctorSubscriptionServices _services;

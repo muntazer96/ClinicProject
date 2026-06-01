@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.Clinic;
+using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Entities.BookingOtpRequest;
 using Clinic_Booking.Entities.Day;
 using Clinic_Booking.Entities.Doctor;
@@ -16,6 +17,7 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.Specialization;
 using Clinic_Booking.Entities.SubscriptionPackage;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +36,7 @@ namespace Clinic_Booking.Data
         public DbSet<AspNetUsers> AspNetUsers { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<Clinic> Clinics { get; set; }
+        public DbSet<ClinicException> ClinicExceptions { get; set; }
         public DbSet<Specialization> Specializations { get; set; }
         public DbSet<SubscriptionPackage> SubscriptionPackages { get; set; }
         public DbSet<DoctorSubscription> DoctorSubscriptions { get; set; }
@@ -95,6 +98,11 @@ namespace Clinic_Booking.Data
                     Id = Guid.NewGuid(),
                     Name = "DoctorUser",
                     NormalizedName = "DOCTORUSER",
+                }, new AspNetRoles()
+                {
+                    Id = Guid.Parse("6f03ef0f-c1ac-43f6-9df2-2be6d5385b72"),
+                    Name = AppRoles.ClinicStaff,
+                    NormalizedName = "CLINICSTAFF",
                 });
             });
 
@@ -191,6 +199,21 @@ namespace Clinic_Booking.Data
                     .WithMany(d => d.Clinics)
                     .HasForeignKey(c => c.DoctorId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ClinicException
+            modelBuilder.Entity<ClinicException>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ClosureReason).HasMaxLength(500);
+                entity.HasIndex(e => new { e.ClinicId, e.ExceptionDate })
+                    .IsUnique()
+                    .HasFilter("\"IsDeleted\" = false");
+
+                entity.HasOne(e => e.Clinic)
+                    .WithMany(c => c.Exceptions)
+                    .HasForeignKey(e => e.ClinicId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // SubscriptionPackage
@@ -337,6 +360,13 @@ namespace Clinic_Booking.Data
             modelBuilder.Entity<Review>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Comment).IsRequired().HasMaxLength(1000);
+                entity.HasIndex(e => e.AppoinmentId)
+                    .IsUnique()
+                    .HasFilter("\"AppoinmentId\" IS NOT NULL AND \"IsDeleted\" = false");
+                entity.ToTable(table => table.HasCheckConstraint(
+                    "CK_Reviews_Rating_Range",
+                    "\"Rating\" >= 1 AND \"Rating\" <= 5"));
 
                 entity.HasOne(r => r.User)
                     .WithMany()

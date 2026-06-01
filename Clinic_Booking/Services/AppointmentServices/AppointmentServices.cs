@@ -237,6 +237,16 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .Where(a => a.ClinicId == clinicId && !a.IsDeleted)
                 .ToListAsync();
 
+            var clinicExceptions = await _context.ClinicExceptions
+                .Where(exception =>
+                    exception.ClinicId == clinicId &&
+                    exception.ExceptionDate >= startDateTime &&
+                    exception.ExceptionDate <= endDateTime &&
+                    !exception.IsDeleted)
+                .ToDictionaryAsync(
+                    exception => DateOnly.FromDateTime(exception.ExceptionDate),
+                    exception => exception);
+
             var bookedAppointments = await _context.Appointments
                 .Where(a =>
                     a.ClinicId == clinicId &&
@@ -254,9 +264,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 {
                     var day = weeklyAvailability.FirstOrDefault(a =>
                         a.Day.NormalizedName == date.DayOfWeek.ToString());
+                    var clinicException = clinicExceptions.GetValueOrDefault(date);
                     var booked = bookedAppointments.GetValueOrDefault(date);
-                    var maxAppointments = day?.MaxAppointments ?? 0;
-                    var isAvailable = day is { IsAvailable: true } && booked < maxAppointments;
+                    var maxAppointments = clinicException?.MaxAppointments ?? day?.MaxAppointments ?? 0;
+                    var isAvailable = day is { IsAvailable: true } &&
+                        clinicException?.IsClosed != true &&
+                        booked < maxAppointments;
 
                     return new QueueAvailabilityDto
                     {
@@ -264,12 +277,16 @@ namespace Clinic_Booking.Services.AppointmentServices
                         Date = date,
                         DayName = day?.Day.Name ?? date.DayOfWeek.ToString(),
                         DayNormalizedName = date.DayOfWeek.ToString(),
-                        StartTime = day?.StartTime,
-                        EndTime = day?.EndTime,
+                        StartTime = clinicException?.StartTime ?? day?.StartTime,
+                        EndTime = clinicException?.EndTime ?? day?.EndTime,
                         MaxAppointments = maxAppointments,
                         BookedAppointments = booked,
                         RemainingAppointments = Math.Max(0, maxAppointments - booked),
-                        IsAvailable = isAvailable
+                        IsAvailable = isAvailable,
+                        HasException = clinicException != null,
+                        ClosureReason = clinicException?.IsClosed == true
+                            ? clinicException.ClosureReason
+                            : null
                     };
                 })
                 .ToList();
@@ -521,6 +538,25 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var appointmentDate = form.AppointmentDate.Date;
+            var clinicException = await _context.ClinicExceptions
+                .FirstOrDefaultAsync(exception =>
+                    exception.ClinicId == form.ClinicId &&
+                    exception.ExceptionDate == appointmentDate &&
+                    !exception.IsDeleted);
+
+            if (clinicException?.IsClosed == true)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = string.IsNullOrWhiteSpace(clinicException.ClosureReason)
+                        ? "Clinic is closed on the selected date."
+                        : $"Clinic is closed on the selected date: {clinicException.ClosureReason}",
+                    Data = null
+                });
+            }
+
             await ExpireUnconfirmedBookingsAsync(form.ClinicId);
             var activeAppointments = _context.Appointments.Where(a =>
                 a.ClinicId == form.ClinicId &&
@@ -529,7 +565,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 !a.IsDeleted);
 
             var existingAppointmentsCount = await activeAppointments.CountAsync();
-            if (existingAppointmentsCount >= availability.MaxAppointments)
+            var maxAppointments = clinicException?.MaxAppointments ?? availability.MaxAppointments;
+            if (existingAppointmentsCount >= maxAppointments)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -879,6 +916,11 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            if (!await IsOwnedByCurrentDoctorAsync(appointment.DoctorId))
+            {
+                return DoctorAccessDenied();
+            }
+
             if (appointment.Status == AppointmentStatus.Completed)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -924,6 +966,11 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Message = "الحجز غير موجود.",
                     Data = null
                 });
+            }
+
+            if (!await IsOwnedByCurrentDoctorAsync(appointment.DoctorId))
+            {
+                return DoctorAccessDenied();
             }
 
             if (appointment.Status != AppointmentStatus.Confirmed)
@@ -1097,6 +1144,26 @@ namespace Clinic_Booking.Services.AppointmentServices
         {
             var userId = _load.GetCurrentUserId();
             return userId.HasValue && userId != Guid.Empty ? userId : null;
+        }
+
+        private async Task<bool> IsOwnedByCurrentDoctorAsync(int doctorId)
+        {
+            var userId = GetAuthenticatedUserId();
+            return userId.HasValue && await _context.Doctors.AnyAsync(doctor =>
+                doctor.Id == doctorId &&
+                doctor.UserId == userId &&
+                !doctor.IsDeleted);
+        }
+
+        private static UnauthorizedObjectResult DoctorAccessDenied()
+        {
+            return new UnauthorizedObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 401,
+                Message = "You do not have permission to manage this booking.",
+                Data = null
+            });
         }
 
         private static IQueryable<BookingDetailsDto> ProjectBookingDetails(IQueryable<Appointment> query)

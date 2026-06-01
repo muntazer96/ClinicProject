@@ -1,5 +1,7 @@
 ﻿using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,24 +29,28 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> SoftDeleteUserAsync(string id)
         {
             return await _service.SoftDeleteUserAsync(id);
         }
 
         [HttpPost("{id}/lock-toggle")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> ToggleUserLockStatusAsync(string id)
         {
             return await _service.ToggleUserLockStatusAsync(id);
         }
 
         [HttpGet]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> GetUsersAsync(Guid userGuid, int page = 1, int pageSize = 10)
         {
             return await _service.GetPaginatedUsersAsync(userGuid, page, pageSize);
         }
 
         [HttpPost("profile-image")]
+        [Authorize]
         public async Task<IActionResult> UploadProfileImageAsync(IFormFile file)
         {
             return await _service.UploadImgAsync(file);

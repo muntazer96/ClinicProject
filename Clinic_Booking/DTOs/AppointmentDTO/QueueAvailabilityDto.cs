@@ -12,5 +12,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
         public int BookedAppointments { get; set; }
         public int RemainingAppointments { get; set; }
         public bool IsAvailable { get; set; }
+        public bool HasException { get; set; }
+        public string? ClosureReason { get; set; }
     }
 }

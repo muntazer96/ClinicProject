@@ -11,7 +11,7 @@ namespace Clinic_Booking.DTOs.ReviewDTO
         public int Rating { get; set; } // التقييم من 1 إلى 5
         public string Comment { get; set; } // تعليق المستخدم
         public int? AppoinmentId { get; set; }
-        public GetAppointmentReview Appointment { get; set; }
+        public GetAppointmentReview? Appointment { get; set; }
     }
     public class GetDoctorReview
     {
@@ -29,5 +29,13 @@ namespace Clinic_Booking.DTOs.ReviewDTO
     {
         public int Id { get; set; }
         public AppointmentStatus Status { get; set; }
+    }
+
+    public class GetDoctorReviewsDto
+    {
+        public int DoctorId { get; set; }
+        public double? AverageRating { get; set; }
+        public int ReviewCount { get; set; }
+        public List<GetReviewDto> Reviews { get; set; } = [];
     }
 }

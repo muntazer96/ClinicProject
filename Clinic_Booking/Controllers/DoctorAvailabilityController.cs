@@ -1,5 +1,7 @@
 ﻿using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
+using Clinic_Booking.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
@@ -14,6 +16,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> CreateOrUpdateWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         {
             return await _services.UpsertWeeklyAvailabilityAsync(dto);
@@ -26,6 +29,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPut("single-day")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> UpdateSingleDayAvailabilityAsync(UpdateSingleDayAvailabilityDto dto)
         {
             return await _services.UpdateSingleDayAvailabilityAsync(dto);

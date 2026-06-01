@@ -1,6 +1,8 @@
 ﻿using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IAppointmentServices;
+using Clinic_Booking.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
@@ -14,11 +16,13 @@ namespace Clinic_Booking.Controllers
             _service = service;
         }
         [HttpGet("GetListAsync")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync([FromQuery] SearchAppointmentDto form, int page = 1, int pageSize = 10)
         {
             return await _service.GetListAsync(form, page, pageSize);
         }
         [HttpGet]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> GetAppointmentsAsync([FromQuery] SearchAppointmentDto form)
         {
             return await _service.GetAppointmentsAsync(form);
@@ -34,11 +38,13 @@ namespace Clinic_Booking.Controllers
             return await _service.GetGuestAppointmentAsync(phoneNumber, code);
         }
         [HttpGet("my")]
+        [Authorize]
         public async Task<IActionResult> GetMyAppointmentsAsync()
         {
             return await _service.GetMyAppointmentsAsync();
         }
         [HttpGet("my/{appointmentId}")]
+        [Authorize]
         public async Task<IActionResult> GetMyAppointmentAsync(int appointmentId)
         {
             return await _service.GetMyAppointmentAsync(appointmentId);
@@ -64,16 +70,19 @@ namespace Clinic_Booking.Controllers
             return await _service.CancelGuestAppointmentAsync(form);
         }
         [HttpPost("my/cancel")]
+        [Authorize]
         public async Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form)
         {
             return await _service.CancelMyAppointmentAsync(form);
         }
         [HttpPost("toggle-status")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> ToggleAppointmentStatusAsync([FromQuery] int appointmentId)
         {
             return await _service.ToggleAppointmentStatusAsync(appointmentId);
         }
         [HttpPost("complete")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> CompleteAppointmentAsync(int appointmentId)
         {
             return await _service.CompleteAppointmentAsync(appointmentId);

@@ -141,6 +141,17 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 });
             }
 
+            if (clinic.Doctor.UserId != _load.GetCurrentUserId())
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "You do not have permission to manage this clinic.",
+                    Data = null
+                });
+            }
+
             var now = DateTime.UtcNow;
 
             var activeSub = await _context.DoctorSubscriptions
@@ -334,6 +345,17 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                     Status = "Error",
                     Code = 404,
                     Message = "العيادة غير موجودة.",
+                    Data = null
+                });
+            }
+
+            if (clinic.Doctor.UserId != _load.GetCurrentUserId())
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "You do not have permission to manage this clinic.",
                     Data = null
                 });
             }

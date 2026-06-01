@@ -17,5 +17,6 @@ namespace Clinic_Booking.Entities.Clinic
         public bool IsVisible { get; set; } = true;
         public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }
         public ICollection<Appointment.Appointment> Appointments { get; set; }
+        public ICollection<ClinicException.ClinicException> Exceptions { get; set; }
     }
 }
