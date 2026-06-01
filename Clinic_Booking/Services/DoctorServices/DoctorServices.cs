@@ -279,6 +279,7 @@ namespace Clinic_Booking.Services.DoctorServices
                     Location = d.Location,
                     PhoneNumber = d.PhoneNumber,
                     IsPubliclyVisible = d.IsPubliclyVisible,
+                    UserId = d.UserId,
                 })
                 .FirstOrDefaultAsync();
 
@@ -530,6 +531,7 @@ namespace Clinic_Booking.Services.DoctorServices
                         Location = d.Location,
                         PhoneNumber = d.PhoneNumber,
                         IsPubliclyVisible = d.IsPubliclyVisible,
+                        UserId = d.UserId,
                     })
                     .ToListAsync();
 

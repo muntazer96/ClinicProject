@@ -71,7 +71,7 @@ namespace Clinic_Booking.Data
                 {
                     Id = Guid.NewGuid(),
                     CreatedAt = DateTime.UtcNow,
-                    NormalizedUserName = "SUPARADMIN",
+                    NormalizedUserName = "SUPERADMIN",
                     PasswordHash = hasher.HashPassword(null, "password"),
                     SecurityStamp = Guid.NewGuid().ToString(),
                     PhoneNumber = null,

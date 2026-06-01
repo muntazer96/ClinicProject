@@ -121,6 +121,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                             PhoneNumber = ds.Doctor.PhoneNumber,
                             Location = ds.Doctor.Location,
                             IsPubliclyVisible = ds.Doctor.IsPubliclyVisible,
+                            UserId = ds.Doctor.UserId,
                         },
                         Package = new GetSubscriptionPackages
                         {

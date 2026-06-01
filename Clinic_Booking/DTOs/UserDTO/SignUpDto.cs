@@ -8,7 +8,7 @@ namespace Clinic_Booking.DTOs.UserDTO
         [StringLength(200)]
         public string Name { get; set; }
         [Required]
-        [Phone]
+        //[Phone]
         [StringLength(30)]
         public string PhoneNumber { get; set; }
         [Required]

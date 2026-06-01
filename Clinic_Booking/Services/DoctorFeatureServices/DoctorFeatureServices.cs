@@ -91,6 +91,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                             PhoneNumber = ds.Doctor.PhoneNumber,
                             Location = ds.Doctor.Location,
                             IsPubliclyVisible = ds.Doctor.IsPubliclyVisible,
+                            UserId = ds.Doctor.UserId,
                         },
                         Feature = new DTOs.FeatureDTO.GetFeatureDto
                         {
