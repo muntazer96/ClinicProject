@@ -328,6 +328,9 @@ namespace Clinic_Booking.Data
 
                 entity.HasIndex(a => new { a.ClinicId, a.AppointmentDate, a.QueueNumber })
                     .IsUnique();
+                entity.HasIndex(a => new { a.ClinicId, a.AppointmentDate, a.Status });
+                entity.HasIndex(a => new { a.UserId, a.AppointmentDate, a.Status });
+                entity.HasIndex(a => new { a.GuestPhoneNumber, a.AppointmentDate, a.Status });
             });
 
             // BookingOtpRequest

@@ -104,10 +104,14 @@ namespace Clinic_Booking.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.HasIndex("UserId");
-
                     b.HasIndex("ClinicId", "AppointmentDate", "QueueNumber")
                         .IsUnique();
+
+                    b.HasIndex("ClinicId", "AppointmentDate", "Status");
+
+                    b.HasIndex("GuestPhoneNumber", "AppointmentDate", "Status");
+
+                    b.HasIndex("UserId", "AppointmentDate", "Status");
 
                     b.ToTable("Appointments");
                 });

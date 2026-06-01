@@ -62,7 +62,7 @@ namespace Clinic_Booking.Controllers
             return await _service.SendEmailConfirmationAsync(guid);
         }
 
-        [HttpPost("email-confirm")]
+        [HttpGet("email-confirm")]
         public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
         {
             return await _service.ConfirmEmailAsync(userId, token);

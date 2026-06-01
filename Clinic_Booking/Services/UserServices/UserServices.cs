@@ -437,6 +437,32 @@ namespace Clinic_Booking.Services.UserServices
         {
             try
             {
+                if (file == null || file.Length == 0)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "يرجى اختيار صورة صالحة."
+                    });
+                }
+
+                const long maxFileSize = 5 * 1024 * 1024;
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ".jpg", ".jpeg", ".png", ".webp"
+                };
+                if (file.Length > maxFileSize || !allowedExtensions.Contains(extension))
+                {
+                    return new BadRequestObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "الصورة يجب أن تكون بصيغة JPG أو PNG أو WEBP وبحجم لا يتجاوز 5MB."
+                    });
+                }
+
                 var user = _context.AspNetUsers.Where(d => d.Id == _load.GetCurrentUserId()).FirstOrDefault();
 
                 if (user == null)
@@ -460,18 +486,16 @@ namespace Clinic_Booking.Services.UserServices
                     Directory.CreateDirectory(folderPath);
                 }
 
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                var fileName = Guid.NewGuid().ToString() + extension;
 
                 var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/UserImgProfile", fileName);
+                var oldImagePath = user.ImageName == "default.png" || string.IsNullOrWhiteSpace(user.ImageName)
+                    ? null
+                    : Path.Combine(folderPath, Path.GetFileName(user.ImageName));
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
-                }
-
-                if (user.ImageName != "default.png" && File.Exists(folderPath))
-                {
-                    File.Delete(folderPath);
                 }
 
                 user.ImageName = fileName;
@@ -479,6 +503,11 @@ namespace Clinic_Booking.Services.UserServices
                 var result = await _userManager.UpdateAsync(user);
                 if (result.Succeeded)
                 {
+                    if (oldImagePath != null && File.Exists(oldImagePath))
+                    {
+                        File.Delete(oldImagePath);
+                    }
+
                     var successResponse = new ResponseDto<string>
                     {
                         Code = 200,
@@ -489,6 +518,7 @@ namespace Clinic_Booking.Services.UserServices
                     return new OkObjectResult(successResponse);
                 }
 
+                File.Delete(filePath);
                 var bdResponse = new ResponseDto<string>
                 {
                     Code = 400,
@@ -546,12 +576,25 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var request = _httpContextAccessor.HttpContext.Request;
+            var request = _httpContextAccessor.HttpContext?.Request;
+            if (request == null)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "تعذر إنشاء رابط تأكيد البريد الإلكتروني."
+                })
+                {
+                    StatusCode = 500
+                };
+            }
+
             var scheme = request.Scheme;
             var host = request.Host.Value;
 
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"{scheme}://{host}/api/User/ConfirmEmail?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var confirmationLink = $"{scheme}://{host}/api/User/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
             await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
 
@@ -606,13 +649,22 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var request = _httpContextAccessor.HttpContext.Request;
-            var scheme = request.Scheme;
-            var host = request.Host.Value;
-
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            Console.WriteLine(token);
-            var resetLink = $"{scheme}://{host}/api/User/ResetPassword?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var clientBaseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
+            if (string.IsNullOrWhiteSpace(clientBaseUrl))
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "تعذر إنشاء رابط إعادة تعيين كلمة المرور."
+                })
+                {
+                    StatusCode = 500
+                };
+            }
+
+            var resetLink = $"{clientBaseUrl.TrimEnd('/')}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
 
 
