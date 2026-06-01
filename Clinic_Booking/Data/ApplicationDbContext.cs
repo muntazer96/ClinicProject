@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.Clinic;
+using Clinic_Booking.Entities.BookingOtpRequest;
 using Clinic_Booking.Entities.Day;
 using Clinic_Booking.Entities.Doctor;
 using Clinic_Booking.Entities.DoctorAvailability;
@@ -37,6 +38,7 @@ namespace Clinic_Booking.Data
         public DbSet<SubscriptionPackage> SubscriptionPackages { get; set; }
         public DbSet<DoctorSubscription> DoctorSubscriptions { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<BookingOtpRequest> BookingOtpRequests { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
@@ -290,6 +292,22 @@ namespace Clinic_Booking.Data
 
                 entity.HasIndex(a => new { a.ClinicId, a.AppointmentDate, a.QueueNumber })
                     .IsUnique();
+            });
+
+            // BookingOtpRequest
+            modelBuilder.Entity<BookingOtpRequest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.CodeHash).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.CodeSalt).IsRequired().HasMaxLength(64);
+
+                entity.HasOne(e => e.Appointment)
+                    .WithMany()
+                    .HasForeignKey(e => e.AppointmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.AppointmentId, e.IsUsed });
             });
 
             // Payment

@@ -1,7 +1,9 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.Configuration;
 using Clinic_Booking.IServices.IAppointmentServices;
+using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.IDayServices;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
 using Clinic_Booking.IServices.IDoctorFeatureServices;
@@ -14,6 +16,7 @@ using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.Services.AppointmentServices;
+using Clinic_Booking.Services.BookingSmsServices;
 using Clinic_Booking.Services.DayServices;
 using Clinic_Booking.Services.DoctorAvailabilityServices;
 using Clinic_Booking.Services.DoctorFeatureServices;
@@ -47,6 +50,9 @@ builder.Services.AddScoped<IFeatureServices, FeatureServices>();
 builder.Services.AddScoped<IDoctorFeatureServices, DoctorFeatureServices>();
 builder.Services.AddScoped<IDoctorAvailabilityServices, DoctorAvailabilityService>();
 builder.Services.AddScoped<IAppointmentServices, AppointmentServices>();
+builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>();
+builder.Services.Configure<BookingOtpOptions>(
+    builder.Configuration.GetSection(BookingOtpOptions.SectionName));
 
 
 builder.Services.AddTransient<IEmailServices, EmailServices>();

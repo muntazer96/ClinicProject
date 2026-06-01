@@ -1,14 +1,20 @@
 using Clinic_Booking.Data;
+using Clinic_Booking.Configuration;
 using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.ClinicDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.BookingOtpRequest;
 using Clinic_Booking.Enums;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IAppointmentServices;
+using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Clinic_Booking.Services.AppointmentServices
 {
@@ -16,11 +22,19 @@ namespace Clinic_Booking.Services.AppointmentServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
+        private readonly IBookingSmsServices _bookingSmsServices;
+        private readonly BookingOtpOptions _bookingOtpOptions;
 
-        public AppointmentServices(ApplicationDbContext context, ILoadServices load)
+        public AppointmentServices(
+            ApplicationDbContext context,
+            ILoadServices load,
+            IBookingSmsServices bookingSmsServices,
+            IOptions<BookingOtpOptions> bookingOtpOptions)
         {
             _context = context;
             _load = load;
+            _bookingSmsServices = bookingSmsServices;
+            _bookingOtpOptions = bookingOtpOptions.Value;
         }
 
         public async Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(
@@ -216,6 +230,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             var endDate = startDate.AddDays(days - 1);
             var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
             var endDateTime = endDate.ToDateTime(TimeOnly.MaxValue);
+            await ExpireUnconfirmedBookingsAsync(clinicId);
 
             var weeklyAvailability = await _context.DoctorAvailabilities
                 .Include(a => a.Day)
@@ -283,34 +298,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            var appointment = await _context.Appointments
+            var appointment = await ProjectBookingDetails(
+                _context.Appointments
                 .Where(a =>
                     !a.IsDeleted &&
                     a.UserId == null &&
                     a.GuestPhoneNumber == normalizedPhoneNumber &&
-                    a.Code == normalizedCode)
-                .Select(a => new
-                {
-                    a.Id,
-                    a.Code,
-                    a.GuestName,
-                    a.GuestPhoneNumber,
-                    a.AppointmentDate,
-                    a.QueueNumber,
-                    a.Status,
-                    a.IsPhoneConfirmed,
-                    a.CancellationReason,
-                    a.CancelledAt,
-                    a.DoctorId,
-                    DoctorName = a.Doctor.Name,
-                    a.ClinicId,
-                    ClinicName = a.Clinic.Name,
-                    ClinicAddress = a.Clinic.Address,
-                    ClinicPhoneNumber = a.Clinic.PhoneNumber,
-                    a.Clinic.MapUrl,
-                    a.Clinic.Latitude,
-                    a.Clinic.Longitude
-                })
+                    a.Code == normalizedCode))
                 .FirstOrDefaultAsync();
 
             if (appointment == null)
@@ -333,8 +327,93 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
+        public async Task<IActionResult> GetMyAppointmentsAsync()
+        {
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue)
+            {
+                return LoginRequired();
+            }
+
+            var appointments = await ProjectBookingDetails(
+                    _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId))
+                .OrderByDescending(a => a.AppointmentDate)
+                .ThenBy(a => a.QueueNumber)
+                .ToListAsync();
+
+            return new OkObjectResult(new ResponseDto<List<BookingDetailsDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Bookings retrieved successfully.",
+                Data = appointments
+            });
+        }
+
+        public async Task<IActionResult> GetMyAppointmentAsync(int appointmentId)
+        {
+            if (appointmentId <= 0)
+            {
+                return InvalidBookingId();
+            }
+
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue)
+            {
+                return LoginRequired();
+            }
+
+            var appointment = await ProjectBookingDetails(
+                    _context.Appointments.Where(a =>
+                        !a.IsDeleted &&
+                        a.Id == appointmentId &&
+                        a.UserId == userId))
+                .FirstOrDefaultAsync();
+
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Booking not found.",
+                    Data = null
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<BookingDetailsDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Booking retrieved successfully.",
+                Data = appointment
+            });
+        }
+
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
+            if (form.DoctorId <= 0 || form.ClinicId <= 0)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Doctor and clinic are required.",
+                    Data = null
+                });
+            }
+
+            if (form.Notes?.Length > 1000)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Notes cannot exceed 1000 characters.",
+                    Data = null
+                });
+            }
+
             var clinic = await _context.Clinics
                 .Include(c => c.Doctor)
                 .FirstOrDefaultAsync(c =>
@@ -379,8 +458,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            var currentUserId = _load.GetCurrentUserId();
-            var userId = currentUserId == Guid.Empty ? null : currentUserId;
+            var userId = GetAuthenticatedUserId();
             if (!userId.HasValue &&
                 (string.IsNullOrWhiteSpace(form.GuestName) || string.IsNullOrWhiteSpace(form.GuestPhoneNumber)))
             {
@@ -389,6 +467,35 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Status = "Error",
                     Code = 400,
                     Message = "يرجى إدخال اسم ورقم هاتف الزائر.",
+                    Data = null
+                });
+            }
+
+            if (!userId.HasValue && (form.GuestName!.Length > 200 || form.GuestPhoneNumber!.Length > 30))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Guest name or phone number is too long.",
+                    Data = null
+                });
+            }
+
+            var bookingPhoneNumber = userId.HasValue
+                ? await _context.AspNetUsers
+                    .Where(user => user.Id == userId)
+                    .Select(user => user.PhoneNumber)
+                    .FirstOrDefaultAsync()
+                : form.GuestPhoneNumber?.Trim();
+
+            if (_bookingOtpOptions.Enabled && string.IsNullOrWhiteSpace(bookingPhoneNumber))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Phone number is required when booking OTP is enabled.",
                     Data = null
                 });
             }
@@ -414,6 +521,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var appointmentDate = form.AppointmentDate.Date;
+            await ExpireUnconfirmedBookingsAsync(form.ClinicId);
             var activeAppointments = _context.Appointments.Where(a =>
                 a.ClinicId == form.ClinicId &&
                 a.AppointmentDate.Date == appointmentDate &&
@@ -471,7 +579,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
                 GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
                 Notes = form.Notes?.Trim(),
-                IsPhoneConfirmed = true, // OTP becomes configurable in its dedicated phase.
+                IsPhoneConfirmed = !_bookingOtpOptions.Enabled,
                 Status = AppointmentStatus.Pending,
                 PaymentStatus = PaymentStatus.Pending,
                 CreatorId = userId,
@@ -482,6 +590,23 @@ namespace Clinic_Booking.Services.AppointmentServices
             try
             {
                 await _context.SaveChangesAsync();
+
+                if (_bookingOtpOptions.Enabled)
+                {
+                    try
+                    {
+                        await CreateAndSendBookingOtpAsync(appointment, bookingPhoneNumber!);
+                    }
+                    catch
+                    {
+                        appointment.Status = AppointmentStatus.Cancelled;
+                        appointment.CancellationReason = "OTP delivery failed.";
+                        appointment.CancelledAt = DateTime.UtcNow;
+                        appointment.ModifiedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        return OtpDeliveryFailed();
+                    }
+                }
             }
             catch (DbUpdateException)
             {
@@ -499,7 +624,179 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Status = "Success",
                 Code = 200,
                 Message = "تم إنشاء الحجز بنجاح.",
-                Data = new { AppointmentId = appointment.Id, appointment.Code, appointment.QueueNumber }
+                Data = new
+                {
+                    AppointmentId = appointment.Id,
+                    appointment.Code,
+                    appointment.QueueNumber,
+                    appointment.IsPhoneConfirmed,
+                    RequiresOtp = _bookingOtpOptions.Enabled
+                }
+            });
+        }
+
+        public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
+        {
+            if (!_bookingOtpOptions.Enabled)
+            {
+                return OtpDisabled();
+            }
+
+            var appointment = await GetOtpAppointmentAsync(form.PhoneNumber, form.BookingCode);
+            if (appointment == null)
+            {
+                return BookingNotFound();
+            }
+
+            if (appointment.IsPhoneConfirmed)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Phone number is already confirmed.",
+                    Data = null
+                });
+            }
+
+            var lastRequest = await _context.BookingOtpRequests
+                .Where(request => request.AppointmentId == appointment.Id)
+                .OrderByDescending(request => request.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (lastRequest != null && lastRequest.ExpiresAt < DateTime.UtcNow)
+            {
+                await ExpireUnconfirmedBookingsAsync(appointment.ClinicId);
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Booking OTP expired. Please create a new booking.",
+                    Data = null
+                });
+            }
+
+            if (lastRequest != null)
+            {
+                var resendAvailableAt = lastRequest.SentAt.AddSeconds(_bookingOtpOptions.ResendCooldownSeconds);
+                if (resendAvailableAt > DateTime.UtcNow)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "Please wait before requesting another OTP.",
+                        Data = new { ResendAvailableAt = resendAvailableAt }
+                    });
+                }
+            }
+
+            try
+            {
+                await CreateAndSendBookingOtpAsync(appointment, form.PhoneNumber.Trim());
+            }
+            catch
+            {
+                return OtpDeliveryFailed();
+            }
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "OTP sent successfully.",
+                Data = null
+            });
+        }
+
+        public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
+        {
+            if (!_bookingOtpOptions.Enabled)
+            {
+                return OtpDisabled();
+            }
+
+            if (string.IsNullOrWhiteSpace(form.OtpCode))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "OTP code is required.",
+                    Data = null
+                });
+            }
+
+            var appointment = await GetOtpAppointmentAsync(form.PhoneNumber, form.BookingCode);
+            if (appointment == null)
+            {
+                return BookingNotFound();
+            }
+
+            if (appointment.IsPhoneConfirmed)
+            {
+                return new OkObjectResult(new ResponseDto<object>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "Phone number is already confirmed.",
+                    Data = null
+                });
+            }
+
+            var otpRequest = await _context.BookingOtpRequests
+                .Where(request => request.AppointmentId == appointment.Id && !request.IsUsed)
+                .OrderByDescending(request => request.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRequest == null || otpRequest.ExpiresAt < DateTime.UtcNow)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "OTP code is expired. Please request a new one.",
+                    Data = null
+                });
+            }
+
+            if (otpRequest.AttemptCount >= _bookingOtpOptions.MaxAttempts)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Maximum OTP attempts reached. Please request a new one.",
+                    Data = null
+                });
+            }
+
+            otpRequest.AttemptCount++;
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(otpRequest.CodeHash),
+                    Convert.FromHexString(HashOtpCode(form.OtpCode.Trim(), otpRequest.CodeSalt))))
+            {
+                await _context.SaveChangesAsync();
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Invalid OTP code.",
+                    Data = new { RemainingAttempts = Math.Max(0, _bookingOtpOptions.MaxAttempts - otpRequest.AttemptCount) }
+                });
+            }
+
+            otpRequest.IsUsed = true;
+            otpRequest.VerifiedAt = DateTime.UtcNow;
+            appointment.IsPhoneConfirmed = true;
+            appointment.ModifiedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Booking phone number confirmed successfully.",
+                Data = new { appointment.Id, appointment.Code, appointment.QueueNumber }
             });
         }
 
@@ -538,16 +835,15 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         public async Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form)
         {
-            var userId = _load.GetCurrentUserId();
-            if (!userId.HasValue || userId == Guid.Empty)
+            if (form.AppointmentId <= 0)
             {
-                return new UnauthorizedObjectResult(new ResponseDto<object>
-                {
-                    Status = "Error",
-                    Code = 401,
-                    Message = "Login is required.",
-                    Data = null
-                });
+                return InvalidBookingId();
+            }
+
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue)
+            {
+                return LoginRequired();
             }
 
             var appointment = await _context.Appointments.FirstOrDefaultAsync(a =>
@@ -684,6 +980,207 @@ namespace Clinic_Booking.Services.AppointmentServices
                     feature.Feature.NormalizedName == "EBooking" &&
                     feature.IsEnabled &&
                     !feature.IsDeleted);
+        }
+
+        private async Task<Appointment?> GetOtpAppointmentAsync(string phoneNumber, string bookingCode)
+        {
+            var normalizedPhoneNumber = phoneNumber?.Trim();
+            var normalizedBookingCode = bookingCode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalizedPhoneNumber) || string.IsNullOrWhiteSpace(normalizedBookingCode))
+            {
+                return null;
+            }
+
+            return await _context.Appointments
+                .Include(appointment => appointment.User)
+                .FirstOrDefaultAsync(appointment =>
+                    !appointment.IsDeleted &&
+                    appointment.Status != AppointmentStatus.Cancelled &&
+                    appointment.Code == normalizedBookingCode &&
+                    (appointment.UserId.HasValue
+                        ? appointment.User.PhoneNumber == normalizedPhoneNumber
+                        : appointment.GuestPhoneNumber == normalizedPhoneNumber));
+        }
+
+        private async Task CreateAndSendBookingOtpAsync(Appointment appointment, string phoneNumber)
+        {
+            var oldRequests = await _context.BookingOtpRequests
+                .Where(request => request.AppointmentId == appointment.Id && !request.IsUsed)
+                .ToListAsync();
+
+            foreach (var request in oldRequests)
+            {
+                request.IsUsed = true;
+            }
+
+            var otpCode = GenerateNumericOtp(_bookingOtpOptions.CodeLength);
+            var codeSalt = GenerateOtpSalt();
+            var now = DateTime.UtcNow;
+            var otpRequest = new BookingOtpRequest
+            {
+                AppointmentId = appointment.Id,
+                PhoneNumber = phoneNumber,
+                CodeHash = HashOtpCode(otpCode, codeSalt),
+                CodeSalt = codeSalt,
+                SentAt = now,
+                ExpiresAt = now.AddMinutes(_bookingOtpOptions.ExpirationMinutes)
+            };
+            _context.BookingOtpRequests.Add(otpRequest);
+
+            await _context.SaveChangesAsync();
+            try
+            {
+                await _bookingSmsServices.SendBookingOtpAsync(phoneNumber, otpCode);
+            }
+            catch
+            {
+                otpRequest.IsUsed = true;
+                await _context.SaveChangesAsync();
+                throw;
+            }
+        }
+
+        private async Task ExpireUnconfirmedBookingsAsync(int clinicId)
+        {
+            if (!_bookingOtpOptions.Enabled)
+            {
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            var expiredAppointments = await _context.Appointments
+                .Where(appointment =>
+                    appointment.ClinicId == clinicId &&
+                    !appointment.IsDeleted &&
+                    !appointment.IsPhoneConfirmed &&
+                    appointment.Status == AppointmentStatus.Pending &&
+                    _context.BookingOtpRequests.Any(request =>
+                        request.AppointmentId == appointment.Id &&
+                        !request.IsUsed &&
+                        request.ExpiresAt < now))
+                .ToListAsync();
+
+            foreach (var appointment in expiredAppointments)
+            {
+                appointment.Status = AppointmentStatus.Cancelled;
+                appointment.CancellationReason = "Booking OTP expired.";
+                appointment.CancelledAt = now;
+                appointment.ModifiedAt = now;
+            }
+
+            if (expiredAppointments.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private static string GenerateNumericOtp(int length)
+        {
+            var safeLength = Math.Clamp(length, 4, 8);
+            var minValue = (int)Math.Pow(10, safeLength - 1);
+            var maxValue = (int)Math.Pow(10, safeLength);
+            return RandomNumberGenerator.GetInt32(minValue, maxValue).ToString();
+        }
+
+        private static string GenerateOtpSalt()
+        {
+            return Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
+        }
+
+        private static string HashOtpCode(string code, string salt)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{salt}:{code}")));
+        }
+
+        private Guid? GetAuthenticatedUserId()
+        {
+            var userId = _load.GetCurrentUserId();
+            return userId.HasValue && userId != Guid.Empty ? userId : null;
+        }
+
+        private static IQueryable<BookingDetailsDto> ProjectBookingDetails(IQueryable<Appointment> query)
+        {
+            return query.Select(appointment => new BookingDetailsDto
+            {
+                Id = appointment.Id,
+                Code = appointment.Code,
+                PatientName = appointment.UserId.HasValue
+                    ? appointment.User!.Name ?? string.Empty
+                    : appointment.GuestName ?? string.Empty,
+                AppointmentDate = appointment.AppointmentDate,
+                QueueNumber = appointment.QueueNumber,
+                Status = appointment.Status,
+                IsPhoneConfirmed = appointment.IsPhoneConfirmed,
+                CancellationReason = appointment.CancellationReason,
+                CancelledAt = appointment.CancelledAt,
+                DoctorId = appointment.DoctorId,
+                DoctorName = appointment.Doctor.Name,
+                ClinicId = appointment.ClinicId,
+                ClinicName = appointment.Clinic.Name,
+                ClinicAddress = appointment.Clinic.Address,
+                ClinicPhoneNumber = appointment.Clinic.PhoneNumber,
+                MapUrl = appointment.Clinic.MapUrl,
+                Latitude = appointment.Clinic.Latitude,
+                Longitude = appointment.Clinic.Longitude
+            });
+        }
+
+        private static UnauthorizedObjectResult LoginRequired()
+        {
+            return new UnauthorizedObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 401,
+                Message = "Login is required.",
+                Data = null
+            });
+        }
+
+        private static BadRequestObjectResult InvalidBookingId()
+        {
+            return new BadRequestObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = "Invalid booking id.",
+                Data = null
+            });
+        }
+
+        private static BadRequestObjectResult OtpDisabled()
+        {
+            return new BadRequestObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = "Booking OTP is disabled.",
+                Data = null
+            });
+        }
+
+        private static NotFoundObjectResult BookingNotFound()
+        {
+            return new NotFoundObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 404,
+                Message = "Booking not found.",
+                Data = null
+            });
+        }
+
+        private static ObjectResult OtpDeliveryFailed()
+        {
+            return new ObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 503,
+                Message = "OTP delivery failed. Please try again later.",
+                Data = null
+            })
+            {
+                StatusCode = 503
+            };
         }
 
         private async Task<IActionResult> CancelAppointmentAsync(

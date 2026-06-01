@@ -33,10 +33,30 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.GetGuestAppointmentAsync(phoneNumber, code);
         }
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyAppointmentsAsync()
+        {
+            return await _service.GetMyAppointmentsAsync();
+        }
+        [HttpGet("my/{appointmentId}")]
+        public async Task<IActionResult> GetMyAppointmentAsync(int appointmentId)
+        {
+            return await _service.GetMyAppointmentAsync(appointmentId);
+        }
         [HttpPost]
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
             return await _service.CreateAppointmentAsync(form);
+        }
+        [HttpPost("otp/resend")]
+        public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
+        {
+            return await _service.ResendBookingOtpAsync(form);
+        }
+        [HttpPost("otp/confirm")]
+        public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
+        {
+            return await _service.ConfirmBookingOtpAsync(form);
         }
         [HttpPost("guest/cancel")]
         public async Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form)

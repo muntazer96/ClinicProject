@@ -10,7 +10,11 @@ namespace Clinic_Booking.IServices.IAppointmentServices
         Task<IActionResult> GetAppointmentsAsync(SearchAppointmentDto form);
         Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, DateOnly? fromDate, int days = 7);
         Task<IActionResult> GetGuestAppointmentAsync(string phoneNumber, string code);
+        Task<IActionResult> GetMyAppointmentsAsync();
+        Task<IActionResult> GetMyAppointmentAsync(int appointmentId);
         Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form);
+        Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form);
+        Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form);
         Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form);
         Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form);
         Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId);
