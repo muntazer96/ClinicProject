@@ -34,6 +34,7 @@ namespace Clinic_Booking.DTOs.ReviewDTO
     public class GetDoctorReviewsDto
     {
         public int DoctorId { get; set; }
+        public bool IsEnabled { get; set; }
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
         public List<GetReviewDto> Reviews { get; set; } = [];

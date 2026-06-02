@@ -25,7 +25,6 @@ namespace Clinic_Booking.Services.UserServices
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailServices _emailServices;
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
 
 
@@ -35,8 +34,7 @@ namespace Clinic_Booking.Services.UserServices
             ILoadServices load,
             ApplicationDbContext context,
             IConfiguration configuration,
-            IEmailServices emailServices,
-            IHttpContextAccessor httpContextAccessor)
+            IEmailServices emailServices)
         {
             _load = load;
             _userManager = userManager;
@@ -45,7 +43,6 @@ namespace Clinic_Booking.Services.UserServices
             _context = context;
             _configuration = configuration;
             _emailServices = emailServices;
-            _httpContextAccessor = httpContextAccessor;
         }
         public async Task<IActionResult> CreateUserAsync(SignUpDto form)
         {
@@ -86,12 +83,12 @@ namespace Clinic_Booking.Services.UserServices
                         var roleResult = await _userManager.AddToRoleAsync(user, role.Name);
                         if (roleResult.Succeeded)
                         {
-                            return new OkObjectResult(new ResponseDto<string>
+                            return new OkObjectResult(new ResponseDto<object>
                             {
                                 Status = "Success",
                                 Code = 200,
                                 Message = "تمت اضافة المستخدم بنجاح",
-                                Data = null
+                                Data = new { userId = user.Id }
                             });
                         }
                         else
@@ -563,9 +560,9 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
         }
-        public async Task<IActionResult> SendEmailConfirmationAsync(string guid)
+        public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
         {
-            var user = await _userManager.FindByIdAsync(guid);
+            var user = await FindUserAsync(identifier);
             if (user == null)
             {
                 return new NotFoundObjectResult(new ResponseDto<string>
@@ -576,8 +573,8 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var request = _httpContextAccessor.HttpContext?.Request;
-            if (request == null)
+            var clientBaseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
+            if (string.IsNullOrWhiteSpace(clientBaseUrl))
             {
                 return new ObjectResult(new ResponseDto<string>
                 {
@@ -590,11 +587,8 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
 
-            var scheme = request.Scheme;
-            var host = request.Host.Value;
-
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"{scheme}://{host}/api/User/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var confirmationLink = $"{clientBaseUrl.TrimEnd('/')}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
             await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
 
@@ -636,9 +630,9 @@ namespace Clinic_Booking.Services.UserServices
                 Message = "فشل تأكيد البريد الإلكتروني، الرابط غير صالح أو منتهي"
             });
         }
-        public async Task<IActionResult> SendResetPasswordLinkAsync(string guid)
+        public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
         {
-            var user = await _userManager.FindByIdAsync(guid);
+            var user = await FindUserAsync(identifier);
             if (user == null || user.IsDeleted)
             {
                 return new NotFoundObjectResult(new ResponseDto<string>
@@ -713,6 +707,23 @@ namespace Clinic_Booking.Services.UserServices
                 Code = 200,
                 Message = "تم تغيير كلمة المرور بنجاح."
             });
+        }
+
+        private async Task<AspNetUsers?> FindUserAsync(string identifier)
+        {
+            var value = identifier?.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            if (Guid.TryParse(value, out var userId))
+            {
+                return await _userManager.FindByIdAsync(userId.ToString());
+            }
+
+            return await _userManager.FindByEmailAsync(value)
+                ?? await _userManager.FindByNameAsync(value);
         }
         private string GetRoleIdByName(string roleName)
         {

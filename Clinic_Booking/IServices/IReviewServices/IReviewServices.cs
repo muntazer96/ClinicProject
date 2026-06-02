@@ -6,6 +6,7 @@ namespace Clinic_Booking.IServices.IReviewServices
     public interface IReviewServices
     {
         Task<IActionResult> GetByDoctorAsync(int doctorId);
+        Task<IActionResult> GetMineForDoctorAsync();
         Task<IActionResult> AddAsync(AddReviewDto form);
     }
 }

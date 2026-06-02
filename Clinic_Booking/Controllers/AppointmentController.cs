@@ -27,6 +27,12 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.GetAppointmentsAsync(form);
         }
+        [HttpGet("doctor/my")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> GetMineForDoctorAsync([FromQuery] SearchAppointmentDto form)
+        {
+            return await _service.GetMineForDoctorAsync(form);
+        }
         [HttpGet("queue-availability/{clinicId}")]
         public async Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, [FromQuery] DateOnly? fromDate, int days = 7)
         {

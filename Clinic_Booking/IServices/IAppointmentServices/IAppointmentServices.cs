@@ -8,6 +8,7 @@ namespace Clinic_Booking.IServices.IAppointmentServices
     {
         Task<ActionResult<PaginationDto.PageResult<GetApponitmentDto>>> GetListAsync(SearchAppointmentDto form, int page = 1, int pageSize = 10);
         Task<IActionResult> GetAppointmentsAsync(SearchAppointmentDto form);
+        Task<IActionResult> GetMineForDoctorAsync(SearchAppointmentDto form);
         Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, DateOnly? fromDate, int days = 7);
         Task<IActionResult> GetGuestAppointmentAsync(string phoneNumber, string code);
         Task<IActionResult> GetMyAppointmentsAsync();

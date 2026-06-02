@@ -7,6 +7,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
         public int Id { get; set; }
         public string Code { get; set; } = string.Empty;
         public string PatientName { get; set; } = string.Empty;
+        public string? PatientPhoneNumber { get; set; }
         public DateTime AppointmentDate { get; set; }
         public int QueueNumber { get; set; }
         public AppointmentStatus Status { get; set; }

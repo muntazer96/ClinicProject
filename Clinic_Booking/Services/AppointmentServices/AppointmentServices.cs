@@ -174,6 +174,44 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
+        public async Task<IActionResult> GetMineForDoctorAsync(SearchAppointmentDto form)
+        {
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue)
+            {
+                return LoginRequired();
+            }
+
+            var doctorId = await _context.Doctors
+                .Where(doctor => doctor.UserId == userId && !doctor.IsDeleted)
+                .Select(doctor => (int?)doctor.Id)
+                .FirstOrDefaultAsync();
+            if (!doctorId.HasValue)
+            {
+                return DoctorAccessDenied();
+            }
+
+            var appointments = await ProjectBookingDetails(_context.Appointments
+                    .Where(appointment =>
+                        !appointment.IsDeleted &&
+                        appointment.DoctorId == doctorId &&
+                        (form.ClinicId == null || appointment.ClinicId == form.ClinicId) &&
+                        (form.FromDate == null || appointment.AppointmentDate.Date >= form.FromDate.Value.ToDateTime(TimeOnly.MinValue)) &&
+                        (form.ToDate == null || appointment.AppointmentDate.Date <= form.ToDate.Value.ToDateTime(TimeOnly.MinValue)) &&
+                        (form.Status == null || appointment.Status == form.Status)))
+                .OrderBy(appointment => appointment.AppointmentDate)
+                .ThenBy(appointment => appointment.QueueNumber)
+                .ToListAsync();
+
+            return new OkObjectResult(new ResponseDto<List<BookingDetailsDto>>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "Bookings retrieved successfully.",
+                Data = appointments
+            });
+        }
+
         public async Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, DateOnly? fromDate, int days = 7)
         {
             if (days <= 0 || days > 31)
@@ -1175,6 +1213,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                 PatientName = appointment.UserId.HasValue
                     ? appointment.User!.Name ?? string.Empty
                     : appointment.GuestName ?? string.Empty,
+                PatientPhoneNumber = appointment.UserId.HasValue
+                    ? appointment.User!.PhoneNumber
+                    : appointment.GuestPhoneNumber,
                 AppointmentDate = appointment.AppointmentDate,
                 QueueNumber = appointment.QueueNumber,
                 Status = appointment.Status,

@@ -57,9 +57,9 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("email-confirmation")]
-        public async Task<IActionResult> SendEmailConfirmationAsync(string guid)
+        public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
         {
-            return await _service.SendEmailConfirmationAsync(guid);
+            return await _service.SendEmailConfirmationAsync(identifier);
         }
 
         [HttpGet("email-confirm")]
@@ -69,9 +69,9 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("password/reset-link")]
-        public async Task<IActionResult> SendResetPasswordLinkAsync(string guid)
+        public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
         {
-            return await _service.SendResetPasswordLinkAsync(guid);
+            return await _service.SendResetPasswordLinkAsync(identifier);
         }
 
         [HttpPost("password/reset")]

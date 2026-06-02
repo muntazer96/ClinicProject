@@ -8,9 +8,11 @@ public class AuthorizationTests
 {
     [Theory]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.GetAppointmentsAsync), AppRoles.SuperAdmin)]
+    [InlineData(typeof(AppointmentController), nameof(AppointmentController.GetMineForDoctorAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.ToggleAppointmentStatusAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.CompleteAppointmentAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(DoctorAvailabilityController), nameof(DoctorAvailabilityController.CreateOrUpdateWeeklyAvailabilityAsync), AppRoles.DoctorUser)]
+    [InlineData(typeof(ReviewController), nameof(ReviewController.GetMineForDoctorAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(UserController), nameof(UserController.GetUsersAsync), AppRoles.SuperAdmin)]
     public void SensitiveEndpoint_RequiresExpectedRole(Type controller, string action, string expectedRole)
     {

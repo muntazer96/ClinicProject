@@ -36,47 +36,28 @@ namespace Clinic_Booking.Services.ReviewServices
                 return BadRequest("Reviews are not available for this doctor.");
             }
 
-            var reviews = await _context.Reviews
-                .AsNoTracking()
-                .Where(review => review.DoctorId == doctorId && !review.IsDeleted)
-                .OrderByDescending(review => review.CreatedAt)
-                .Select(review => new GetReviewDto
-                {
-                    Id = review.Id,
-                    User = new GetUserReivew
-                    {
-                        Id = review.UserId,
-                        Name = review.User.Name,
-                        NormalizedName = review.User.NormalizedUserName
-                    },
-                    Doctor = new GetDoctorReview
-                    {
-                        Id = review.Doctor.Id,
-                        Name = review.Doctor.Name,
-                        NormalizedName = review.Doctor.NormalizedName
-                    },
-                    Rating = review.Rating,
-                    Comment = review.Comment,
-                    AppoinmentId = review.AppoinmentId,
-                    Appointment = review.Appointment == null
-                        ? null
-                        : new GetAppointmentReview
-                        {
-                            Id = review.Appointment.Id,
-                            Status = review.Appointment.Status
-                        }
-                })
-                .ToListAsync();
+            return Ok(await GetDoctorReviewsAsync(doctorId, true), "Doctor reviews retrieved successfully.");
+        }
 
-            return Ok(new GetDoctorReviewsDto
+        public async Task<IActionResult> GetMineForDoctorAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
             {
-                DoctorId = doctorId,
-                AverageRating = reviews.Count == 0
-                    ? null
-                    : reviews.Average(review => review.Rating),
-                ReviewCount = reviews.Count,
-                Reviews = reviews
-            }, "Doctor reviews retrieved successfully.");
+                return Unauthorized();
+            }
+
+            var doctorId = await _context.Doctors
+                .Where(doctor => doctor.UserId == userId && !doctor.IsDeleted)
+                .Select(doctor => (int?)doctor.Id)
+                .FirstOrDefaultAsync();
+            if (!doctorId.HasValue)
+            {
+                return NotFound("Linked doctor account not found.");
+            }
+
+            var isEnabled = await IsReviewFeatureEnabledAsync(doctorId.Value);
+            return Ok(await GetDoctorReviewsAsync(doctorId.Value, isEnabled), "Doctor reviews retrieved successfully.");
         }
 
         public async Task<IActionResult> AddAsync(AddReviewDto form)
@@ -160,6 +141,50 @@ namespace Clinic_Booking.Services.ReviewServices
                     !feature.IsDeleted &&
                     feature.IsEnabled &&
                     feature.Feature.NormalizedName == "ShowReviews"));
+        }
+
+        private async Task<GetDoctorReviewsDto> GetDoctorReviewsAsync(int doctorId, bool isEnabled)
+        {
+            var reviews = await _context.Reviews
+                .AsNoTracking()
+                .Where(review => review.DoctorId == doctorId && !review.IsDeleted)
+                .OrderByDescending(review => review.CreatedAt)
+                .Select(review => new GetReviewDto
+                {
+                    Id = review.Id,
+                    User = new GetUserReivew
+                    {
+                        Id = review.UserId,
+                        Name = review.User.Name,
+                        NormalizedName = review.User.NormalizedUserName
+                    },
+                    Doctor = new GetDoctorReview
+                    {
+                        Id = review.Doctor.Id,
+                        Name = review.Doctor.Name,
+                        NormalizedName = review.Doctor.NormalizedName
+                    },
+                    Rating = review.Rating,
+                    Comment = review.Comment,
+                    AppoinmentId = review.AppoinmentId,
+                    Appointment = review.Appointment == null
+                        ? null
+                        : new GetAppointmentReview
+                        {
+                            Id = review.Appointment.Id,
+                            Status = review.Appointment.Status
+                        }
+                })
+                .ToListAsync();
+
+            return new GetDoctorReviewsDto
+            {
+                DoctorId = doctorId,
+                IsEnabled = isEnabled,
+                AverageRating = reviews.Count == 0 ? null : reviews.Average(review => review.Rating),
+                ReviewCount = reviews.Count,
+                Reviews = reviews
+            };
         }
 
         private static IActionResult Ok<T>(T data, string message)
