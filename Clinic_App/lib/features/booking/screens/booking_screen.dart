@@ -1,0 +1,313 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/api_client.dart';
+import '../../../widgets/app_scaffold.dart';
+import '../../auth/auth_controller.dart';
+import '../booking_service.dart';
+import '../models/booking_models.dart';
+import 'otp_screen.dart';
+import 'success_screen.dart';
+
+class BookingScreen extends StatefulWidget {
+  const BookingScreen({
+    super.key,
+    required this.doctorId,
+    required this.clinicId,
+    required this.doctorName,
+    required this.clinicName,
+  });
+
+  final int doctorId;
+  final int clinicId;
+  final String doctorName;
+  final String clinicName;
+
+  @override
+  State<BookingScreen> createState() => _BookingScreenState();
+}
+
+class _BookingScreenState extends State<BookingScreen> {
+  late final BookingService _service;
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  final _notes = TextEditingController();
+  List<QueueAvailability> _days = [];
+  QueueAvailability? _selected;
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = BookingService(context.read<AuthController>().api);
+    _loadAvailability();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAvailability() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final days = await _service.getAvailability(widget.clinicId);
+      if (!mounted) return;
+      setState(() {
+        _days = days;
+        _selected = null;
+        for (final day in days) {
+          if (day.isAvailable) {
+            _selected = day;
+            break;
+          }
+        }
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final auth = context.read<AuthController>();
+    if (_selected == null) return;
+    if (!auth.isAuthenticated &&
+        (_name.text.trim().isEmpty || _phone.text.trim().isEmpty)) {
+      setState(() => _error = 'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.');
+      return;
+    }
+    if (auth.isAuthenticated && auth.phoneNumber == null) {
+      setState(
+        () => _error =
+            'سجل الخروج ثم ادخل إلى حسابك مرة أخرى قبل الحجز لتأكيد رقم الهاتف.',
+      );
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final result = await _service.createBooking(
+        doctorId: widget.doctorId,
+        clinicId: widget.clinicId,
+        date: _selected!.date,
+        guestName: auth.isAuthenticated ? null : _name.text,
+        guestPhoneNumber: auth.isAuthenticated ? null : _phone.text,
+        notes: _notes.text,
+      );
+      if (!mounted) return;
+      final phoneNumber = auth.isAuthenticated
+          ? auth.phoneNumber
+          : _phone.text.trim();
+      if (result.requiresOtp) {
+        context.go(
+          '/booking/otp',
+          extra: OtpScreenArgs(
+            result: result,
+            phoneNumber: phoneNumber ?? '',
+            doctorName: widget.doctorName,
+            clinicName: widget.clinicName,
+            date: _selected!.date,
+          ),
+        );
+      } else {
+        context.go(
+          '/booking/success',
+          extra: BookingSuccessArgs(
+            result: result,
+            doctorName: widget.doctorName,
+            clinicName: widget.clinicName,
+            date: _selected!.date,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authenticated = context.watch<AuthController>().isAuthenticated;
+    return AppScaffold(
+      title: 'حجز دور',
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        children: [
+          Text(
+            widget.doctorName,
+            style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            widget.clinicName,
+            style: const TextStyle(color: Color(0xFF147D72)),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'اختر اليوم المناسب',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_days.isEmpty)
+            const _Notice(text: 'لا توجد أيام متاحة للحجز حالياً.')
+          else
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _days.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, index) {
+                  final day = _days[index];
+                  return _DayCard(
+                    day: day,
+                    selected: _selected == day,
+                    onTap: day.isAvailable
+                        ? () => setState(() => _selected = day)
+                        : null,
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 16),
+          if (!authenticated) ...[
+            const _Notice(
+              text:
+                  'يمكنك الحجز كزائر. احتفظ بكود الحجز لمراجعته أو إلغائه لاحقاً.',
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'اسم المراجع'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.push(
+                '/login?redirect=${Uri.encodeComponent(GoRouterState.of(context).uri.toString())}',
+              ),
+              child: const Text('لديك حساب؟ سجل الدخول قبل الحجز'),
+            ),
+          ],
+          TextField(
+            controller: _notes,
+            maxLength: 1000,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'ملاحظات اختيارية للمراجعة',
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            _Notice(text: _error!, error: true),
+          ],
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _selected == null || _saving ? null : _submit,
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(_saving ? 'جارِ تثبيت الحجز...' : 'تأكيد حجز الدور'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayCard extends StatelessWidget {
+  const _DayCard({required this.day, required this.selected, this.onTap});
+
+  final QueueAvailability day;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(16),
+    onTap: onTap,
+    child: Container(
+      width: 104,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF147D72) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? const Color(0xFF147D72) : const Color(0xFFE0ECEA),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            day.dayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFF183B38),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            DateFormat('d/M').format(day.date),
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFF5F7975),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            day.isAvailable
+                ? '${day.remainingAppointments} دور متبقٍ'
+                : 'غير متاح',
+            style: TextStyle(
+              fontSize: 11,
+              color: selected ? const Color(0xFFD8F1EE) : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({required this.text, this.error = false});
+  final String text;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(11),
+    decoration: BoxDecoration(
+      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F5),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: error ? Colors.red.shade800 : const Color(0xFF356A65),
+      ),
+    ),
+  );
+}

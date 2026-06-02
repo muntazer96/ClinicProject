@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../models/booking_models.dart';
+
+class BookingSuccessArgs {
+  const BookingSuccessArgs({
+    required this.result,
+    required this.doctorName,
+    required this.clinicName,
+    required this.date,
+  });
+
+  final BookingResult result;
+  final String doctorName;
+  final String clinicName;
+  final DateTime date;
+}
+
+class BookingSuccessScreen extends StatelessWidget {
+  const BookingSuccessScreen({super.key, required this.args});
+  final BookingSuccessArgs args;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('تم الحجز')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Icon(Icons.check_circle, size: 74, color: Color(0xFF147D72)),
+        const SizedBox(height: 12),
+        const Text(
+          'تم تثبيت حجزك بنجاح',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _Row('رقم الدور', '#${args.result.queueNumber}'),
+                _Row('كود الحجز', args.result.code),
+                _Row('الطبيب', args.doctorName),
+                _Row('العيادة', args.clinicName),
+                _Row('التاريخ', DateFormat('yyyy/MM/dd').format(args.date)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'احتفظ بكود الحجز. ستحتاجه لمراجعة حجز الزائر أو إلغائه.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF78908D)),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () => context.go('/'),
+          child: const Text('العودة إلى الرئيسية'),
+        ),
+        TextButton(
+          onPressed: () => context.go('/search'),
+          child: const Text('البحث عن طبيب آخر'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _Row extends StatelessWidget {
+  const _Row(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(label, style: const TextStyle(color: Color(0xFF78908D))),
+        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+      ],
+    ),
+  );
+}

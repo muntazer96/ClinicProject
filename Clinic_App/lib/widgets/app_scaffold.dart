@@ -16,23 +16,46 @@ class AppScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 70,
-        title: Row(children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(14),
+        title: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.local_hospital_outlined,
+                color: Colors.white,
+              ),
             ),
-            child: const Icon(Icons.local_hospital_outlined, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const Text('دليلك الطبي', style: TextStyle(fontSize: 11, color: Color(0xFF7A918E))),
-          ]),
-        ]),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Text(
+                  'دليلك الطبي',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF7A918E)),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
+          if (!auth.isAuthenticated)
+            IconButton(
+              tooltip: 'متابعة حجز زائر',
+              onPressed: () => context.go('/guest-booking'),
+              icon: const Icon(Icons.manage_search_outlined),
+            ),
           if (auth.isAuthenticated)
             IconButton(
               tooltip: 'حجوزاتي',
@@ -53,7 +76,10 @@ class AppScaffold extends StatelessWidget {
               padding: const EdgeInsets.only(left: 8),
               child: TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('دخول', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: const Text(
+                  'دخول',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
         ],
@@ -64,17 +90,25 @@ class AppScaffold extends StatelessWidget {
         selectedIndex: path == '/bookings'
             ? 2
             : path == '/search' || path.startsWith('/doctors/')
-                ? 1
-                : 0,
+            ? 1
+            : 0,
         onDestinationSelected: (index) {
           if (index == 0) context.go('/');
           if (index == 1) context.go('/search');
-          if (index == 2) context.go(auth.isAuthenticated ? '/bookings' : '/login');
+          if (index == 2)
+            context.go(auth.isAuthenticated ? '/bookings' : '/login');
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'الرئيسية',
+          ),
           NavigationDestination(icon: Icon(Icons.search), label: 'البحث'),
-          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'حجوزاتي'),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            label: 'حجوزاتي',
+          ),
         ],
       ),
     );
