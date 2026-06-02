@@ -1401,6 +1401,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 QueueNumber = appointment.QueueNumber,
                 Status = appointment.Status,
                 IsPhoneConfirmed = appointment.IsPhoneConfirmed,
+                HasReview = appointment.Reviews.Any(review => !review.IsDeleted),
                 CancellationReason = appointment.CancellationReason,
                 CancelledAt = appointment.CancelledAt,
                 DoctorId = appointment.DoctorId,

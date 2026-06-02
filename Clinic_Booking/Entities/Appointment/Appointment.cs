@@ -27,6 +27,7 @@ namespace Clinic_Booking.Entities.Appointment
         public decimal? PaymentAmount { get; set; } // المبلغ المدفوع (إن وجد)
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending; // حالة الدفع
         public string Code { get; set; }
+        public ICollection<Review.Review> Reviews { get; set; } = [];
 
     }
 }

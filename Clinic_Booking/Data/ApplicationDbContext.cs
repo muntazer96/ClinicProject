@@ -382,7 +382,7 @@ namespace Clinic_Booking.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.Appointment)
-                .WithMany()
+                .WithMany(a => a.Reviews)
                 .HasForeignKey(r=>r.AppoinmentId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
