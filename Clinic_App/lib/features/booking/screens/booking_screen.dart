@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
@@ -149,16 +150,11 @@ class _BookingScreenState extends State<BookingScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
-          Text(
-            widget.doctorName,
-            style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+          _DoctorHeader(
+            doctorName: widget.doctorName,
+            clinicName: widget.clinicName,
           ),
-          const SizedBox(height: 3),
-          Text(
-            widget.clinicName,
-            style: const TextStyle(color: Color(0xFF147D72)),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 22),
           const Text(
             'اختر اليوم المناسب',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
@@ -170,7 +166,7 @@ class _BookingScreenState extends State<BookingScreen> {
             const _Notice(text: 'لا توجد أيام متاحة للحجز حالياً.')
           else
             SizedBox(
-              height: 112,
+              height: 116,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _days.length,
@@ -251,11 +247,20 @@ class _DayCard extends StatelessWidget {
       width: 104,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFF147D72) : Colors.white,
+        color: selected ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? const Color(0xFF147D72) : const Color(0xFFE0ECEA),
+          color: selected ? AppColors.primary : AppColors.border,
         ),
+        boxShadow: selected
+            ? const [
+                BoxShadow(
+                  color: Color(0x334267F5),
+                  blurRadius: 14,
+                  offset: Offset(0, 7),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         children: [
@@ -264,16 +269,14 @@ class _DayCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: selected ? Colors.white : const Color(0xFF183B38),
+              color: selected ? Colors.white : AppColors.text,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             DateFormat('d/M').format(day.date),
-            style: TextStyle(
-              color: selected ? Colors.white : const Color(0xFF5F7975),
-            ),
+            style: TextStyle(color: selected ? Colors.white : AppColors.muted),
           ),
           const Spacer(),
           Text(
@@ -282,7 +285,7 @@ class _DayCard extends StatelessWidget {
                 : 'غير متاح',
             style: TextStyle(
               fontSize: 11,
-              color: selected ? const Color(0xFFD8F1EE) : Colors.grey,
+              color: selected ? const Color(0xFFDDE5FF) : AppColors.muted,
             ),
           ),
         ],
@@ -300,14 +303,73 @@ class _Notice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(11),
     decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F5),
+      color: error ? Colors.red.shade50 : AppColors.softBlue,
       borderRadius: BorderRadius.circular(12),
     ),
     child: Text(
       text,
       style: TextStyle(
-        color: error ? Colors.red.shade800 : const Color(0xFF356A65),
+        color: error ? Colors.red.shade800 : AppColors.primaryDark,
       ),
+    ),
+  );
+}
+
+class _DoctorHeader extends StatelessWidget {
+  const _DoctorHeader({required this.doctorName, required this.clinicName});
+
+  final String doctorName;
+  final String clinicName;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(17),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [AppColors.primary, AppColors.primaryDark],
+      ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x334267F5),
+          blurRadius: 18,
+          offset: Offset(0, 9),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 51,
+          height: 51,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .17),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(Icons.calendar_month_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                doctorName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                clinicName,
+                style: const TextStyle(color: Color(0xFFDDE5FF)),
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
 }

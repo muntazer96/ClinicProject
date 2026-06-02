@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../core/app_theme.dart';
 import '../features/auth/auth_controller.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -15,19 +16,29 @@ class AppScaffold extends StatelessWidget {
     final path = GoRouterState.of(context).uri.path;
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 70,
+        toolbarHeight: 76,
         title: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                ),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x334267F5),
+                    blurRadius: 14,
+                    offset: Offset(0, 6),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.local_hospital_outlined,
+                Icons.medical_services_rounded,
                 color: Colors.white,
+                size: 23,
               ),
             ),
             const SizedBox(width: 10),
@@ -37,13 +48,13 @@ class AppScaffold extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const Text(
                   'دليلك الطبي',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF7A918E)),
+                  style: TextStyle(fontSize: 11, color: AppColors.muted),
                 ),
               ],
             ),
@@ -54,13 +65,13 @@ class AppScaffold extends StatelessWidget {
             IconButton(
               tooltip: 'متابعة حجز زائر',
               onPressed: () => context.go('/guest-booking'),
-              icon: const Icon(Icons.manage_search_outlined),
+              icon: const Icon(Icons.manage_search_rounded),
             ),
           if (auth.isAuthenticated)
             IconButton(
               tooltip: 'حجوزاتي',
               onPressed: () => context.go('/bookings'),
-              icon: const Icon(Icons.calendar_month_outlined),
+              icon: const Icon(Icons.calendar_month_rounded),
             ),
           if (auth.isAuthenticated)
             IconButton(
@@ -69,7 +80,7 @@ class AppScaffold extends StatelessWidget {
                 await auth.logout();
                 if (context.mounted) context.go('/');
               },
-              icon: const Icon(Icons.logout),
+              icon: const Icon(Icons.logout_rounded),
             )
           else
             Padding(
@@ -85,32 +96,47 @@ class AppScaffold extends StatelessWidget {
         ],
       ),
       body: child,
-      bottomNavigationBar: NavigationBar(
-        height: 66,
-        selectedIndex: path == '/bookings'
-            ? 2
-            : path == '/search' || path.startsWith('/doctors/')
-            ? 1
-            : 0,
-        onDestinationSelected: (index) {
-          if (index == 0) context.go('/');
-          if (index == 1) context.go('/search');
-          if (index == 2) {
-            context.go(auth.isAuthenticated ? '/bookings' : '/login');
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'الرئيسية',
-          ),
-          NavigationDestination(icon: Icon(Icons.search), label: 'البحث'),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            label: 'حجوزاتي',
-          ),
-        ],
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x120F1F4B),
+              blurRadius: 22,
+              offset: Offset(0, -7),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: path == '/bookings'
+              ? 2
+              : path == '/search' || path.startsWith('/doctors/')
+              ? 1
+              : 0,
+          onDestinationSelected: (index) {
+            if (index == 0) context.go('/');
+            if (index == 1) context.go('/search');
+            if (index == 2) {
+              context.go(auth.isAuthenticated ? '/bookings' : '/login');
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'الرئيسية',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.search_rounded),
+              label: 'البحث',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month_rounded),
+              label: 'حجوزاتي',
+            ),
+          ],
+        ),
       ),
     );
   }

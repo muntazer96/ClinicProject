@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
 import '../models/booking_models.dart';
@@ -131,7 +132,7 @@ class _OtpScreenState extends State<OtpScreen> {
     body: ListView(
       padding: const EdgeInsets.all(22),
       children: [
-        const Icon(Icons.sms_outlined, size: 58, color: Color(0xFF147D72)),
+        const Icon(Icons.sms_outlined, size: 58, color: AppColors.primary),
         const SizedBox(height: 14),
         const Text(
           'أدخل رمز التحقق',
@@ -142,7 +143,7 @@ class _OtpScreenState extends State<OtpScreen> {
         Text(
           'تم إرسال الرمز إلى ${widget.args.phoneNumber}',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF78908D)),
+          style: const TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 20),
         TextField(

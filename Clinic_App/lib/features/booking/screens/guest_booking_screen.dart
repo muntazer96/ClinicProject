@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
@@ -105,7 +106,7 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
         const SizedBox(height: 5),
         const Text(
           'استخدم الهاتف وكود الحجز لعرض دورك أو إلغائه.',
-          style: TextStyle(color: Color(0xFF78908D)),
+          style: TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 14),
         TextField(

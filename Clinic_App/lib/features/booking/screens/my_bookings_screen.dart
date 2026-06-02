@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../core/external_links.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
@@ -166,7 +167,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
           const SizedBox(height: 5),
           const Text(
             'راجع أدوارك الحالية والسابقة أو ألغِ الحجز قبل موعده.',
-            style: TextStyle(color: Color(0xFF78908D)),
+            style: TextStyle(color: AppColors.muted),
           ),
           const SizedBox(height: 14),
           if (_loading)
@@ -229,7 +230,7 @@ class BookingCard extends StatelessWidget {
           ),
           Text(
             booking.clinicName,
-            style: const TextStyle(color: Color(0xFF147D72)),
+            style: const TextStyle(color: AppColors.primary),
           ),
           const Divider(height: 20),
           Text(
@@ -282,7 +283,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (background, foreground) = switch (booking.status) {
-      1 => (const Color(0xFFEAF7F5), const Color(0xFF147D72)),
+      1 => (AppColors.softBlue, AppColors.primary),
       2 => (const Color(0xFFFFECEC), const Color(0xFFB23A3A)),
       3 => (const Color(0xFFEAF0FF), const Color(0xFF4C69B3)),
       _ => (const Color(0xFFFFF0DF), const Color(0xFFB16A2B)),
@@ -311,7 +312,7 @@ class BookingMessage extends StatelessWidget {
           const Icon(
             Icons.calendar_month_outlined,
             size: 42,
-            color: Color(0xFF78908D),
+            color: AppColors.muted,
           ),
           const SizedBox(height: 9),
           Text(text, textAlign: TextAlign.center),

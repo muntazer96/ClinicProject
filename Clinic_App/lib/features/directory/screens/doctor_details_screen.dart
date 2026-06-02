@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../core/external_links.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
@@ -60,7 +61,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _ErrorView(text: _error!, onRetry: _load)
         : ListView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
               _ProfileCard(doctor: _doctor!),
               const SizedBox(height: 16),
@@ -137,7 +138,7 @@ class _ReviewsSection extends StatelessWidget {
                   const SizedBox(width: 7),
                   Text(
                     'من 5 (${reviews.reviewCount} تقييم)',
-                    style: const TextStyle(color: Color(0xFF78908D)),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                 ],
               ),
@@ -145,7 +146,7 @@ class _ReviewsSection extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'لا توجد تقييمات حتى الآن.',
-                  style: TextStyle(color: Color(0xFF78908D)),
+                  style: TextStyle(color: AppColors.muted),
                 ),
               ] else
                 ...reviews.reviews.map(
@@ -203,31 +204,45 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF126E65), Color(0xFF26988D)],
-      ),
-      borderRadius: BorderRadius.circular(22),
-    ),
-    child: Row(
-      children: [
-        DoctorAvatar(
-          imageName: doctor.imageName,
-          size: 76,
-          foreground: Colors.white,
-          background: Colors.white.withValues(alpha: .16),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(26),
+      border: Border.all(color: AppColors.border),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x140F1F4B),
+          blurRadius: 20,
+          offset: Offset(0, 9),
         ),
-        const SizedBox(width: 14),
-        Expanded(
+      ],
+    ),
+    child: Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(top: 18),
+          decoration: const BoxDecoration(
+            color: AppColors.softBlue,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Center(
+            child: DoctorAvatar(
+              imageName: doctor.imageName,
+              size: 174,
+              foreground: AppColors.primary,
+              background: Color(0xFFDDE5FF),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 17),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 doctor.name,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
+                  fontSize: 23,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -235,29 +250,70 @@ class _ProfileCard extends StatelessWidget {
               Text(
                 doctor.specializationName,
                 style: const TextStyle(
-                  color: Color(0xFFD8F1EE),
-                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              if (doctor.averageRating != null) ...[
-                const SizedBox(height: 9),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFCE77),
-                      size: 19,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${doctor.averageRating!.toStringAsFixed(1)} من 5 (${doctor.reviewCount} تقييم)',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  _DoctorMetric(
+                    icon: Icons.star_rounded,
+                    value: doctor.averageRating?.toStringAsFixed(1) ?? '-',
+                    label: 'التقييم',
+                    iconColor: AppColors.warning,
+                  ),
+                  _DoctorMetric(
+                    icon: Icons.rate_review_rounded,
+                    value: '${doctor.reviewCount}+',
+                    label: 'تقييم',
+                  ),
+                  _DoctorMetric(
+                    icon: Icons.local_hospital_rounded,
+                    value: '${doctor.clinicDetails.length}',
+                    label: 'عيادات',
+                  ),
+                ],
+              ),
             ],
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _DoctorMetric extends StatelessWidget {
+  const _DoctorMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.iconColor = AppColors.primary,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: .12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        const SizedBox(height: 6),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.muted, fontSize: 11),
         ),
       ],
     ),
@@ -313,7 +369,7 @@ class _ClinicCard extends StatelessWidget {
           if (clinic.availabilities.isEmpty)
             const Text(
               'لم يتم تحديد دوام لهذه العيادة.',
-              style: TextStyle(color: Color(0xFF78908D)),
+              style: TextStyle(color: AppColors.muted),
             )
           else
             ...clinic.availabilities.map(
@@ -329,13 +385,13 @@ class _ClinicCard extends StatelessWidget {
                     ),
                     Text(
                       '${_shortTime(item.startTime)} - ${_shortTime(item.endTime)}',
-                      style: const TextStyle(color: Color(0xFF147D72)),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                     const SizedBox(width: 10),
                     Text(
                       '${item.maxAppointments} دور',
                       style: const TextStyle(
-                        color: Color(0xFF78908D),
+                        color: AppColors.muted,
                         fontSize: 12,
                       ),
                     ),
@@ -351,7 +407,7 @@ class _ClinicCard extends StatelessWidget {
                 '?doctorName=${Uri.encodeComponent(doctorName)}'
                 '&clinicName=${Uri.encodeComponent(clinic.name)}',
               ),
-              icon: const Icon(Icons.calendar_month_outlined),
+              icon: const Icon(Icons.calendar_month_rounded),
               label: const Text('احجز دورك الآن'),
             ),
           ],
@@ -379,21 +435,19 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF147D72)),
+          Icon(icon, size: 18, color: AppColors.primary),
           const SizedBox(width: 7),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                color: onTap == null
-                    ? const Color(0xFF5F7975)
-                    : const Color(0xFF147D72),
+                color: onTap == null ? AppColors.muted : AppColors.primary,
                 decoration: onTap == null ? null : TextDecoration.underline,
               ),
             ),
           ),
           if (onTap != null)
-            const Icon(Icons.open_in_new, size: 15, color: Color(0xFF147D72)),
+            const Icon(Icons.open_in_new, size: 15, color: AppColors.primary),
         ],
       ),
     ),
@@ -423,11 +477,7 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.wifi_off_outlined,
-            size: 44,
-            color: Color(0xFF78908D),
-          ),
+          const Icon(Icons.wifi_off_outlined, size: 44, color: AppColors.muted),
           const SizedBox(height: 10),
           Text(text, textAlign: TextAlign.center),
           TextButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),

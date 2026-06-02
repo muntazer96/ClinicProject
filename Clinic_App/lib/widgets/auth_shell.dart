@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/app_theme.dart';
+
 class AuthShell extends StatelessWidget {
   const AuthShell({
     super.key,
@@ -22,7 +24,7 @@ class AuthShell extends StatelessWidget {
               height: 245,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF126E65), Color(0xFF24998D)],
+                  colors: [AppColors.primary, AppColors.primaryDark],
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                 ),
@@ -107,7 +109,7 @@ class AuthShell extends StatelessWidget {
                         Text(
                           title,
                           style: const TextStyle(
-                            color: Color(0xFF183B38),
+                            color: AppColors.text,
                             fontSize: 25,
                             fontWeight: FontWeight.w800,
                           ),

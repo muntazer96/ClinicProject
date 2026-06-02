@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 
 class DoctorAvatar extends StatelessWidget {
   const DoctorAvatar({
     super.key,
     required this.imageName,
     this.size = 62,
-    this.foreground = const Color(0xFF147D72),
-    this.background = const Color(0xFFE4F5F1),
+    this.foreground = AppColors.primary,
+    this.background = AppColors.softBlue,
   });
 
   final String imageName;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../directory_service.dart';
 import '../models/directory_models.dart';
@@ -81,7 +82,7 @@ class _SearchScreenState extends State<SearchScreen> {
         const SizedBox(height: 5),
         const Text(
           'اختر ما يناسبك واعرض الأطباء المتاحين للحجز.',
-          style: TextStyle(color: Color(0xFF78908D)),
+          style: TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 14),
         _FiltersCard(
@@ -227,7 +228,7 @@ class _DoctorCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DoctorAvatar(imageName: doctor.imageName),
+            DoctorAvatar(imageName: doctor.imageName, size: 76),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -244,7 +245,7 @@ class _DoctorCard extends StatelessWidget {
                   Text(
                     doctor.specializationName,
                     style: const TextStyle(
-                      color: Color(0xFF147D72),
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -275,7 +276,19 @@ class _DoctorCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_left, color: Color(0xFF78908D)),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Colors.white,
+                size: 19,
+              ),
+            ),
           ],
         ),
       ),
@@ -293,11 +306,11 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 15, color: color ?? const Color(0xFF78908D)),
+      Icon(icon, size: 15, color: color ?? AppColors.muted),
       const SizedBox(width: 3),
       Text(
         text,
-        style: TextStyle(fontSize: 12, color: color ?? const Color(0xFF78908D)),
+        style: TextStyle(fontSize: 12, color: color ?? AppColors.muted),
       ),
     ],
   );
@@ -321,7 +334,7 @@ class _MessageCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(icon, size: 42, color: const Color(0xFF78908D)),
+          Icon(icon, size: 42, color: AppColors.muted),
           const SizedBox(height: 10),
           Text(
             title,
@@ -331,7 +344,7 @@ class _MessageCard extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF78908D)),
+            style: const TextStyle(color: AppColors.muted),
           ),
           if (action != null) ...[
             const SizedBox(height: 12),

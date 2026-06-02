@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/app_theme.dart';
 import '../models/booking_models.dart';
 
 class BookingSuccessArgs {
@@ -28,7 +29,7 @@ class BookingSuccessScreen extends StatelessWidget {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Icon(Icons.check_circle, size: 74, color: Color(0xFF147D72)),
+        const Icon(Icons.check_circle, size: 74, color: AppColors.primary),
         const SizedBox(height: 12),
         const Text(
           'تم تثبيت حجزك بنجاح',
@@ -54,7 +55,7 @@ class BookingSuccessScreen extends StatelessWidget {
         const Text(
           'احتفظ بكود الحجز. ستحتاجه لمراجعة حجز الزائر أو إلغائه.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFF78908D)),
+          style: TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 16),
         FilledButton(
@@ -81,7 +82,7 @@ class _Row extends StatelessWidget {
     child: Row(
       children: [
         Expanded(
-          child: Text(label, style: const TextStyle(color: Color(0xFF78908D))),
+          child: Text(label, style: const TextStyle(color: AppColors.muted)),
         ),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
       ],

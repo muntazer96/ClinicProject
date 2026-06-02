@@ -15,6 +15,7 @@ import '../features/booking/screens/success_screen.dart';
 import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
 import '../features/home/home_screen.dart';
+import 'app_theme.dart';
 
 GoRouter createRouter(AuthController auth) => GoRouter(
   refreshListenable: auth,
@@ -101,7 +102,7 @@ class _MissingBookingData extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.info_outline, size: 48, color: Color(0xFF78908D)),
+            const Icon(Icons.info_outline, size: 48, color: AppColors.muted),
             const SizedBox(height: 10),
             const Text('لا توجد بيانات حجز لعرضها.'),
             TextButton(
