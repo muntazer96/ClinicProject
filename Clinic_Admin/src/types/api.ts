@@ -17,10 +17,13 @@ export interface UserItem {
   id: string
   name?: string
   phoneNumber?: string
+  email?: string
   userName?: string
   imageName?: string
   isLocked: boolean
+  isFirstLogin: boolean
   lastLoginDate?: string
+  roleId?: string
   roleName?: string
 }
 

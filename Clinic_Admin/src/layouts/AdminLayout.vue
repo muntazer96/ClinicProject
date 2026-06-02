@@ -76,7 +76,6 @@ function signOut() {
           </div>
         </div>
         <div class="topbar-actions">
-          <button class="icon-button" type="button" aria-label="الإشعارات"><Bell :size="19" /></button>
           <div class="profile-chip">
             <span class="avatar"><UserRound :size="17" /></span>
             <div>

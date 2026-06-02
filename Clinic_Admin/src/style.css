@@ -71,7 +71,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .topbar-title span { color: var(--muted); font-size: 12px; }
 .topbar-title h1 { margin: 4px 0 0; color: var(--ink); font-size: 22px; }
 .topbar-actions, .profile-chip, .topbar-title { display: flex; align-items: center; gap: 12px; }
-.icon-button { display: grid; place-items: center; width: 39px; height: 39px; color: var(--primary); border: 1px solid var(--line); border-radius: 11px; background: #fff; }
 .profile-chip { padding-right: 12px; border-right: 1px solid var(--line); }
 .avatar { display: grid; place-items: center; width: 38px; height: 38px; color: var(--primary); border-radius: 50%; background: var(--primary-soft); }
 .profile-chip strong, .profile-chip small { display: block; }
@@ -128,7 +127,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .small-avatar { display: grid; place-items: center; width: 35px; height: 35px; color: var(--primary); border-radius: 10px; background: var(--primary-soft); }
 .soft-badge, .status-badge { display: inline-block; padding: 5px 8px; border-radius: 14px; font-size: 11px; font-weight: 700; }
 .soft-badge, .status-neutral { color: #5d7470; background: #eef3f2; }.status-success { color: #167163; background: #e1f4ef; }.status-danger { color: #a23d3d; background: #ffeded; }
-.row-actions { gap: 5px; }.row-actions button { display: grid; place-items: center; width: 31px; height: 31px; color: var(--primary); border: 1px solid var(--line); border-radius: 8px; background: #fff; }.row-actions button:disabled { opacity: .35; cursor: not-allowed; }.row-actions .danger-action { color: #b33c3c; }
+.row-actions { gap: 5px; }.row-actions button, .row-link { display: grid; place-items: center; width: 31px; height: 31px; color: var(--primary); border: 1px solid var(--line); border-radius: 8px; background: #fff; }.row-link { text-decoration: none; }.row-actions button:disabled { opacity: .35; cursor: not-allowed; }.row-actions .danger-action { color: #b33c3c; }
 .status-button { gap: 5px; padding: 6px 8px; color: #7a8b88; border: 1px solid var(--line); border-radius: 14px; background: #fff; font-size: 11px; }.visible-status { color: var(--primary); background: var(--primary-soft); }
 .table-message { padding: 32px !important; color: var(--muted); text-align: center !important; }
 .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 14px; color: var(--muted); font-size: 13px; }.pagination button { display: grid; place-items: center; width: 30px; height: 30px; color: var(--primary); border: 1px solid var(--line); border-radius: 8px; background: #fff; }.pagination button:disabled { opacity: .35; cursor: not-allowed; }
