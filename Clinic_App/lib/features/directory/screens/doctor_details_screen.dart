@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/external_links.dart';
 import '../../../widgets/app_scaffold.dart';
+import '../../auth/auth_controller.dart';
+import '../../reviews/models/review_models.dart';
+import '../../reviews/review_service.dart';
 import '../directory_service.dart';
 import '../models/directory_models.dart';
 import '../widgets/doctor_avatar.dart';
@@ -17,20 +22,31 @@ class DoctorDetailsScreen extends StatefulWidget {
 
 class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   final _service = DirectoryService();
+  late final ReviewService _reviewService;
   DoctorProfile? _doctor;
+  DoctorReviews? _reviews;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _reviewService = ReviewService(context.read<AuthController>().api);
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final doctor = await _service.getDoctor(widget.doctorId);
-      if (mounted) setState(() => _doctor = doctor);
+      final results = await Future.wait([
+        _service.getDoctor(widget.doctorId),
+        _reviewService.getDoctorReviews(widget.doctorId),
+      ]);
+      if (mounted) {
+        setState(() {
+          _doctor = results[0] as DoctorProfile;
+          _reviews = results[1] as DoctorReviews?;
+        });
+      }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
     }
@@ -83,8 +99,101 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     ),
                   ),
                 ),
+              if (_reviews?.isEnabled == true) ...[
+                const SizedBox(height: 10),
+                _ReviewsSection(reviews: _reviews!),
+              ],
             ],
           ),
+  );
+}
+
+class _ReviewsSection extends StatelessWidget {
+  const _ReviewsSection({required this.reviews});
+  final DoctorReviews reviews;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const _Title('تقييمات المراجعين'),
+      const SizedBox(height: 8),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Color(0xFFFFB54A)),
+                  const SizedBox(width: 5),
+                  Text(
+                    reviews.averageRating?.toStringAsFixed(1) ?? '-',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    'من 5 (${reviews.reviewCount} تقييم)',
+                    style: const TextStyle(color: Color(0xFF78908D)),
+                  ),
+                ],
+              ),
+              if (reviews.reviews.isEmpty) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'لا توجد تقييمات حتى الآن.',
+                  style: TextStyle(color: Color(0xFF78908D)),
+                ),
+              ] else
+                ...reviews.reviews.map(
+                  (review) => Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7FBFA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  review.userName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${review.rating}/5',
+                                style: const TextStyle(
+                                  color: Color(0xFFB16A2B),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (review.comment.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(review.comment),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -184,9 +293,17 @@ class _ClinicCard extends StatelessWidget {
             text: '${clinic.provinceName} - ${clinic.address}',
           ),
           if (clinic.phoneNumber?.isNotEmpty == true)
-            _InfoRow(icon: Icons.phone_outlined, text: clinic.phoneNumber!),
+            _InfoRow(
+              icon: Icons.phone_outlined,
+              text: clinic.phoneNumber!,
+              onTap: () => openPhone(context, clinic.phoneNumber!),
+            ),
           if (clinic.mapUrl?.isNotEmpty == true)
-            _InfoRow(icon: Icons.map_outlined, text: clinic.mapUrl!),
+            _InfoRow(
+              icon: Icons.map_outlined,
+              text: 'فتح موقع العيادة على الخارطة',
+              onTap: () => openMap(context, clinic.mapUrl!),
+            ),
           const Divider(height: 22),
           const Text(
             'أوقات الدوام',
@@ -248,22 +365,37 @@ class _ClinicCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.text});
+  const _InfoRow({required this.icon, required this.text, this.onTap});
   final IconData icon;
   final String text;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF147D72)),
-        const SizedBox(width: 7),
-        Expanded(
-          child: Text(text, style: const TextStyle(color: Color(0xFF5F7975))),
-        ),
-      ],
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF147D72)),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: onTap == null
+                    ? const Color(0xFF5F7975)
+                    : const Color(0xFF147D72),
+                decoration: onTap == null ? null : TextDecoration.underline,
+              ),
+            ),
+          ),
+          if (onTap != null)
+            const Icon(Icons.open_in_new, size: 15, color: Color(0xFF147D72)),
+        ],
+      ),
     ),
   );
 }

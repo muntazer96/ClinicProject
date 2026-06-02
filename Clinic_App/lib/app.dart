@@ -49,7 +49,9 @@ class _ClinicAppState extends State<ClinicApp> {
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -60,7 +62,10 @@ class _ClinicAppState extends State<ClinicApp> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 16,
+          ),
         ),
       ),
     );

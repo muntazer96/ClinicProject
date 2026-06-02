@@ -59,11 +59,14 @@ class BookingDetails {
     required this.appointmentDate,
     required this.queueNumber,
     required this.status,
+    required this.doctorId,
     required this.doctorName,
     required this.clinicName,
     required this.clinicAddress,
     this.clinicPhoneNumber,
+    this.mapUrl,
     this.cancellationReason,
+    required this.hasReview,
   });
 
   final int id;
@@ -72,13 +75,17 @@ class BookingDetails {
   final DateTime appointmentDate;
   final int queueNumber;
   final int status;
+  final int doctorId;
   final String doctorName;
   final String clinicName;
   final String clinicAddress;
   final String? clinicPhoneNumber;
+  final String? mapUrl;
   final String? cancellationReason;
+  final bool hasReview;
 
   bool get canCancel => status == 0 || status == 1;
+  bool get canReview => status == 3 && !hasReview;
 
   String get statusLabel => switch (status) {
     0 => 'بانتظار التأكيد',
@@ -95,10 +102,13 @@ class BookingDetails {
     appointmentDate: DateTime.parse(json['appointmentDate'] as String),
     queueNumber: json['queueNumber'] as int? ?? 0,
     status: json['status'] as int? ?? 0,
+    doctorId: json['doctorId'] as int? ?? 0,
     doctorName: json['doctorName'] as String? ?? '',
     clinicName: json['clinicName'] as String? ?? '',
     clinicAddress: json['clinicAddress'] as String? ?? '',
     clinicPhoneNumber: json['clinicPhoneNumber'] as String?,
+    mapUrl: json['mapUrl'] as String?,
     cancellationReason: json['cancellationReason'] as String?,
+    hasReview: json['hasReview'] as bool? ?? false,
   );
 }

@@ -4,7 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/api_client.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(this.api);
+  AuthController(this.api) {
+    api.onUnauthorized = logout;
+  }
 
   static const _tokenKey = 'clinic_app_token';
   static const _phoneKey = 'clinic_app_phone';

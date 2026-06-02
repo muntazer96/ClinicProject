@@ -7,13 +7,27 @@ class ApiClient {
   );
 
   ApiClient()
-      : dio = Dio(BaseOptions(
+    : dio = Dio(
+        BaseOptions(
           baseUrl: _baseUrl,
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
-        ));
+        ),
+      ) {
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            await onUnauthorized?.call();
+          }
+          handler.next(error);
+        },
+      ),
+    );
+  }
 
   final Dio dio;
+  Future<void> Function()? onUnauthorized;
 
   static String doctorImageUrl(String imageName) {
     final apiUri = Uri.parse(_baseUrl);

@@ -10,8 +10,7 @@ class DirectoryService {
     final response = await _client.dio.get('/Specialization');
     final data = response.data['data'] as List? ?? const [];
     return data
-        .map((item) =>
-            Specialization.fromJson(item as Map<String, dynamic>))
+        .map((item) => Specialization.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
@@ -20,13 +19,16 @@ class DirectoryService {
     int? province,
     int? specialization,
   }) async {
-    final response = await _client.dio.get('/Doctor/public', queryParameters: {
-      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-      if (province != null) 'iraqiProvince': province,
-      if (specialization != null) 'specialization': specialization,
-      'page': 1,
-      'pageSize': 100,
-    });
+    final response = await _client.dio.get(
+      '/Doctor/public',
+      queryParameters: {
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+        if (province != null) 'iraqiProvince': province,
+        if (specialization != null) 'specialization': specialization,
+        'page': 1,
+        'pageSize': 100,
+      },
+    );
     final items = response.data['data']['items'] as List? ?? const [];
     return items
         .map((item) => DoctorSummary.fromJson(item as Map<String, dynamic>))

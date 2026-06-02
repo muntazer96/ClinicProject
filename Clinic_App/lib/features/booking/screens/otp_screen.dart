@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -36,17 +38,22 @@ class _OtpScreenState extends State<OtpScreen> {
   final _code = TextEditingController();
   late final BookingService _service;
   bool _loading = false;
+  bool _resending = false;
+  int _resendSeconds = 60;
   String? _error;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
+    _startCooldown();
   }
 
   @override
   void dispose() {
     _code.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -80,20 +87,42 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Future<void> _resend() async {
+    if (_resending || _resendSeconds > 0) return;
     setState(() => _error = null);
     try {
+      setState(() => _resending = true);
       await _service.resendOtp(
         phoneNumber: widget.args.phoneNumber,
         bookingCode: widget.args.result.code,
       );
       if (mounted) {
+        _startCooldown();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('تم إرسال رمز جديد.')));
       }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _resending = false);
     }
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
+    setState(() => _resendSeconds = 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+      } else {
+        setState(() => _resendSeconds--);
+      }
+    });
   }
 
   @override
@@ -134,7 +163,16 @@ class _OtpScreenState extends State<OtpScreen> {
           onPressed: _loading ? null : _confirm,
           child: Text(_loading ? 'جارِ التحقق...' : 'تأكيد الرمز'),
         ),
-        TextButton(onPressed: _resend, child: const Text('إعادة إرسال الرمز')),
+        TextButton(
+          onPressed: _resending || _resendSeconds > 0 ? null : _resend,
+          child: Text(
+            _resendSeconds > 0
+                ? 'إعادة الإرسال بعد $_resendSeconds ثانية'
+                : _resending
+                ? 'جارِ إعادة الإرسال...'
+                : 'إعادة إرسال الرمز',
+          ),
+        ),
       ],
     ),
   );

@@ -60,18 +60,18 @@ class DoctorSummary {
   final List<ClinicSummary> clinics;
 
   factory DoctorSummary.fromJson(Map<String, dynamic> json) => DoctorSummary(
-        id: json['id'] as int,
-        name: json['name'] as String? ?? '',
-        specializationName: json['specializationName'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        imageName: json['imageName'] as String? ?? '',
-        canBookOnline: json['canBookOnline'] as bool? ?? false,
-        averageRating: (json['averageRating'] as num?)?.toDouble(),
-        reviewCount: json['reviewCount'] as int? ?? 0,
-        clinics: (json['clinics'] as List? ?? const [])
-            .map((item) => ClinicSummary.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id'] as int,
+    name: json['name'] as String? ?? '',
+    specializationName: json['specializationName'] as String? ?? '',
+    description: json['description'] as String? ?? '',
+    imageName: json['imageName'] as String? ?? '',
+    canBookOnline: json['canBookOnline'] as bool? ?? false,
+    averageRating: (json['averageRating'] as num?)?.toDouble(),
+    reviewCount: json['reviewCount'] as int? ?? 0,
+    clinics: (json['clinics'] as List? ?? const [])
+        .map((item) => ClinicSummary.fromJson(item as Map<String, dynamic>))
+        .toList(),
+  );
 }
 
 class DoctorProfile extends DoctorSummary {
@@ -123,11 +123,11 @@ class ClinicSummary {
   final String address;
 
   factory ClinicSummary.fromJson(Map<String, dynamic> json) => ClinicSummary(
-        id: json['id'] as int,
-        name: json['name'] as String? ?? '',
-        provinceName: json['iraqiProvinceName'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-      );
+    id: json['id'] as int,
+    name: json['name'] as String? ?? '',
+    provinceName: json['iraqiProvinceName'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+  );
 }
 
 class ClinicDetails extends ClinicSummary {
@@ -146,17 +146,18 @@ class ClinicDetails extends ClinicSummary {
   final List<ClinicAvailability> availabilities;
 
   factory ClinicDetails.fromJson(Map<String, dynamic> json) => ClinicDetails(
-        id: json['id'] as int,
-        name: json['name'] as String? ?? '',
-        provinceName: json['iraqiProvinceName'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-        mapUrl: json['mapUrl'] as String?,
-        phoneNumber: json['phoneNumber'] as String?,
-        availabilities: (json['availabilities'] as List? ?? const [])
-            .map((item) =>
-                ClinicAvailability.fromJson(item as Map<String, dynamic>))
-            .toList(),
-      );
+    id: json['id'] as int,
+    name: json['name'] as String? ?? '',
+    provinceName: json['iraqiProvinceName'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+    mapUrl: json['mapUrl'] as String?,
+    phoneNumber: json['phoneNumber'] as String?,
+    availabilities: (json['availabilities'] as List? ?? const [])
+        .map(
+          (item) => ClinicAvailability.fromJson(item as Map<String, dynamic>),
+        )
+        .toList(),
+  );
 }
 
 class ClinicAvailability {

@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/external_links.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
+import '../../reviews/review_service.dart';
 import '../booking_service.dart';
 import '../models/booking_models.dart';
 
@@ -16,6 +18,7 @@ class MyBookingsScreen extends StatefulWidget {
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   late final BookingService _service;
+  late final ReviewService _reviewService;
   List<BookingDetails> _bookings = [];
   bool _loading = true;
   String? _error;
@@ -24,7 +27,86 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   void initState() {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
+    _reviewService = ReviewService(context.read<AuthController>().api);
     _load();
+  }
+
+  Future<void> _review(BookingDetails booking) async {
+    var rating = 5;
+    final comment = TextEditingController();
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('تقييم الطبيب'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (index) => IconButton(
+                    onPressed: () => setDialogState(() => rating = index + 1),
+                    icon: Icon(
+                      index < rating ? Icons.star_rounded : Icons.star_outline,
+                      color: const Color(0xFFFFB54A),
+                    ),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: comment,
+                maxLength: 1000,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'اكتب تعليقك'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('تراجع'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('إرسال التقييم'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (accepted != true) {
+      comment.dispose();
+      return;
+    }
+    if (comment.text.trim().isEmpty) {
+      comment.dispose();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('اكتب تعليقاً قبل إرسال التقييم.')),
+        );
+      }
+      return;
+    }
+    try {
+      await _reviewService.addReview(
+        doctorId: booking.doctorId,
+        appointmentId: booking.id,
+        rating: rating,
+        comment: comment.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('شكراً لك، تم إرسال تقييمك.')),
+        );
+      }
+      await _load();
+    } catch (error) {
+      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+    } finally {
+      comment.dispose();
+    }
   }
 
   Future<void> _load() async {
@@ -103,6 +185,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                 child: BookingCard(
                   booking: booking,
                   onCancel: booking.canCancel ? () => _cancel(booking) : null,
+                  onReview: booking.canReview ? () => _review(booking) : null,
                 ),
               ),
             ),
@@ -113,9 +196,15 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 }
 
 class BookingCard extends StatelessWidget {
-  const BookingCard({super.key, required this.booking, this.onCancel});
+  const BookingCard({
+    super.key,
+    required this.booking,
+    this.onCancel,
+    this.onReview,
+  });
   final BookingDetails booking;
   final VoidCallback? onCancel;
+  final VoidCallback? onReview;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -135,7 +224,7 @@ class BookingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Chip(label: Text(booking.statusLabel)),
+              _StatusChip(booking: booking),
             ],
           ),
           Text(
@@ -148,6 +237,22 @@ class BookingCard extends StatelessWidget {
           ),
           Text('رقم الدور: #${booking.queueNumber}'),
           Text('كود الحجز: ${booking.code}'),
+          if (booking.clinicAddress.isNotEmpty)
+            Text('العنوان: ${booking.clinicAddress}'),
+          if (booking.clinicPhoneNumber?.isNotEmpty == true)
+            TextButton.icon(
+              onPressed: () => openPhone(context, booking.clinicPhoneNumber!),
+              icon: const Icon(Icons.phone_outlined),
+              label: Text('اتصال بالعيادة: ${booking.clinicPhoneNumber}'),
+            ),
+          if (booking.mapUrl?.isNotEmpty == true)
+            TextButton.icon(
+              onPressed: () => openMap(context, booking.mapUrl!),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('فتح موقع العيادة'),
+            ),
+          if (booking.cancellationReason?.isNotEmpty == true)
+            Text('سبب الإلغاء: ${booking.cancellationReason}'),
           if (onCancel != null) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -156,10 +261,41 @@ class BookingCard extends StatelessWidget {
               label: const Text('إلغاء الحجز'),
             ),
           ],
+          if (onReview != null) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: onReview,
+              icon: const Icon(Icons.star_outline),
+              label: const Text('تقييم الطبيب'),
+            ),
+          ],
         ],
       ),
     ),
   );
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.booking});
+  final BookingDetails booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final (background, foreground) = switch (booking.status) {
+      1 => (const Color(0xFFEAF7F5), const Color(0xFF147D72)),
+      2 => (const Color(0xFFFFECEC), const Color(0xFFB23A3A)),
+      3 => (const Color(0xFFEAF0FF), const Color(0xFF4C69B3)),
+      _ => (const Color(0xFFFFF0DF), const Color(0xFFB16A2B)),
+    };
+    return Chip(
+      backgroundColor: background,
+      side: BorderSide.none,
+      label: Text(
+        booking.statusLabel,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
 }
 
 class BookingMessage extends StatelessWidget {

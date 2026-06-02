@@ -82,6 +82,11 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
         bookingCode: _code.text,
       );
       await _search();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الحجز بنجاح.')));
+      }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
     }

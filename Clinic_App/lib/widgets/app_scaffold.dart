@@ -95,8 +95,9 @@ class AppScaffold extends StatelessWidget {
         onDestinationSelected: (index) {
           if (index == 0) context.go('/');
           if (index == 1) context.go('/search');
-          if (index == 2)
+          if (index == 2) {
             context.go(auth.isAuthenticated ? '/bookings' : '/login');
+          }
         },
         destinations: const [
           NavigationDestination(

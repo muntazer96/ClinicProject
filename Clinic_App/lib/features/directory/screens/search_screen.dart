@@ -70,60 +70,67 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-        title: 'ابحث عن طبيب',
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-          children: [
-            const Text('دليلك الطبي',
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 5),
-            const Text('اختر ما يناسبك واعرض الأطباء المتاحين للحجز.',
-                style: TextStyle(color: Color(0xFF78908D))),
-            const SizedBox(height: 14),
-            _FiltersCard(
-              name: _name,
-              province: _province,
-              specialization: _specialization,
-              specializations: _specializations,
-              onProvinceChanged: (value) => setState(() => _province = value),
-              onSpecializationChanged: (value) =>
-                  setState(() => _specialization = value),
-              onSearch: _search,
-            ),
-            const SizedBox(height: 18),
-            Text('النتائج (${_doctors.length})',
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.all(36),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              _MessageCard(
-                icon: Icons.wifi_off_outlined,
-                title: 'تعذر تحميل الأطباء',
-                text: _error!,
-                action: _search,
-              )
-            else if (_doctors.isEmpty)
-              const _MessageCard(
-                icon: Icons.search_off_outlined,
-                title: 'لا توجد نتائج',
-                text: 'جرّب تغيير المحافظة أو الاختصاص أو اسم الطبيب.',
-              )
-            else
-              ..._doctors.map((doctor) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _DoctorCard(
-                      doctor: doctor,
-                      onTap: () => context.push('/doctors/${doctor.id}'),
-                    ),
-                  )),
-          ],
+    title: 'ابحث عن طبيب',
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      children: [
+        const Text(
+          'دليلك الطبي',
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
         ),
-      );
+        const SizedBox(height: 5),
+        const Text(
+          'اختر ما يناسبك واعرض الأطباء المتاحين للحجز.',
+          style: TextStyle(color: Color(0xFF78908D)),
+        ),
+        const SizedBox(height: 14),
+        _FiltersCard(
+          name: _name,
+          province: _province,
+          specialization: _specialization,
+          specializations: _specializations,
+          onProvinceChanged: (value) => setState(() => _province = value),
+          onSpecializationChanged: (value) =>
+              setState(() => _specialization = value),
+          onSearch: _search,
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'النتائج (${_doctors.length})',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 10),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.all(36),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          _MessageCard(
+            icon: Icons.wifi_off_outlined,
+            title: 'تعذر تحميل الأطباء',
+            text: _error!,
+            action: _search,
+          )
+        else if (_doctors.isEmpty)
+          const _MessageCard(
+            icon: Icons.search_off_outlined,
+            title: 'لا توجد نتائج',
+            text: 'جرّب تغيير المحافظة أو الاختصاص أو اسم الطبيب.',
+          )
+        else
+          ..._doctors.map(
+            (doctor) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _DoctorCard(
+                doctor: doctor,
+                onTap: () => context.push('/doctors/${doctor.id}'),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _FiltersCard extends StatelessWidget {
@@ -147,55 +154,61 @@ class _FiltersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(13),
-          child: Column(children: [
-            TextField(
-              controller: name,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => onSearch(),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                labelText: 'اسم الطبيب',
+    child: Padding(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        children: [
+          TextField(
+            controller: name,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => onSearch(),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              labelText: 'اسم الطبيب',
+            ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<int>(
+            value: province,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.location_on_outlined),
+              labelText: 'المحافظة',
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('كل المحافظات')),
+              ...provinces.map(
+                (item) =>
+                    DropdownMenuItem(value: item.id, child: Text(item.name)),
               ),
+            ],
+            onChanged: onProvinceChanged,
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<int>(
+            value: specialization,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.medical_services_outlined),
+              labelText: 'الاختصاص',
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              value: province,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.location_on_outlined),
-                labelText: 'المحافظة',
+            items: [
+              const DropdownMenuItem(value: null, child: Text('كل الاختصاصات')),
+              ...specializations.map(
+                (item) =>
+                    DropdownMenuItem(value: item.id, child: Text(item.name)),
               ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('كل المحافظات')),
-                ...provinces.map((item) =>
-                    DropdownMenuItem(value: item.id, child: Text(item.name))),
-              ],
-              onChanged: onProvinceChanged,
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              value: specialization,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.medical_services_outlined),
-                labelText: 'الاختصاص',
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('كل الاختصاصات')),
-                ...specializations.map((item) =>
-                    DropdownMenuItem(value: item.id, child: Text(item.name))),
-              ],
-              onChanged: onSpecializationChanged,
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onSearch,
-              icon: const Icon(Icons.search),
-              label: const Text('عرض الأطباء'),
-            ),
-          ]),
-        ),
-      );
+            ],
+            onChanged: onSpecializationChanged,
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: onSearch,
+            icon: const Icon(Icons.search),
+            label: const Text('عرض الأطباء'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _DoctorCard extends StatelessWidget {
@@ -206,51 +219,68 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(13),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              DoctorAvatar(imageName: doctor.imageName),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(doctor.name,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 3),
-                    Text(doctor.specializationName,
-                        style: const TextStyle(
-                            color: Color(0xFF147D72),
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 8),
-                    Wrap(spacing: 7, runSpacing: 6, children: [
+    child: InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(13),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DoctorAvatar(imageName: doctor.imageName),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    doctor.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    doctor.specializationName,
+                    style: const TextStyle(
+                      color: Color(0xFF147D72),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 6,
+                    children: [
                       if (doctor.clinics.isNotEmpty)
                         _Tag(
-                            icon: Icons.location_on_outlined,
-                            text: doctor.clinics.first.provinceName),
+                          icon: Icons.location_on_outlined,
+                          text: doctor.clinics.first.provinceName,
+                        ),
                       if (doctor.averageRating != null)
                         _Tag(
-                            icon: Icons.star_rounded,
-                            text:
-                                '${doctor.averageRating!.toStringAsFixed(1)} (${doctor.reviewCount})',
-                            color: const Color(0xFFB16A2B)),
+                          icon: Icons.star_rounded,
+                          text:
+                              '${doctor.averageRating!.toStringAsFixed(1)} (${doctor.reviewCount})',
+                          color: const Color(0xFFB16A2B),
+                        ),
                       if (doctor.canBookOnline)
                         const _Tag(
-                            icon: Icons.calendar_month_outlined,
-                            text: 'حجز إلكتروني'),
-                    ]),
-                  ],
-                ),
+                          icon: Icons.calendar_month_outlined,
+                          text: 'حجز إلكتروني',
+                        ),
+                    ],
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_left, color: Color(0xFF78908D)),
-            ]),
-          ),
+            ),
+            const Icon(Icons.chevron_left, color: Color(0xFF78908D)),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _Tag extends StatelessWidget {
@@ -260,13 +290,17 @@ class _Tag extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 15, color: color ?? const Color(0xFF78908D)),
-        const SizedBox(width: 3),
-        Text(text,
-            style: TextStyle(
-                fontSize: 12, color: color ?? const Color(0xFF78908D))),
-      ]);
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 15, color: color ?? const Color(0xFF78908D)),
+      const SizedBox(width: 3),
+      Text(
+        text,
+        style: TextStyle(fontSize: 12, color: color ?? const Color(0xFF78908D)),
+      ),
+    ],
+  );
 }
 
 class _MessageCard extends StatelessWidget {
@@ -283,23 +317,28 @@ class _MessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(children: [
-            Icon(icon, size: 42, color: const Color(0xFF78908D)),
-            const SizedBox(height: 10),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 5),
-            Text(text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF78908D))),
-            if (action != null) ...[
-              const SizedBox(height: 12),
-              TextButton(onPressed: action, child: const Text('إعادة المحاولة')),
-            ],
-          ]),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(icon, size: 42, color: const Color(0xFF78908D)),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF78908D)),
+          ),
+          if (action != null) ...[
+            const SizedBox(height: 12),
+            TextButton(onPressed: action, child: const Text('إعادة المحاولة')),
+          ],
+        ],
+      ),
+    ),
+  );
 }

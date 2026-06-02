@@ -18,20 +18,20 @@ class DoctorAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(size * .27),
-        child: Container(
-          width: size,
-          height: size,
-          color: background,
-          child: imageName.isEmpty
-              ? _fallback()
-              : Image.network(
-                  ApiClient.doctorImageUrl(imageName),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                ),
-        ),
-      );
+    borderRadius: BorderRadius.circular(size * .27),
+    child: Container(
+      width: size,
+      height: size,
+      color: background,
+      child: imageName.isEmpty
+          ? _fallback()
+          : Image.network(
+              ApiClient.doctorImageUrl(imageName),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _fallback(),
+            ),
+    ),
+  );
 
   Widget _fallback() =>
       Icon(Icons.person_outline, size: size * .58, color: foreground);
