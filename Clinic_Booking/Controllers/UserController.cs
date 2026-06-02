@@ -44,9 +44,9 @@ namespace Clinic_Booking.Controllers
 
         [HttpGet]
         [Authorize(Roles = AppRoles.SuperAdmin)]
-        public async Task<IActionResult> GetUsersAsync(Guid userGuid, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10)
         {
-            return await _service.GetPaginatedUsersAsync(userGuid, page, pageSize);
+            return await _service.GetPaginatedUsersAsync(userGuid, search, page, pageSize);
         }
 
         [HttpPost("profile-image")]

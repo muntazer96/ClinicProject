@@ -14,6 +14,7 @@ namespace Clinic_Booking.IServices.IAppointmentServices
         Task<IActionResult> GetMyAppointmentsAsync();
         Task<IActionResult> GetMyAppointmentAsync(int appointmentId);
         Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form);
+        Task<IActionResult> CreateManualAppointmentAsync(ManualAppointmentDto form);
         Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form);
         Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form);
         Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form);

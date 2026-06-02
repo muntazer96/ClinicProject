@@ -37,6 +37,22 @@ namespace Clinic_Booking.Services.ClinicServices
             return Ok(clinics, "تم جلب عيادات الطبيب بنجاح.");
         }
 
+        public async Task<IActionResult> GetByDoctorForAdminAsync(int doctorId)
+        {
+            var doctorExists = await _context.Doctors
+                .AnyAsync(d => d.Id == doctorId && !d.IsDeleted);
+            if (!doctorExists)
+            {
+                return NotFound("الدكتور غير موجود.");
+            }
+
+            var clinics = await MapClinics(_context.Clinics
+                .Where(c => c.DoctorId == doctorId && !c.IsDeleted))
+                .ToListAsync();
+
+            return Ok(clinics, "تم جلب عيادات الطبيب بنجاح.");
+        }
+
         public async Task<IActionResult> GetMineAsync()
         {
             var doctorId = await GetCurrentDoctorIdAsync();

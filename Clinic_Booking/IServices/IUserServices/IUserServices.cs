@@ -9,7 +9,7 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> LoginAsync(SignInDto form);
         Task<IActionResult> SoftDeleteUserAsync(string id);
         Task<IActionResult> ToggleUserLockStatusAsync(string id);
-        Task<IActionResult> GetPaginatedUsersAsync(Guid UserGUID, int page = 1, int pageSize = 10);
+        Task<IActionResult> GetPaginatedUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10);
         Task<IActionResult> UploadImgAsync(IFormFile file);
         Task<IActionResult> SendEmailConfirmationAsync(string email);
         Task<IActionResult> ConfirmEmailAsync(Guid userId, string token);

@@ -1,5 +1,6 @@
 using Clinic_Booking.DTOs.ClinicDTO;
 using Clinic_Booking.IServices.IClinicServices;
+using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,13 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> GetByDoctorAsync(int doctorId)
         {
             return await _services.GetByDoctorAsync(doctorId);
+        }
+
+        [HttpGet("doctor/{doctorId}/admin")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> GetByDoctorForAdminAsync(int doctorId)
+        {
+            return await _services.GetByDoctorForAdminAsync(doctorId);
         }
 
         [HttpGet("my")]

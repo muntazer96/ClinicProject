@@ -11,6 +11,7 @@ public class AuthorizationTests
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.GetMineForDoctorAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.ToggleAppointmentStatusAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.CompleteAppointmentAsync), AppRoles.DoctorUser)]
+    [InlineData(typeof(AppointmentController), nameof(AppointmentController.CreateManualAppointmentAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(DoctorAvailabilityController), nameof(DoctorAvailabilityController.CreateOrUpdateWeeklyAvailabilityAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(ReviewController), nameof(ReviewController.GetMineForDoctorAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(UserController), nameof(UserController.GetUsersAsync), AppRoles.SuperAdmin)]

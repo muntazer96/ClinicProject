@@ -6,6 +6,7 @@ namespace Clinic_Booking.IServices.IClinicServices
     public interface IClinicServices
     {
         Task<IActionResult> GetByDoctorAsync(int doctorId);
+        Task<IActionResult> GetByDoctorForAdminAsync(int doctorId);
         Task<IActionResult> GetMineAsync();
         Task<IActionResult> GetByIdAsync(int id);
         Task<IActionResult> AddMineAsync(ClinicAddDto form);

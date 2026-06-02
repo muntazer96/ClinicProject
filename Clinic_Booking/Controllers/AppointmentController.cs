@@ -60,6 +60,12 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.CreateAppointmentAsync(form);
         }
+        [HttpPost("manual")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> CreateManualAppointmentAsync(ManualAppointmentDto form)
+        {
+            return await _service.CreateManualAppointmentAsync(form);
+        }
         [HttpPost("otp/resend")]
         public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
         {

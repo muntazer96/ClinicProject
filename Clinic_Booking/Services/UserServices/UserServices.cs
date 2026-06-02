@@ -377,14 +377,24 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
         }
-        public async Task<IActionResult> GetPaginatedUsersAsync(Guid UserGUID, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> GetPaginatedUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10)
         {
             var query = _userManager.Users
                 .Where(u => !u.IsDeleted);
 
-            if (UserGUID != Guid.Empty)
+            if (userGuid != Guid.Empty)
             {
-                query = query.Where(u => u.Id == UserGUID);
+                query = query.Where(u => u.Id == userGuid);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(u =>
+                    (u.Name != null && u.Name.Contains(term)) ||
+                    (u.UserName != null && u.UserName.Contains(term)) ||
+                    (u.PhoneNumber != null && u.PhoneNumber.Contains(term)) ||
+                    (u.Email != null && u.Email.Contains(term)));
             }
 
             var totalItems = await query.CountAsync();
@@ -408,6 +418,7 @@ namespace Clinic_Booking.Services.UserServices
                     Id = user.Id,
                     Name = user.Name,
                     PhoneNumber = user.PhoneNumber,
+                    Email = user.Email,
                     UserName = user.UserName,
                     ImageName = user.ImageName,
                     IsLocked = user.IsLocked,

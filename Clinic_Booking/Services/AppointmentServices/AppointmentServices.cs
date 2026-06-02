@@ -710,6 +710,175 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
+        public async Task<IActionResult> CreateManualAppointmentAsync(ManualAppointmentDto form)
+        {
+            var userId = GetAuthenticatedUserId();
+            if (!userId.HasValue)
+            {
+                return LoginRequired();
+            }
+
+            var clinic = await _context.Clinics
+                .Include(c => c.Doctor)
+                .FirstOrDefaultAsync(c =>
+                    c.Id == form.ClinicId &&
+                    !c.IsDeleted &&
+                    !c.Doctor.IsDeleted &&
+                    c.Doctor.UserId == userId);
+            if (clinic == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "العيادة غير موجودة أو لا تتبع حساب الطبيب الحالي.",
+                    Data = null
+                });
+            }
+
+            var patientName = form.PatientName?.Trim();
+            var patientPhoneNumber = form.PatientPhoneNumber?.Trim();
+            if (string.IsNullOrWhiteSpace(patientName) || string.IsNullOrWhiteSpace(patientPhoneNumber))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "اسم المراجع ورقم الهاتف مطلوبان.",
+                    Data = null
+                });
+            }
+
+            var appointmentDate = form.AppointmentDate.Date;
+            if (appointmentDate < DateTime.Today)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لا يمكن إضافة حجز يدوي بتاريخ سابق.",
+                    Data = null
+                });
+            }
+
+            var availability = await _context.DoctorAvailabilities
+                .Include(a => a.Day)
+                .FirstOrDefaultAsync(a =>
+                    a.ClinicId == form.ClinicId &&
+                    a.Day.NormalizedName == appointmentDate.DayOfWeek.ToString() &&
+                    a.IsAvailable &&
+                    !a.IsDeleted);
+            if (availability == null)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "العيادة غير متوفرة في هذا اليوم.",
+                    Data = null
+                });
+            }
+
+            var clinicException = await _context.ClinicExceptions
+                .FirstOrDefaultAsync(exception =>
+                    exception.ClinicId == form.ClinicId &&
+                    exception.ExceptionDate == appointmentDate &&
+                    !exception.IsDeleted);
+            if (clinicException?.IsClosed == true)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = string.IsNullOrWhiteSpace(clinicException.ClosureReason)
+                        ? "العيادة مغلقة في التاريخ المحدد."
+                        : $"العيادة مغلقة في التاريخ المحدد: {clinicException.ClosureReason}",
+                    Data = null
+                });
+            }
+
+            await ExpireUnconfirmedBookingsAsync(form.ClinicId);
+            var activeAppointments = _context.Appointments.Where(a =>
+                a.ClinicId == form.ClinicId &&
+                a.AppointmentDate.Date == appointmentDate &&
+                a.Status != AppointmentStatus.Cancelled &&
+                !a.IsDeleted);
+            var maxAppointments = clinicException?.MaxAppointments ?? availability.MaxAppointments;
+            if (await activeAppointments.CountAsync() >= maxAppointments)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "تم الوصول إلى الحد الأقصى للأدوار في هذه العيادة لهذا اليوم.",
+                    Data = null
+                });
+            }
+
+            if (await activeAppointments.AnyAsync(a =>
+                a.GuestPhoneNumber == patientPhoneNumber ||
+                (a.UserId.HasValue && a.User != null && a.User.PhoneNumber == patientPhoneNumber)))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يوجد حجز مسبق في هذه العيادة لنفس الهاتف في اليوم المحدد.",
+                    Data = null
+                });
+            }
+
+            string uniqueCode;
+            do
+            {
+                uniqueCode = GenerateRandomCode();
+            } while (await _context.Appointments.AnyAsync(a => a.Code == uniqueCode));
+
+            var queueNumber = await _context.Appointments
+                .Where(a => a.ClinicId == form.ClinicId && a.AppointmentDate.Date == appointmentDate)
+                .Select(a => (int?)a.QueueNumber)
+                .MaxAsync() ?? 0;
+
+            var appointment = new Appointment
+            {
+                DoctorId = clinic.DoctorId,
+                ClinicId = clinic.Id,
+                AppointmentDate = appointmentDate,
+                QueueNumber = queueNumber + 1,
+                GuestName = patientName,
+                GuestPhoneNumber = patientPhoneNumber,
+                Notes = form.Notes?.Trim(),
+                IsPhoneConfirmed = true,
+                Status = AppointmentStatus.Confirmed,
+                PaymentStatus = PaymentStatus.Pending,
+                CreatorId = userId,
+                Code = uniqueCode
+            };
+            _context.Appointments.Add(appointment);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return new ConflictObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 409,
+                    Message = "تعذر تثبيت الدور بسبب حجز متزامن. يرجى إعادة المحاولة.",
+                    Data = null
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<object>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تمت إضافة الحجز اليدوي بنجاح.",
+                Data = new { AppointmentId = appointment.Id, appointment.Code, appointment.QueueNumber }
+            });
+        }
+
         public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
         {
             if (!_bookingOtpOptions.Enabled)
@@ -966,6 +1135,18 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Status = "Error",
                     Code = 400,
                     Message = "لا يمكن تغيير حالة الحجز المكتمل.",
+                    Data = null
+                });
+            }
+
+            if (appointment.Status != AppointmentStatus.Pending &&
+                appointment.Status != AppointmentStatus.Confirmed)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لا يمكن إعادة تفعيل حجز ملغي أو مكتمل.",
                     Data = null
                 });
             }

@@ -370,6 +370,16 @@ namespace Clinic_Booking.Services.DoctorServices
                 });
             }
 
+            if (user.IsLocked || await _userManager.IsInRoleAsync(user, "SuperAdmin"))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لا يمكن ربط هذا الحساب بطبيب."
+                });
+            }
+
             var accountAlreadyLinked = await _context.Doctors
                 .AnyAsync(d => d.Id != doctorId && d.UserId == form.UserId && !d.IsDeleted);
             if (accountAlreadyLinked)
@@ -571,6 +581,9 @@ namespace Clinic_Booking.Services.DoctorServices
         {
             try
             {
+                var imageValidation = ValidateDoctorImage(form.ImageName);
+                if (imageValidation != null) return imageValidation;
+
                 var exists = await _context.Doctors.AnyAsync(d =>
                     d.Name.Contains(form.Name) &&
                     d.SpecializationId == form.SpecializationId &&
@@ -707,6 +720,9 @@ namespace Clinic_Booking.Services.DoctorServices
 
                 if (form.ImageName != null)
                 {
+                    var imageValidation = ValidateDoctorImage(form.ImageName);
+                    if (imageValidation != null) return imageValidation;
+
                     var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/DoctorImage");
                     if (!Directory.Exists(folderPath))
                     {
@@ -829,6 +845,39 @@ namespace Clinic_Booking.Services.DoctorServices
                     StatusCode = 500
                 };
             }
+        }
+
+        private static BadRequestObjectResult? ValidateDoctorImage(IFormFile? image)
+        {
+            if (image == null || image.Length == 0)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يرجى اختيار صورة طبيب صالحة.",
+                    Data = null
+                });
+            }
+
+            const long maxFileSize = 5 * 1024 * 1024;
+            var extension = Path.GetExtension(image.FileName);
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".jpg", ".jpeg", ".png", ".webp"
+            };
+            if (image.Length > maxFileSize || !allowedExtensions.Contains(extension))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "الصورة يجب أن تكون بصيغة JPG أو PNG أو WEBP وبحجم لا يتجاوز 5MB.",
+                    Data = null
+                });
+            }
+
+            return null;
         }
     }
 }
