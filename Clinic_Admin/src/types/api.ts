@@ -122,3 +122,48 @@ export interface ClinicAvailability {
   endTime?: string
   maxAppointments?: number
 }
+
+export interface AppointmentItem {
+  id: number
+  code: string
+  patientName: string
+  patientPhoneNumber?: string
+  appointmentDate: string
+  queueNumber: number
+  status: number
+  isPhoneConfirmed: boolean
+  cancellationReason?: string
+  clinicId: number
+  clinicName: string
+}
+
+export interface ClinicExceptionItem {
+  id: number
+  clinicId: number
+  exceptionDate: string
+  isClosed: boolean
+  closureReason?: string
+  maxAppointments?: number
+  startTime?: string
+  endTime?: string
+}
+
+export interface ReviewItem {
+  id: number
+  user: {
+    id: string
+    name: string
+    normalizedName: string
+  }
+  rating: number
+  comment: string
+  appoinmentId?: number
+}
+
+export interface DoctorReviews {
+  doctorId: number
+  isEnabled: boolean
+  averageRating?: number
+  reviewCount: number
+  reviews: ReviewItem[]
+}
