@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/api_client.dart';
+import '../../../core/app_theme.dart';
 import '../../../widgets/auth_shell.dart';
 import 'login_screen.dart';
 
@@ -17,8 +19,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password = TextEditingController(),
       confirm = TextEditingController();
   bool loading = false;
+  bool showPassword = false;
+  bool showConfirm = false;
   String? error;
+
+  bool get canSubmit =>
+      name.text.trim().isNotEmpty &&
+      phone.text.trim().isNotEmpty &&
+      email.text.trim().isNotEmpty &&
+      password.text.isNotEmpty &&
+      confirm.text.isNotEmpty &&
+      !loading;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final controller in [name, phone, email, password, confirm]) {
+      controller.addListener(_refresh);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in [name, phone, email, password, confirm]) {
+      controller.removeListener(_refresh);
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> submit() async {
+    if (!canSubmit) return;
+    if (!email.text.contains('@')) {
+      setState(() => error = 'أدخل بريد إلكتروني صحيح.');
+      return;
+    }
+    if (password.text.length < 6) {
+      setState(() => error = 'كلمة المرور يجب أن لا تقل عن ستة أحرف.');
+      return;
+    }
     if (password.text != confirm.text) {
       setState(() => error = 'كلمتا المرور غير متطابقتين.');
       return;
@@ -43,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
-      setState(() => error = ApiClient.errorMessage(e));
+      if (mounted) setState(() => error = ApiClient.errorMessage(e));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -59,35 +102,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (error != null) ErrorText(error!),
         TextField(
           controller: name,
-          decoration: const InputDecoration(labelText: 'الاسم الكامل'),
+          textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            labelText: 'الاسم الكامل',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: phone,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+          textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            labelText: 'رقم الهاتف',
+            prefixIcon: Icon(Icons.phone_outlined),
+          ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: email,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+          textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            labelText: 'البريد الإلكتروني',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: password,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: 'كلمة المرور'),
+          obscureText: !showPassword,
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: 'كلمة المرور',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              tooltip:
+                  showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+              onPressed: () => setState(() => showPassword = !showPassword),
+              icon: Icon(
+                showPassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+            ),
+          ),
         ),
+        const SizedBox(height: 8),
+        PasswordStrength(password.text),
         const SizedBox(height: 10),
         TextField(
           controller: confirm,
-          obscureText: true,
-          decoration: const InputDecoration(labelText: 'تأكيد كلمة المرور'),
+          obscureText: !showConfirm,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => submit(),
+          decoration: InputDecoration(
+            labelText: 'تأكيد كلمة المرور',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              tooltip:
+                  showConfirm ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+              onPressed: () => setState(() => showConfirm = !showConfirm),
+              icon: Icon(
+                showConfirm
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 14),
         FilledButton(
-          onPressed: loading ? null : submit,
+          onPressed: canSubmit ? submit : null,
           child: Text(loading ? 'جارِ الإنشاء...' : 'إنشاء الحساب'),
         ),
         TextButton(
@@ -97,4 +183,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ],
     ),
   );
+}
+
+class PasswordStrength extends StatelessWidget {
+  const PasswordStrength(this.password, {super.key});
+
+  final String password;
+
+  int get _score {
+    var score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 10) score++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) score++;
+    if (RegExp(r'[0-9]').hasMatch(password)) score++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) score++;
+    return score.clamp(0, 5);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final score = _score;
+    final color = score <= 2
+        ? Colors.red.shade700
+        : score <= 4
+        ? AppColors.warning
+        : AppColors.primary;
+    final label = password.isEmpty
+        ? 'أدخل كلمة مرور لا تقل عن ستة أحرف.'
+        : score <= 2
+        ? 'كلمة المرور ضعيفة'
+        : score <= 4
+        ? 'كلمة المرور متوسطة'
+        : 'كلمة المرور قوية';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: password.isEmpty ? .05 : score / 5,
+            minHeight: 6,
+            color: color,
+            backgroundColor: AppColors.border,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: color, fontSize: 12)),
+      ],
+    );
+  }
 }

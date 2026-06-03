@@ -20,13 +20,31 @@ class QueueAvailability {
   factory QueueAvailability.fromJson(Map<String, dynamic> json) =>
       QueueAvailability(
         date: DateTime.parse(json['date'] as String),
-        dayName: json['dayName'] as String? ?? '',
+        dayName: _arabicDayName(
+          json['dayName'] as String?,
+          json['dayNormalizedName'] as String?,
+        ),
         startTime: json['startTime'] as String?,
         endTime: json['endTime'] as String?,
         remainingAppointments: json['remainingAppointments'] as int? ?? 0,
         isAvailable: json['isAvailable'] as bool? ?? false,
         closureReason: json['closureReason'] as String?,
       );
+}
+
+String _arabicDayName(String? dayName, String? normalizedName) {
+  final value = (normalizedName?.isNotEmpty == true ? normalizedName : dayName)
+      ?.toLowerCase();
+  return switch (value) {
+    'sunday' => 'الأحد',
+    'monday' => 'الاثنين',
+    'tuesday' => 'الثلاثاء',
+    'wednesday' => 'الأربعاء',
+    'thursday' => 'الخميس',
+    'friday' => 'الجمعة',
+    'saturday' => 'السبت',
+    _ => dayName ?? '',
+  };
 }
 
 class BookingResult {

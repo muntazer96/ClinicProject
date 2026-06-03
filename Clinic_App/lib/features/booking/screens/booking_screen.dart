@@ -96,6 +96,8 @@ class _BookingScreenState extends State<BookingScreen> {
       );
       return;
     }
+    final accepted = await _confirmBookingSummary(auth.isAuthenticated);
+    if (accepted != true) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -142,6 +144,45 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
+  Future<bool?> _confirmBookingSummary(bool authenticated) {
+    final selected = _selected;
+    if (selected == null) return Future.value(false);
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد الحجز'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SummaryLine('الطبيب', widget.doctorName),
+            _SummaryLine('العيادة', widget.clinicName),
+            _SummaryLine(
+              'التاريخ',
+              '${selected.dayName} - ${DateFormat('yyyy/MM/dd').format(selected.date)}',
+            ),
+            if (!authenticated) ...[
+              _SummaryLine('المراجع', _name.text.trim()),
+              _SummaryLine('الهاتف', _phone.text.trim()),
+            ],
+            if (_notes.text.trim().isNotEmpty)
+              _SummaryLine('الملاحظات', _notes.text.trim()),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تراجع'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تثبيت الحجز'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authenticated = context.watch<AuthController>().isAuthenticated;
@@ -166,7 +207,7 @@ class _BookingScreenState extends State<BookingScreen> {
             const _Notice(text: 'لا توجد أيام متاحة للحجز حالياً.')
           else
             SizedBox(
-              height: 116,
+              height: 142,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _days.length,
@@ -183,6 +224,10 @@ class _BookingScreenState extends State<BookingScreen> {
                 },
               ),
             ),
+          if (_selected != null) ...[
+            const SizedBox(height: 10),
+            _SelectedDaySummary(day: _selected!),
+          ],
           const SizedBox(height: 16),
           if (!authenticated) ...[
             const _Notice(
@@ -244,7 +289,7 @@ class _DayCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(16),
     onTap: onTap,
     child: Container(
-      width: 104,
+      width: 132,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: selected ? AppColors.primary : Colors.white,
@@ -278,6 +323,18 @@ class _DayCard extends StatelessWidget {
             DateFormat('d/M').format(day.date),
             style: TextStyle(color: selected ? Colors.white : AppColors.muted),
           ),
+          const SizedBox(height: 5),
+          if (day.startTime?.isNotEmpty == true && day.endTime?.isNotEmpty == true)
+            Text(
+              '${_shortTime(day.startTime!)} - ${_shortTime(day.endTime!)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? const Color(0xFFD7FFFA) : AppColors.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           const Spacer(),
           Text(
             day.isAvailable
@@ -290,6 +347,61 @@ class _DayCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
+  );
+
+  static String _shortTime(String value) =>
+      value.length >= 5 ? value.substring(0, 5) : value;
+}
+
+class _SelectedDaySummary extends StatelessWidget {
+  const _SelectedDaySummary({required this.day});
+
+  final QueueAvailability day;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: AppColors.softBlue,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.event_available_rounded, color: AppColors.primary),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            '${day.dayName} ${DateFormat('yyyy/MM/dd').format(day.date)} - ${day.remainingAppointments} دور متبقٍ',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 76,
+          child: Text(label, style: const TextStyle(color: AppColors.muted)),
+        ),
+        Expanded(
+          child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
+      ],
     ),
   );
 }

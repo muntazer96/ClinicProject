@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -23,6 +24,14 @@ class BookingSuccessScreen extends StatelessWidget {
   const BookingSuccessScreen({super.key, required this.args});
   final BookingSuccessArgs args;
 
+  Future<void> _copyCode(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: args.result.code));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ كود الحجز.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('تم الحجز')),
@@ -43,7 +52,37 @@ class BookingSuccessScreen extends StatelessWidget {
             child: Column(
               children: [
                 _Row('رقم الدور', '#${args.result.queueNumber}'),
-                _Row('كود الحجز', args.result.code),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: AppColors.softBlue,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'كود الحجز',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 5),
+                      SelectableText(
+                        args.result.code,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _copyCode(context),
+                        icon: const Icon(Icons.copy_rounded),
+                        label: const Text('نسخ الكود'),
+                      ),
+                    ],
+                  ),
+                ),
                 _Row('الطبيب', args.doctorName),
                 _Row('العيادة', args.clinicName),
                 _Row('التاريخ', DateFormat('yyyy/MM/dd').format(args.date)),
@@ -53,18 +92,22 @@ class BookingSuccessScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'احتفظ بكود الحجز. ستحتاجه لمراجعة حجز الزائر أو إلغائه.',
+          'احتفظ بكود الحجز. ستحتاجه لمتابعة الحجز أو إلغائه إذا كان الحجز كزائر.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.muted),
         ),
         const SizedBox(height: 16),
         FilledButton(
-          onPressed: () => context.go('/'),
-          child: const Text('العودة إلى الرئيسية'),
+          onPressed: () => context.go('/guest-booking'),
+          child: const Text('متابعة الحجز'),
         ),
-        TextButton(
+        OutlinedButton(
           onPressed: () => context.go('/search'),
           child: const Text('البحث عن طبيب آخر'),
+        ),
+        TextButton(
+          onPressed: () => context.go('/'),
+          child: const Text('العودة إلى الرئيسية'),
         ),
       ],
     ),

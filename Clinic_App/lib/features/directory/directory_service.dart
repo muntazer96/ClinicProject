@@ -5,6 +5,7 @@ class DirectoryService {
   DirectoryService([ApiClient? client]) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+  static const int pageSize = 10;
 
   Future<List<Specialization>> getSpecializations() async {
     final response = await _client.dio.get('/Specialization');
@@ -14,10 +15,11 @@ class DirectoryService {
         .toList();
   }
 
-  Future<List<DoctorSummary>> searchDoctors({
+  Future<DoctorSearchResult> searchDoctors({
     String? name,
     int? province,
     int? specialization,
+    int page = 1,
   }) async {
     final response = await _client.dio.get(
       '/Doctor/public',
@@ -25,14 +27,20 @@ class DirectoryService {
         if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
         if (province != null) 'iraqiProvince': province,
         if (specialization != null) 'specialization': specialization,
-        'page': 1,
-        'pageSize': 100,
+        'page': page,
+        'pageSize': pageSize,
       },
     );
-    final items = response.data['data']['items'] as List? ?? const [];
-    return items
-        .map((item) => DoctorSummary.fromJson(item as Map<String, dynamic>))
-        .toList();
+    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
+    final items = data['items'] as List? ?? const [];
+    return DoctorSearchResult(
+      items: items
+          .map((item) => DoctorSummary.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      totalItems: data['totalItems'] as int? ?? items.length,
+      totalPages: data['totalPages'] as int? ?? 1,
+      currentPage: data['currentPage'] as int? ?? page,
+    );
   }
 
   Future<DoctorProfile> getDoctor(int id) async {
@@ -41,4 +49,18 @@ class DirectoryService {
       response.data['data'] as Map<String, dynamic>,
     );
   }
+}
+
+class DoctorSearchResult {
+  const DoctorSearchResult({
+    required this.items,
+    required this.totalItems,
+    required this.totalPages,
+    required this.currentPage,
+  });
+
+  final List<DoctorSummary> items;
+  final int totalItems;
+  final int totalPages;
+  final int currentPage;
 }

@@ -175,9 +175,27 @@ class ClinicAvailability {
 
   factory ClinicAvailability.fromJson(Map<String, dynamic> json) =>
       ClinicAvailability(
-        dayName: json['dayName'] as String? ?? '',
+        dayName: _arabicDayName(
+          json['dayName'] as String?,
+          json['dayNormalizedName'] as String?,
+        ),
         startTime: json['startTime'] as String? ?? '',
         endTime: json['endTime'] as String? ?? '',
         maxAppointments: json['maxAppointments'] as int? ?? 0,
       );
+}
+
+String _arabicDayName(String? dayName, String? normalizedName) {
+  final value = (normalizedName?.isNotEmpty == true ? normalizedName : dayName)
+      ?.toLowerCase();
+  return switch (value) {
+    'sunday' => 'الأحد',
+    'monday' => 'الاثنين',
+    'tuesday' => 'الثلاثاء',
+    'wednesday' => 'الأربعاء',
+    'thursday' => 'الخميس',
+    'friday' => 'الجمعة',
+    'saturday' => 'السبت',
+    _ => dayName ?? '',
+  };
 }

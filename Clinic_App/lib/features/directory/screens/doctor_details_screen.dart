@@ -64,6 +64,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
               _ProfileCard(doctor: _doctor!),
+              const SizedBox(height: 10),
+              _ProfileActions(doctor: _doctor!),
               const SizedBox(height: 16),
               if (_doctor!.description.isNotEmpty) ...[
                 const _Title('نبذة عن الطبيب'),
@@ -172,13 +174,7 @@ class _ReviewsSection extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              Text(
-                                '${review.rating}/5',
-                                style: const TextStyle(
-                                  color: Color(0xFFB16A2B),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+                              _StarRating(rating: review.rating),
                             ],
                           ),
                           if (review.comment.isNotEmpty) ...[
@@ -283,6 +279,24 @@ class _ProfileCard extends StatelessWidget {
   );
 }
 
+class _StarRating extends StatelessWidget {
+  const _StarRating({required this.rating});
+
+  final int rating;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: List.generate(
+          5,
+          (index) => Icon(
+            index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+            color: const Color(0xFFFFB54A),
+            size: 16,
+          ),
+        ),
+      );
+}
+
 class _DoctorMetric extends StatelessWidget {
   const _DoctorMetric({
     required this.icon,
@@ -318,6 +332,99 @@ class _DoctorMetric extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _ProfileActions extends StatelessWidget {
+  const _ProfileActions({required this.doctor});
+
+  final DoctorProfile doctor;
+
+  ClinicDetails? get _firstBookableClinic {
+    for (final clinic in doctor.clinicDetails) {
+      if (clinic.availabilities.isNotEmpty) return clinic;
+    }
+    return doctor.clinicDetails.isEmpty ? null : doctor.clinicDetails.first;
+  }
+
+  ClinicDetails? get _firstPhoneClinic {
+    for (final clinic in doctor.clinicDetails) {
+      if (clinic.phoneNumber?.isNotEmpty == true) return clinic;
+    }
+    return null;
+  }
+
+  ClinicDetails? get _firstMapClinic {
+    for (final clinic in doctor.clinicDetails) {
+      if (clinic.mapUrl?.isNotEmpty == true) return clinic;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bookClinic = _firstBookableClinic;
+    final phoneClinic = _firstPhoneClinic;
+    final mapClinic = _firstMapClinic;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  doctor.canBookOnline
+                      ? Icons.check_circle_rounded
+                      : Icons.info_outline_rounded,
+                  color:
+                      doctor.canBookOnline ? AppColors.primary : AppColors.warning,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    doctor.canBookOnline
+                        ? 'الحجز الإلكتروني متاح لهذا الطبيب'
+                        : 'الحجز الإلكتروني غير مفعل حالياً',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (doctor.canBookOnline && bookClinic != null)
+                  FilledButton.icon(
+                    onPressed: () => context.push(
+                      '/book/${doctor.id}/${bookClinic.id}'
+                      '?doctorName=${Uri.encodeComponent(doctor.name)}'
+                      '&clinicName=${Uri.encodeComponent(bookClinic.name)}',
+                    ),
+                    icon: const Icon(Icons.calendar_month_rounded),
+                    label: const Text('احجز الآن'),
+                  ),
+                if (phoneClinic != null)
+                  OutlinedButton.icon(
+                    onPressed: () => openPhone(context, phoneClinic.phoneNumber!),
+                    icon: const Icon(Icons.phone_outlined),
+                    label: const Text('اتصال'),
+                  ),
+                if (mapClinic != null)
+                  OutlinedButton.icon(
+                    onPressed: () => openMap(context, mapClinic.mapUrl!),
+                    icon: const Icon(Icons.map_outlined),
+                    label: const Text('الموقع'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ClinicCard extends StatelessWidget {
@@ -372,32 +479,12 @@ class _ClinicCard extends StatelessWidget {
               style: TextStyle(color: AppColors.muted),
             )
           else
-            ...clinic.availabilities.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 7),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.dayName,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    Text(
-                      '${_shortTime(item.startTime)} - ${_shortTime(item.endTime)}',
-                      style: const TextStyle(color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '${item.maxAppointments} دور',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: clinic.availabilities
+                  .map((item) => _AvailabilityChip(item: item))
+                  .toList(),
             ),
           if (clinic.availabilities.isNotEmpty && canBookOnline) ...[
             const SizedBox(height: 7),
@@ -415,6 +502,45 @@ class _ClinicCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _AvailabilityChip extends StatelessWidget {
+  const _AvailabilityChip({required this.item});
+
+  final ClinicAvailability item;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7FBFA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.dayName,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Text(
+              '${_shortTime(item.startTime)} - ${_shortTime(item.endTime)}',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Text(
+              '${item.maxAppointments} دور',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+          ],
+        ),
+      );
 
   static String _shortTime(String value) =>
       value.length >= 5 ? value.substring(0, 5) : value;

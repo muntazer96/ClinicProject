@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/api_client.dart';
 import '../../../widgets/auth_shell.dart';
 import 'login_screen.dart';
@@ -14,7 +15,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final identifier = TextEditingController();
   bool loading = false, sent = false;
   String? error;
+
+  bool get canSubmit => identifier.text.trim().isNotEmpty && !loading;
+
+  @override
+  void initState() {
+    super.initState();
+    identifier.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    identifier.removeListener(_refresh);
+    identifier.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> submit() async {
+    if (!canSubmit) {
+      setState(() => error = 'أدخل البريد الإلكتروني أو رقم الهاتف.');
+      return;
+    }
     setState(() {
       loading = true;
       error = null;
@@ -24,9 +49,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         '/User/password/reset-link',
         queryParameters: {'identifier': identifier.text.trim()},
       );
-      setState(() => sent = true);
+      if (mounted) setState(() => sent = true);
     } catch (e) {
-      setState(() => error = ApiClient.errorMessage(e));
+      if (mounted) setState(() => error = ApiClient.errorMessage(e));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -41,8 +66,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'تم إرسال الرابط. راجع بريدك الإلكتروني لإكمال العملية.',
+              const _SuccessNotice(
+                text:
+                    'تم إرسال الرابط. راجع بريدك الإلكتروني لإكمال العملية.',
               ),
               const SizedBox(height: 14),
               FilledButton(
@@ -57,18 +83,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               if (error != null) ErrorText(error!),
               TextField(
                 controller: identifier,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => submit(),
                 decoration: const InputDecoration(
                   labelText: 'البريد الإلكتروني أو رقم الهاتف',
+                  prefixIcon: Icon(Icons.alternate_email_outlined),
                 ),
               ),
               const SizedBox(height: 14),
               FilledButton(
-                onPressed: loading ? null : submit,
+                onPressed: canSubmit ? submit : null,
                 child: Text(
                   loading ? 'جارِ الإرسال...' : 'إرسال رابط الاستعادة',
                 ),
               ),
             ],
           ),
+  );
+}
+
+class _SuccessNotice extends StatelessWidget {
+  const _SuccessNotice({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE4F4F0),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(text, textAlign: TextAlign.center),
   );
 }

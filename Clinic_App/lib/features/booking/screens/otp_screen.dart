@@ -48,14 +48,20 @@ class _OtpScreenState extends State<OtpScreen> {
   void initState() {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
+    _code.addListener(_onCodeChanged);
     _startCooldown();
   }
 
   @override
   void dispose() {
+    _code.removeListener(_onCodeChanged);
     _code.dispose();
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _onCodeChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _confirm() async {
@@ -126,6 +132,12 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
+  String get _maskedPhone {
+    final phone = widget.args.phoneNumber.trim();
+    if (phone.length <= 4) return phone;
+    return '******${phone.substring(phone.length - 4)}';
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('تأكيد رقم الهاتف')),
@@ -141,9 +153,15 @@ class _OtpScreenState extends State<OtpScreen> {
         ),
         const SizedBox(height: 7),
         Text(
-          'تم إرسال الرمز إلى ${widget.args.phoneNumber}',
+          'تم إرسال الرمز إلى $_maskedPhone',
           textAlign: TextAlign.center,
           style: const TextStyle(color: AppColors.muted),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'لا تشارك الرمز مع أي شخص. يمكنك إعادة الإرسال بعد انتهاء العداد.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.muted, fontSize: 12),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -152,6 +170,7 @@ class _OtpScreenState extends State<OtpScreen> {
           textAlign: TextAlign.center,
           maxLength: 8,
           decoration: const InputDecoration(labelText: 'رمز OTP'),
+          onSubmitted: (_) => _confirm(),
         ),
         if (_error != null)
           Text(
@@ -161,7 +180,7 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
         const SizedBox(height: 10),
         FilledButton(
-          onPressed: _loading ? null : _confirm,
+          onPressed: _loading || _code.text.trim().isEmpty ? null : _confirm,
           child: Text(_loading ? 'جارِ التحقق...' : 'تأكيد الرمز'),
         ),
         TextButton(

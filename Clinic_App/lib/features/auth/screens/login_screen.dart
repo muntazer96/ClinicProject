@@ -17,7 +17,35 @@ class _LoginScreenState extends State<LoginScreen> {
   final phone = TextEditingController(), password = TextEditingController();
   String? error;
   bool showPassword = false;
+
+  bool get canSubmit =>
+      phone.text.trim().isNotEmpty && password.text.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    phone.addListener(_refresh);
+    password.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    phone.removeListener(_refresh);
+    password.removeListener(_refresh);
+    phone.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> submit() async {
+    if (!canSubmit) {
+      setState(() => error = 'أدخل رقم الهاتف وكلمة المرور.');
+      return;
+    }
     setState(() => error = null);
     try {
       await context.read<AuthController>().login(
@@ -26,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (mounted) context.go(widget.redirect ?? '/');
     } catch (e) {
-      setState(() => error = ApiClient.errorMessage(e));
+      if (mounted) setState(() => error = ApiClient.errorMessage(e));
     }
   }
 
@@ -43,16 +71,24 @@ class _LoginScreenState extends State<LoginScreen> {
           TextField(
             controller: phone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: 'رقم الهاتف',
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: password,
             obscureText: !showPassword,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => submit(),
             decoration: InputDecoration(
               labelText: 'كلمة المرور',
+              prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                tooltip: showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+                tooltip:
+                    showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
                 onPressed: () =>
                     setState(() => showPassword = !showPassword),
                 icon: Icon(
@@ -71,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           FilledButton(
-            onPressed: loading ? null : submit,
+            onPressed: loading || !canSubmit ? null : submit,
             child: Text(loading ? 'جارِ الدخول...' : 'تسجيل الدخول'),
           ),
           TextButton(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +23,25 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   late final ReviewService _reviewService;
   List<BookingDetails> _bookings = [];
   bool _loading = true;
+  String _filter = 'active';
   String? _error;
+
+  List<BookingDetails> get _filteredBookings {
+    final sorted = [..._bookings]
+      ..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+    return switch (_filter) {
+      'active' => sorted.where((booking) => booking.canCancel).toList(),
+      'completed' => sorted.where((booking) => booking.status == 3).toList(),
+      'cancelled' => sorted.where((booking) => booking.status == 2).toList(),
+      _ => sorted,
+    };
+  }
+
+  int get _activeCount => _bookings.where((booking) => booking.canCancel).length;
+  int get _completedCount =>
+      _bookings.where((booking) => booking.status == 3).length;
+  int get _cancelledCount =>
+      _bookings.where((booking) => booking.status == 2).length;
 
   @override
   void initState() {
@@ -147,51 +166,200 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     try {
       await _service.cancelMyBooking(booking.id);
       await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إلغاء الحجز.')),
+        );
+      }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
     }
   }
 
   @override
-  Widget build(BuildContext context) => AppScaffold(
-    title: 'حجوزاتي',
-    child: RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        children: [
-          const Text(
-            'حجوزاتي',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'راجع أدوارك الحالية والسابقة أو ألغِ الحجز قبل موعده.',
-            style: TextStyle(color: AppColors.muted),
-          ),
-          const SizedBox(height: 14),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(34),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_error != null)
-            BookingMessage(text: _error!, action: _load)
-          else if (_bookings.isEmpty)
-            const BookingMessage(text: 'لا توجد حجوزات في حسابك حتى الآن.')
-          else
-            ..._bookings.map(
-              (booking) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: BookingCard(
-                  booking: booking,
-                  onCancel: booking.canCancel ? () => _cancel(booking) : null,
-                  onReview: booking.canReview ? () => _review(booking) : null,
+  Widget build(BuildContext context) {
+    final filtered = _filteredBookings;
+    return AppScaffold(
+      title: 'حجوزاتي',
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'حجوزاتي',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loading ? null : _load,
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: 'تحديث',
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              'راجع أدوارك الحالية والسابقة أو ألغِ الحجز قبل موعده.',
+              style: TextStyle(color: AppColors.muted),
+            ),
+            const SizedBox(height: 14),
+            _BookingSummary(
+              active: _activeCount,
+              completed: _completedCount,
+              cancelled: _cancelledCount,
+            ),
+            const SizedBox(height: 12),
+            _BookingFilterBar(
+              value: _filter,
+              onChanged: (value) => setState(() => _filter = value),
+            ),
+            const SizedBox(height: 14),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(34),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              BookingMessage(text: _error!, action: _load)
+            else if (_bookings.isEmpty)
+              const BookingMessage(
+                text: 'لا توجد حجوزات في حسابك حتى الآن.',
+              )
+            else if (filtered.isEmpty)
+              const BookingMessage(text: 'لا توجد حجوزات ضمن هذا الفلتر.')
+            else
+              ...filtered.map(
+                (booking) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: BookingCard(
+                    booking: booking,
+                    onCancel: booking.canCancel ? () => _cancel(booking) : null,
+                    onReview: booking.canReview ? () => _review(booking) : null,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _BookingSummary extends StatelessWidget {
+  const _BookingSummary({
+    required this.active,
+    required this.completed,
+    required this.cancelled,
+  });
+
+  final int active;
+  final int completed;
+  final int cancelled;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: _SummaryTile(
+          label: 'نشطة',
+          value: active,
+          color: AppColors.primary,
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: _SummaryTile(
+          label: 'مكتملة',
+          value: completed,
+          color: const Color(0xFF13796B),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: _SummaryTile(
+          label: 'ملغية',
+          value: cancelled,
+          color: const Color(0xFFB23A3A),
+        ),
+      ),
+    ],
+  );
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      children: [
+        Text(
+          '$value',
+          style: TextStyle(
+            color: color,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(label, style: const TextStyle(color: AppColors.muted)),
+      ],
+    ),
+  );
+}
+
+class _BookingFilterBar extends StatelessWidget {
+  const _BookingFilterBar({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        _FilterChip('active', 'النشطة', value, onChanged),
+        _FilterChip('all', 'الكل', value, onChanged),
+        _FilterChip('completed', 'المكتملة', value, onChanged),
+        _FilterChip('cancelled', 'الملغية', value, onChanged),
+      ],
+    ),
+  );
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip(this.id, this.label, this.value, this.onChanged);
+
+  final String id;
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.only(end: 8),
+    child: ChoiceChip(
+      selected: value == id,
+      label: Text(label),
+      onSelected: (_) => onChanged(id),
     ),
   );
 }
@@ -206,6 +374,14 @@ class BookingCard extends StatelessWidget {
   final BookingDetails booking;
   final VoidCallback? onCancel;
   final VoidCallback? onReview;
+
+  Future<void> _copyCode(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: booking.code));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نسخ كود الحجز.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Card(
@@ -233,13 +409,35 @@ class BookingCard extends StatelessWidget {
             style: const TextStyle(color: AppColors.primary),
           ),
           const Divider(height: 20),
-          Text(
-            'التاريخ: ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)}',
+          _InfoRow(
+            icon: Icons.event_outlined,
+            text:
+                'التاريخ: ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)}',
           ),
-          Text('رقم الدور: #${booking.queueNumber}'),
-          Text('كود الحجز: ${booking.code}'),
+          _InfoRow(
+            icon: Icons.confirmation_number_outlined,
+            text: 'رقم الدور: #${booking.queueNumber}',
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: _InfoRow(
+                  icon: Icons.key_rounded,
+                  text: 'كود الحجز: ${booking.code}',
+                ),
+              ),
+              IconButton(
+                onPressed: booking.code.isEmpty ? null : () => _copyCode(context),
+                icon: const Icon(Icons.copy_rounded),
+                tooltip: 'نسخ الكود',
+              ),
+            ],
+          ),
           if (booking.clinicAddress.isNotEmpty)
-            Text('العنوان: ${booking.clinicAddress}'),
+            _InfoRow(
+              icon: Icons.place_outlined,
+              text: 'العنوان: ${booking.clinicAddress}',
+            ),
           if (booking.clinicPhoneNumber?.isNotEmpty == true)
             TextButton.icon(
               onPressed: () => openPhone(context, booking.clinicPhoneNumber!),
@@ -253,25 +451,53 @@ class BookingCard extends StatelessWidget {
               label: const Text('فتح موقع العيادة'),
             ),
           if (booking.cancellationReason?.isNotEmpty == true)
-            Text('سبب الإلغاء: ${booking.cancellationReason}'),
-          if (onCancel != null) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: onCancel,
-              icon: const Icon(Icons.close),
-              label: const Text('إلغاء الحجز'),
+            _InfoRow(
+              icon: Icons.info_outline,
+              text: 'سبب الإلغاء: ${booking.cancellationReason}',
             ),
-          ],
-          if (onReview != null) ...[
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: onReview,
-              icon: const Icon(Icons.star_outline),
-              label: const Text('تقييم الطبيب'),
+          if (onCancel != null || onReview != null) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (onCancel != null)
+                  OutlinedButton.icon(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.close),
+                    label: const Text('إلغاء الحجز'),
+                  ),
+                if (onReview != null)
+                  FilledButton.icon(
+                    onPressed: onReview,
+                    icon: const Icon(Icons.star_outline),
+                    label: const Text('تقييم الطبيب'),
+                  ),
+              ],
             ),
           ],
         ],
       ),
+    ),
+  );
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 7),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text)),
+      ],
     ),
   );
 }

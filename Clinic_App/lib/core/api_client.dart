@@ -50,6 +50,22 @@ class ApiClient {
     if (error is DioException) {
       final data = error.response?.data;
       if (data is Map && data['message'] is String) return data['message'];
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 400) return 'البيانات غير مكتملة أو غير صحيحة.';
+      if (statusCode == 401) return 'انتهت الجلسة. سجل الدخول مرة أخرى.';
+      if (statusCode == 403) return 'لا تملك صلاحية تنفيذ هذه العملية.';
+      if (statusCode == 404) return 'لم يتم العثور على البيانات المطلوبة.';
+      if (statusCode != null && statusCode >= 500) {
+        return 'حدث خلل في الخادم. حاول مرة أخرى بعد قليل.';
+      }
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        return 'الاتصال بطيء. تحقق من الإنترنت وحاول مرة أخرى.';
+      }
+      if (error.type == DioExceptionType.connectionError) {
+        return 'تعذر الاتصال بالخادم. تحقق من الإنترنت أو عنوان الخادم.';
+      }
       return error.message ?? 'تعذر الاتصال بالخادم.';
     }
     return 'تعذر تنفيذ العملية. حاول مرة أخرى.';
