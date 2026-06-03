@@ -313,7 +313,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                     {
                         ClinicId = clinicId,
                         Date = date,
-                        DayName = day?.Day.Name ?? date.DayOfWeek.ToString(),
+                        DayName = GetArabicDayName(date.DayOfWeek),
                         DayNormalizedName = date.DayOfWeek.ToString(),
                         StartTime = clinicException?.StartTime ?? day?.StartTime,
                         EndTime = clinicException?.EndTime ?? day?.EndTime,
@@ -336,6 +336,21 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Message = "Queue availability retrieved successfully.",
                 Data = availability
             });
+        }
+
+        private static string GetArabicDayName(DayOfWeek dayOfWeek)
+        {
+            return dayOfWeek switch
+            {
+                DayOfWeek.Sunday => "الأحد",
+                DayOfWeek.Monday => "الاثنين",
+                DayOfWeek.Tuesday => "الثلاثاء",
+                DayOfWeek.Wednesday => "الأربعاء",
+                DayOfWeek.Thursday => "الخميس",
+                DayOfWeek.Friday => "الجمعة",
+                DayOfWeek.Saturday => "السبت",
+                _ => dayOfWeek.ToString()
+            };
         }
 
         public async Task<IActionResult> GetGuestAppointmentAsync(string phoneNumber, string code)

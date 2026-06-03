@@ -237,6 +237,98 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
         }
+        public async Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود",
+                    Data = null
+                });
+            }
+
+            if (string.Equals(user.UserName, "superadmin", StringComparison.OrdinalIgnoreCase))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لا يمكن تعديل حساب مدير النظام الأساسي.",
+                    Data = null
+                });
+            }
+
+            var phone = form.PhoneNumber.Trim();
+            var email = form.Email.Trim();
+
+            var phoneOwner = await _userManager.FindByNameAsync(phone);
+            if (phoneOwner != null && phoneOwner.Id != user.Id)
+            {
+                return new ConflictObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 409,
+                    Message = "رقم الهاتف مستخدم من حساب آخر.",
+                    Data = null
+                });
+            }
+
+            var emailOwner = await _userManager.FindByEmailAsync(email);
+            if (emailOwner != null && emailOwner.Id != user.Id)
+            {
+                return new ConflictObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 409,
+                    Message = "البريد الإلكتروني مستخدم من حساب آخر.",
+                    Data = null
+                });
+            }
+
+            var phoneChanged = !string.Equals(user.PhoneNumber, phone, StringComparison.OrdinalIgnoreCase);
+            var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
+
+            user.Name = form.Name.Trim();
+            user.PhoneNumber = phone;
+            user.UserName = phone;
+            user.NormalizedUserName = phone.ToUpperInvariant();
+            user.Email = email;
+            user.NormalizedEmail = email.ToUpperInvariant();
+
+            if (phoneChanged)
+            {
+                user.PhoneNumberConfirmed = false;
+            }
+
+            if (emailChanged)
+            {
+                user.EmailConfirmed = false;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = $"فشل تعديل المستخدم: {string.Join(" | ", result.Errors.Select(e => e.Description))}",
+                    Data = null
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تعديل بيانات المستخدم بنجاح",
+                Data = null
+            });
+        }
         public async Task<IActionResult> SoftDeleteUserAsync(string id)
         {
             try
@@ -418,7 +510,9 @@ namespace Clinic_Booking.Services.UserServices
                     Id = user.Id,
                     Name = user.Name,
                     PhoneNumber = user.PhoneNumber,
+                    PhoneNumberConfirmed = user.PhoneNumberConfirmed,
                     Email = user.Email,
+                    EmailConfirmed = user.EmailConfirmed,
                     UserName = user.UserName,
                     ImageName = user.ImageName,
                     IsLocked = user.IsLocked,
@@ -598,8 +692,11 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
 
+            string url_front = "http://localhost:5173";
+
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"{clientBaseUrl.TrimEnd('/')}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            // confirmationLink = $"{clientBaseUrl.TrimEnd('/')}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var confirmationLink = $"{url_front}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
             await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
 
@@ -669,7 +766,11 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
 
-            var resetLink = $"{clientBaseUrl.TrimEnd('/')}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            string url_front = "http://localhost:5173";
+
+
+            //var resetLink = $"{clientBaseUrl.TrimEnd('/')}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var resetLink = $"{url_front}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
 
 
@@ -703,6 +804,52 @@ namespace Clinic_Booking.Services.UserServices
                 var message = isExpired
                     ? "انتهت صلاحية الرابط، الرجاء طلب رابط جديد."
                     : $"فشل في تغيير كلمة المرور: {string.Join(" | ", result.Errors.Select(e => e.Description))}";
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = message
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تغيير كلمة المرور بنجاح."
+            });
+        }
+        public async Task<IActionResult> ChangePasswordAsync(ChangePasswordDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, form.CurrentPassword, form.NewPassword);
+            if (!result.Succeeded)
+            {
+                var message = result.Errors.Any(error => error.Code == "PasswordMismatch")
+                    ? "كلمة المرور الحالية غير صحيحة."
+                    : $"فشل تغيير كلمة المرور: {string.Join(" | ", result.Errors.Select(error => error.Description))}";
 
                 return new BadRequestObjectResult(new ResponseDto<string>
                 {

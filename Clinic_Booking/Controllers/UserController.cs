@@ -28,6 +28,13 @@ namespace Clinic_Booking.Controllers
             return await _service.LoginAsync(form);
         }
 
+        [HttpPut("{id}")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> UpdateUserAsync(string id, [FromBody] UserUpdateDto form)
+        {
+            return await _service.UpdateUserAsync(id, form);
+        }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> SoftDeleteUserAsync(string id)
@@ -78,6 +85,13 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> ResetPasswordAsync([FromBody] ResetPasswordDto form)
         {
             return await _service.ResetPasswordAsync(form);
+        }
+
+        [HttpPost("password/change")]
+        [Authorize]
+        public async Task<IActionResult> ChangePasswordAsync([FromBody] ChangePasswordDto form)
+        {
+            return await _service.ChangePasswordAsync(form);
         }
     }
 }

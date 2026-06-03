@@ -6,6 +6,7 @@ namespace Clinic_Booking.IServices.IUserServices
     public interface IUserServices
     {
         Task<IActionResult> CreateUserAsync(SignUpDto form);
+        Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form);
         Task<IActionResult> LoginAsync(SignInDto form);
         Task<IActionResult> SoftDeleteUserAsync(string id);
         Task<IActionResult> ToggleUserLockStatusAsync(string id);
@@ -15,5 +16,6 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> ConfirmEmailAsync(Guid userId, string token);
         Task<IActionResult> SendResetPasswordLinkAsync(string guid);
         Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form);
+        Task<IActionResult> ChangePasswordAsync(ChangePasswordDto form);
     }
 }
