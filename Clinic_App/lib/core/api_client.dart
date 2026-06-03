@@ -3,9 +3,9 @@ import 'package:dio/dio.dart';
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.174.0.120:7136/api',
 
-    //defaultValue: 'https://localhost:7136/api',
+    //defaultValue: 'http://192.174.0.120:7136/api',
+    defaultValue: 'https://localhost:7136/api',
   );
 
   ApiClient()

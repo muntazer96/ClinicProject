@@ -29,7 +29,7 @@ class AppScaffold extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x334267F5),
+                    color: Color(0x3313796B),
                     blurRadius: 14,
                     offset: Offset(0, 6),
                   ),
@@ -101,7 +101,7 @@ class AppScaffold extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Color(0x120F1F4B),
+              color: Color(0x121D4A44),
               blurRadius: 22,
               offset: Offset(0, -7),
             ),

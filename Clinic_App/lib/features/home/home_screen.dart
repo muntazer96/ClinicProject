@@ -41,14 +41,14 @@ class HomeScreen extends StatelessWidget {
             _ServiceCard(
               icon: Icons.event_available_rounded,
               title: 'حجز موعد',
-              color: const Color(0xFF7659F6),
+              color: AppColors.primaryDark,
               onTap: () => context.go('/search'),
             ),
             const SizedBox(width: 10),
             _ServiceCard(
               icon: Icons.manage_search_rounded,
               title: 'متابعة حجز',
-              color: const Color(0xFF48BFD9),
+              color: AppColors.accent,
               onTap: () => context.go('/guest-booking'),
             ),
           ],
@@ -104,7 +104,7 @@ class _SearchBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x140F1F4B),
+            color: Color(0x141D4A44),
             blurRadius: 22,
             offset: Offset(0, 8),
           ),
@@ -220,7 +220,7 @@ class _BookingBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(25),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x334267F5),
+          color: Color(0x3313796B),
           blurRadius: 20,
           offset: Offset(0, 10),
         ),
@@ -253,7 +253,7 @@ class _BookingBanner extends StatelessWidget {
         const SizedBox(height: 5),
         const Text(
           'اختر الطبيب والعيادة واليوم المناسب، ثم استلم رقم دورك مباشرة.',
-          style: TextStyle(color: Color(0xFFDDE5FF), height: 1.7),
+          style: TextStyle(color: Color(0xFFD7FFFA), height: 1.7),
         ),
         const SizedBox(height: 15),
         FilledButton.icon(

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppColors {
-  static const primary = Color(0xFF4267F5);
-  static const primaryDark = Color(0xFF2447D8);
-  static const accent = Color(0xFF62C9E8);
-  static const background = Color(0xFFF5F7FF);
+  static const primary = Color(0xFF13796B);
+  static const primaryDark = Color(0xFF0B5C51);
+  static const accent = Color(0xFF42A799);
+  static const background = Color(0xFFF6F9F8);
   static const surface = Colors.white;
-  static const text = Color(0xFF17213D);
-  static const muted = Color(0xFF7A849D);
-  static const border = Color(0xFFE7EAF3);
-  static const softBlue = Color(0xFFEEF2FF);
-  static const warning = Color(0xFFFFB84D);
+  static const text = Color(0xFF16312D);
+  static const muted = Color(0xFF71827F);
+  static const border = Color(0xFFE2EBE9);
+  static const softBlue = Color(0xFFE4F4F0);
+  static const warning = Color(0xFFE5A43C);
 }
 
 ThemeData buildAppTheme() {

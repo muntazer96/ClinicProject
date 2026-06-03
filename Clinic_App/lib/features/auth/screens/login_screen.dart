@@ -16,6 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final phone = TextEditingController(), password = TextEditingController();
   String? error;
+  bool showPassword = false;
   Future<void> submit() async {
     setState(() => error = null);
     try {
@@ -47,8 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: password,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'كلمة المرور'),
+            obscureText: !showPassword,
+            decoration: InputDecoration(
+              labelText: 'كلمة المرور',
+              suffixIcon: IconButton(
+                tooltip: showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+                onPressed: () =>
+                    setState(() => showPassword = !showPassword),
+                icon: Icon(
+                  showPassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+            ),
           ),
           Align(
             alignment: Alignment.centerLeft,

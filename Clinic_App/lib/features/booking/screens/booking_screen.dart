@@ -255,7 +255,7 @@ class _DayCard extends StatelessWidget {
         boxShadow: selected
             ? const [
                 BoxShadow(
-                  color: Color(0x334267F5),
+                  color: Color(0x3313796B),
                   blurRadius: 14,
                   offset: Offset(0, 7),
                 ),
@@ -285,7 +285,7 @@ class _DayCard extends StatelessWidget {
                 : 'غير متاح',
             style: TextStyle(
               fontSize: 11,
-              color: selected ? const Color(0xFFDDE5FF) : AppColors.muted,
+              color: selected ? const Color(0xFFD7FFFA) : AppColors.muted,
             ),
           ),
         ],
@@ -331,7 +331,7 @@ class _DoctorHeader extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x334267F5),
+          color: Color(0x3313796B),
           blurRadius: 18,
           offset: Offset(0, 9),
         ),
@@ -364,7 +364,7 @@ class _DoctorHeader extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 clinicName,
-                style: const TextStyle(color: Color(0xFFDDE5FF)),
+                style: const TextStyle(color: Color(0xFFD7FFFA)),
               ),
             ],
           ),

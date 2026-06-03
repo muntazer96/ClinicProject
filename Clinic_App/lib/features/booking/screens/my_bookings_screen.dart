@@ -285,7 +285,7 @@ class _StatusChip extends StatelessWidget {
     final (background, foreground) = switch (booking.status) {
       1 => (AppColors.softBlue, AppColors.primary),
       2 => (const Color(0xFFFFECEC), const Color(0xFFB23A3A)),
-      3 => (const Color(0xFFEAF0FF), const Color(0xFF4C69B3)),
+      3 => (const Color(0xFFE4F4F0), const Color(0xFF13796B)),
       _ => (const Color(0xFFFFF0DF), const Color(0xFFB16A2B)),
     };
     return Chip(

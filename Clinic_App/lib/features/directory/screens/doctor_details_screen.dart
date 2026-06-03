@@ -210,7 +210,7 @@ class _ProfileCard extends StatelessWidget {
       border: Border.all(color: AppColors.border),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x140F1F4B),
+          color: Color(0x141D4A44),
           blurRadius: 20,
           offset: Offset(0, 9),
         ),
@@ -230,7 +230,7 @@ class _ProfileCard extends StatelessWidget {
               imageName: doctor.imageName,
               size: 174,
               foreground: AppColors.primary,
-              background: Color(0xFFDDE5FF),
+              background: Color(0xFFD7FFFA),
             ),
           ),
         ),
