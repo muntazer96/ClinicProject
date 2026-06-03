@@ -26,7 +26,7 @@ const doctorStats = computed(() => [
   { label: 'التقييمات', value: stats.value.reviews, note: 'آراء المراجعين الموثقة', icon: MessageSquareText, color: 'purple' },
 ])
 const quickLinks = computed(() => isAdmin ? [
-  { to: '/users', label: 'إدارة المستخدمين' }, { to: '/doctors', label: 'إدارة الأطباء' }, { to: '/subscriptions', label: 'إدارة الاشتراكات' },
+  { to: '/users', label: 'إدارة المستخدمين' }, { to: '/doctors', label: 'إدارة الأطباء' }, { to: '/appointments', label: 'كل الحجوزات' }, { to: '/subscriptions', label: 'إدارة الاشتراكات' },
 ] : [
   { to: '/appointments', label: 'حجوزات اليوم' }, { to: '/clinics', label: 'العيادات والدوام' }, { to: '/exceptions', label: 'الإجازات' }, { to: '/reviews', label: 'التقييمات' },
 ])

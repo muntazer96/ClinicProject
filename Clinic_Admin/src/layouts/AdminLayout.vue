@@ -2,21 +2,32 @@
 import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  Bell, Building2, CalendarDays, ChevronLeft, ClipboardList, HeartPulse,
-  House, LogOut, Menu, MessageSquareText, Stethoscope, UserRound, UsersRound, X,
+  Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
+  House, KeyRound, LogOut, Menu, MessageSquareText, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
+import AppModal from '../components/AppModal.vue'
+import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import { useNotificationsStore } from '../stores/notifications'
+import { getErrorMessage } from '../utils/errors'
+import type { ApiResponse } from '../types/api'
 
 const auth = useAuthStore()
+const notifications = useNotificationsStore()
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const accountMenuOpen = ref(false)
+const changePasswordOpen = ref(false)
+const savingPassword = ref(false)
+const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
 const links = computed(() => [
   { label: 'الرئيسية', to: '/', icon: House, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'المستخدمون', to: '/users', icon: UsersRound, roles: ['SuperAdmin'] },
   { label: 'الأطباء', to: '/doctors', icon: Stethoscope, roles: ['SuperAdmin'] },
   { label: 'الاشتراكات', to: '/subscriptions', icon: ClipboardList, roles: ['SuperAdmin'] },
+  { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin'] },
   { label: 'عياداتي', to: '/clinics', icon: Building2, roles: ['DoctorUser'] },
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['DoctorUser'] },
   { label: 'الإجازات', to: '/exceptions', icon: Bell, roles: ['DoctorUser'] },
@@ -29,6 +40,33 @@ const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'ل
 function signOut() {
   auth.logout()
   router.push('/login')
+}
+
+function openChangePassword() {
+  accountMenuOpen.value = false
+  passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
+  changePasswordOpen.value = true
+}
+
+async function changePassword() {
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    notifications.show('تأكيد كلمة المرور غير مطابق.', 'error')
+    return
+  }
+
+  savingPassword.value = true
+  try {
+    const response = await api.post<ApiResponse<string>>('/User/password/change', {
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword,
+    })
+    notifications.show(response.data.message)
+    changePasswordOpen.value = false
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  } finally {
+    savingPassword.value = false
+  }
 }
 </script>
 
@@ -55,13 +93,6 @@ function signOut() {
         </RouterLink>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="role-pill">{{ auth.primaryRole || 'مستخدم' }}</div>
-        <button class="logout-button" type="button" @click="signOut">
-          <LogOut :size="18" />
-          تسجيل الخروج
-        </button>
-      </div>
     </aside>
 
     <main class="main-area">
@@ -76,12 +107,20 @@ function signOut() {
           </div>
         </div>
         <div class="topbar-actions">
-          <div class="profile-chip">
+          <div v-if="accountMenuOpen" class="account-menu-overlay" @click="accountMenuOpen = false" />
+          <div class="account-menu-wrap">
+          <button class="profile-chip profile-button" type="button" aria-haspopup="menu" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
             <span class="avatar"><UserRound :size="17" /></span>
             <div>
               <strong>{{ auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب' }}</strong>
               <small>{{ auth.primaryRole }}</small>
             </div>
+            <ChevronDown :size="15" />
+          </button>
+          <div v-if="accountMenuOpen" class="account-menu" role="menu">
+            <button type="button" role="menuitem" @click="openChangePassword"><KeyRound :size="17" /> تعديل كلمة السر</button>
+            <button type="button" role="menuitem" @click="signOut"><LogOut :size="17" /> تسجيل الخروج</button>
+          </div>
           </div>
         </div>
       </header>
@@ -90,5 +129,17 @@ function signOut() {
         <RouterView />
       </section>
     </main>
+
+    <AppModal v-if="changePasswordOpen" title="تعديل كلمة السر" @close="changePasswordOpen = false">
+      <form class="modal-form" @submit.prevent="changePassword">
+        <label><span>كلمة السر الحالية</span><input v-model="passwordForm.currentPassword" required type="password" autocomplete="current-password" /></label>
+        <label><span>كلمة السر الجديدة</span><input v-model="passwordForm.newPassword" required type="password" minlength="6" autocomplete="new-password" /></label>
+        <label><span>تأكيد كلمة السر الجديدة</span><input v-model="passwordForm.confirmPassword" required type="password" minlength="6" autocomplete="new-password" /></label>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" @click="changePasswordOpen = false">تراجع</button>
+          <button class="compact-primary" type="submit" :disabled="savingPassword">{{ savingPassword ? 'جارِ الحفظ...' : 'حفظ كلمة السر' }}</button>
+        </div>
+      </form>
+    </AppModal>
   </div>
 </template>

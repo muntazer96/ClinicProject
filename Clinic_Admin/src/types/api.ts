@@ -17,7 +17,9 @@ export interface UserItem {
   id: string
   name?: string
   phoneNumber?: string
+  phoneNumberConfirmed: boolean
   email?: string
+  emailConfirmed: boolean
   userName?: string
   imageName?: string
   isLocked: boolean
@@ -140,6 +142,21 @@ export interface AppointmentItem {
   clinicName: string
 }
 
+export interface QueueAvailabilityItem {
+  clinicId: number
+  date: string
+  dayName: string
+  dayNormalizedName: string
+  startTime?: string
+  endTime?: string
+  maxAppointments: number
+  bookedAppointments: number
+  remainingAppointments: number
+  isAvailable: boolean
+  hasException: boolean
+  closureReason?: string
+}
+
 export interface ClinicExceptionItem {
   id: number
   clinicId: number
@@ -169,4 +186,72 @@ export interface DoctorReviews {
   averageRating?: number
   reviewCount: number
   reviews: ReviewItem[]
+}
+
+export interface PublicDoctorListItem {
+  id: number
+  name: string
+  normalizedName: string
+  specializationId: number
+  specializationName: string
+  specializationNormalizedName: string
+  description: string
+  imageName: string
+  canBookOnline: boolean
+  averageRating?: number
+  reviewCount: number
+  clinics: Array<{
+    id: number
+    name: string
+    iraqiProvince: number
+    iraqiProvinceName: string
+    address: string
+  }>
+}
+
+export interface PublicDoctorProfile extends PublicDoctorListItem {
+  clinics: PublicClinic[]
+}
+
+export interface PublicClinic {
+  id: number
+  name: string
+  iraqiProvince: number
+  iraqiProvinceName: string
+  address: string
+  latitude?: number
+  longitude?: number
+  mapUrl?: string
+  phoneNumber?: string
+  availabilities: Array<{
+    dayId: number
+    dayName: string
+    dayNormalizedName: string
+    startTime: string
+    endTime: string
+    maxAppointments: number
+  }>
+}
+
+export interface BookingDetails {
+  id: number
+  code: string
+  patientName: string
+  patientPhoneNumber?: string
+  appointmentDate: string
+  queueNumber: number
+  status: number
+  isPhoneConfirmed: boolean
+  hasReview: boolean
+  cancellationReason?: string
+  cancelledAt?: string
+  doctorId: number
+  doctorName: string
+  clinicId: number
+  clinicName: string
+  clinicAddress: string
+  clinicPhoneNumber?: string
+  mapUrl?: string
+  latitude?: number
+  longitude?: number
 }

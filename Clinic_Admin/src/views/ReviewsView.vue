@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { MessageSquareText, RefreshCw, ShieldAlert, Star } from '@lucide/vue'
+import AppPagination from '../components/AppPagination.vue'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
 import type { ApiResponse, DoctorReviews } from '../types/api'
@@ -9,7 +10,11 @@ import { getErrorMessage } from '../utils/errors'
 const notifications = useNotificationsStore()
 const loading = ref(false)
 const reviewsData = ref<DoctorReviews>()
+const page = ref(1)
+const pageSize = 5
 const reviews = computed(() => reviewsData.value?.reviews ?? [])
+const totalPages = computed(() => Math.max(1, Math.ceil(reviews.value.length / pageSize)))
+const paginatedReviews = computed(() => reviews.value.slice((page.value - 1) * pageSize, page.value * pageSize))
 const average = computed(() => reviewsData.value?.averageRating?.toFixed(1) ?? '-')
 
 async function loadReviews() {
@@ -17,6 +22,7 @@ async function loadReviews() {
   try {
     const response = await api.get<ApiResponse<DoctorReviews>>('/Review/doctor/my')
     reviewsData.value = response.data.data
+    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (error) {
     notifications.show(getErrorMessage(error), 'error')
   } finally {
@@ -26,6 +32,10 @@ async function loadReviews() {
 
 function isFilled(rating: number, star: number) {
   return star <= rating
+}
+
+function changePage(newPage: number) {
+  page.value = newPage
 }
 
 onMounted(loadReviews)
@@ -60,7 +70,7 @@ onMounted(loadReviews)
         <MessageSquareText :size="32" /><h3>لا توجد تقييمات بعد</h3><p>ستظهر تقييمات المراجعين هنا بعد إكمال حجوزاتهم وإرسال آرائهم.</p>
       </div>
       <section v-else class="reviews-list">
-        <article v-for="review in reviews" :key="review.id" class="review-card">
+        <article v-for="review in paginatedReviews" :key="review.id" class="review-card">
           <div class="review-card-header">
             <div><strong>{{ review.user.name || 'مراجع' }}</strong><small v-if="review.appoinmentId">حجز رقم #{{ review.appoinmentId }}</small></div>
             <div class="stars" :aria-label="`${review.rating} من 5 نجوم`">
@@ -70,6 +80,7 @@ onMounted(loadReviews)
           <p>{{ review.comment || 'لم يضف المراجع تعليقاً نصياً.' }}</p>
         </article>
       </section>
+      <AppPagination :page="page" :total-pages="totalPages" @change="changePage" />
     </template>
   </div>
 </template>

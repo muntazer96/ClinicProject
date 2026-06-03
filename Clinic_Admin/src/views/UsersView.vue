@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Clipboard, Eye, LockKeyhole, LockKeyholeOpen, RefreshCw, Search, Trash2, UserRound, UsersRound } from '@lucide/vue'
+import { CheckCircle2, Clipboard, Eye, KeyRound, LockKeyhole, LockKeyholeOpen, MailCheck, Pencil, RefreshCw, Search, Trash2, UserPlus, UserRound, UsersRound, XCircle } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
 import api from '../services/api'
@@ -17,6 +17,13 @@ const totalPages = ref(1)
 const totalItems = ref(0)
 const selectedUser = ref<UserItem>()
 const detailsUser = ref<UserItem>()
+const createOpen = ref(false)
+const saving = ref(false)
+const accountAction = ref<'email' | 'password'>()
+const actionUser = ref<UserItem>()
+const createForm = ref({ name: '', phoneNumber: '', email: '', password: '' })
+const editUser = ref<UserItem>()
+const editForm = ref({ name: '', phoneNumber: '', email: '' })
 
 const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 function isProtected(user: UserItem) {
@@ -29,6 +36,10 @@ function roleLabel(role?: string) {
 
 function formatDate(date?: string) {
   return date ? new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date)) : 'لم يسجل دخولاً بعد'
+}
+
+function confirmedLabel(confirmed: boolean) {
+  return confirmed ? 'مؤكد' : 'غير مؤكد'
 }
 
 async function copyUserId(id: string) {
@@ -60,6 +71,71 @@ async function loadUsers() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+async function createUser() {
+  saving.value = true
+  try {
+    const response = await api.post<ApiResponse<object>>('/User/signup', createForm.value)
+    notifications.show(response.data.message)
+    createOpen.value = false
+    createForm.value = { name: '', phoneNumber: '', email: '', password: '' }
+    await loadUsers()
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+function openEditUser(user: UserItem) {
+  editUser.value = user
+  editForm.value = {
+    name: user.name ?? '',
+    phoneNumber: user.phoneNumber ?? '',
+    email: user.email ?? '',
+  }
+}
+
+async function updateUser() {
+  if (!editUser.value) return
+  saving.value = true
+  try {
+    const response = await api.put<ApiResponse<string>>(`/User/${editUser.value.id}`, editForm.value)
+    notifications.show(response.data.message)
+    editUser.value = undefined
+    await loadUsers()
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+function openAccountAction(user: UserItem, action: 'email' | 'password') {
+  actionUser.value = user
+  accountAction.value = action
+}
+
+async function sendAccountAction() {
+  if (!actionUser.value || !accountAction.value) return
+  const identifier = actionUser.value.email || actionUser.value.phoneNumber || actionUser.value.userName
+  if (!identifier) {
+    notifications.show('لا يوجد بريد أو رقم هاتف يمكن استخدامه لهذا الحساب.', 'error')
+    return
+  }
+  saving.value = true
+  try {
+    const url = accountAction.value === 'email' ? '/User/email-confirmation' : '/User/password/reset-link'
+    const response = await api.post<ApiResponse<object>>(url, null, { params: { identifier } })
+    notifications.show(response.data.message)
+    actionUser.value = undefined
+    accountAction.value = undefined
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -107,7 +183,10 @@ onMounted(loadUsers)
         <h2>المستخدمون</h2>
         <p>راجع حسابات النظام وتحكم بحالة الوصول عند الحاجة.</p>
       </div>
-      <button class="secondary-button" type="button" :disabled="loading" @click="loadUsers"><RefreshCw :size="17" /> تحديث</button>
+      <div class="heading-actions">
+        <button class="secondary-button" type="button" :disabled="loading" @click="loadUsers"><RefreshCw :size="17" /> تحديث</button>
+        <button class="compact-primary" type="button" @click="createOpen = true"><UserPlus :size="17" /> حساب جديد</button>
+      </div>
     </div>
 
     <section class="table-card">
@@ -118,17 +197,32 @@ onMounted(loadUsers)
       </div>
       <div class="table-scroll">
         <table class="data-table">
-          <thead><tr><th>المستخدم</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+          <thead><tr><th>المستخدم</th><th>بيانات التواصل</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="5" class="table-message">جارِ تحميل المستخدمين...</td></tr>
-            <tr v-else-if="!users.length"><td colspan="5" class="table-message">لا توجد حسابات مطابقة.</td></tr>
+            <tr v-if="loading"><td colspan="6" class="table-message">جارِ تحميل المستخدمين...</td></tr>
+            <tr v-else-if="!users.length"><td colspan="6" class="table-message">لا توجد حسابات مطابقة.</td></tr>
             <tr v-for="user in users" v-else :key="user.id">
-              <td><div class="entity-cell"><span class="small-avatar"><UserRound :size="17" /></span><div><strong>{{ user.name || user.userName }}</strong><small>{{ user.phoneNumber || user.id }}</small></div></div></td>
+              <td><div class="entity-cell"><span class="small-avatar"><UserRound :size="17" /></span><div><strong>{{ user.name || user.userName }}</strong><small>{{ user.userName || user.id }}</small></div></div></td>
+              <td>
+                <div class="contact-stack">
+                  <span>
+                    <b>{{ user.email || '-' }}</b>
+                    <small :class="user.emailConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="user.emailConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(user.emailConfirmed) }}</small>
+                  </span>
+                  <span>
+                    <b>{{ user.phoneNumber || '-' }}</b>
+                    <small :class="user.phoneNumberConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="user.phoneNumberConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(user.phoneNumberConfirmed) }}</small>
+                  </span>
+                </div>
+              </td>
               <td><span class="soft-badge">{{ roleLabel(user.roleName) }}</span></td>
               <td class="muted-cell">{{ formatDate(user.lastLoginDate) }}</td>
               <td><span class="status-badge" :class="user.isLocked ? 'status-danger' : 'status-success'">{{ user.isLocked ? 'موقوف' : 'فعّال' }}</span></td>
               <td><div class="row-actions">
                 <button type="button" title="عرض بيانات المستخدم" @click="detailsUser = user"><Eye :size="17" /></button>
+                <button type="button" title="تعديل المستخدم" :disabled="isProtected(user)" @click="openEditUser(user)"><Pencil :size="17" /></button>
+                <button type="button" title="إرسال تأكيد البريد" :disabled="isProtected(user)" @click="openAccountAction(user, 'email')"><MailCheck :size="17" /></button>
+                <button type="button" title="إرسال رابط إعادة كلمة المرور" :disabled="isProtected(user)" @click="openAccountAction(user, 'password')"><KeyRound :size="17" /></button>
                 <button type="button" :title="user.isLocked ? 'إلغاء الإيقاف' : 'إيقاف الحساب'" :disabled="isProtected(user)" @click="toggleLock(user)"><LockKeyholeOpen v-if="user.isLocked" :size="17" /><LockKeyhole v-else :size="17" /></button>
                 <button class="danger-action" type="button" title="حذف الحساب" :disabled="isProtected(user)" @click="selectedUser = user"><Trash2 :size="17" /></button>
               </div></td>
@@ -138,6 +232,32 @@ onMounted(loadUsers)
       </div>
       <AppPagination :page="page" :total-pages="totalPages" @change="changePage" />
     </section>
+
+    <AppModal v-if="editUser" title="تعديل المستخدم" @close="editUser = undefined">
+      <form class="modal-form" @submit.prevent="updateUser">
+        <p class="modal-copy">إذا تم تغيير البريد الإلكتروني أو رقم الهاتف ستعود حالة التأكيد إلى غير مؤكد حتى يتم التحقق من القيمة الجديدة.</p>
+        <label><span>الاسم الكامل</span><input v-model="editForm.name" required maxlength="200" /></label>
+        <label><span>رقم الهاتف</span><input v-model="editForm.phoneNumber" required maxlength="30" /></label>
+        <label><span>البريد الإلكتروني</span><input v-model="editForm.email" required type="email" /></label>
+        <div class="modal-actions"><button class="secondary-button" type="button" @click="editUser = undefined">تراجع</button><button class="compact-primary" type="submit" :disabled="saving">{{ saving ? 'جارِ الحفظ...' : 'حفظ التعديل' }}</button></div>
+      </form>
+    </AppModal>
+
+    <AppModal v-if="createOpen" title="إنشاء حساب جديد" @close="createOpen = false">
+      <form class="modal-form" @submit.prevent="createUser">
+        <p class="modal-copy">ينشئ هذا الإجراء حساب مستخدم عادي يمكن ربطه لاحقاً بملف طبيب عند الحاجة.</p>
+        <label><span>الاسم الكامل</span><input v-model="createForm.name" required maxlength="200" /></label>
+        <label><span>رقم الهاتف</span><input v-model="createForm.phoneNumber" required maxlength="30" /></label>
+        <label><span>البريد الإلكتروني</span><input v-model="createForm.email" required type="email" /></label>
+        <label><span>كلمة المرور</span><input v-model="createForm.password" required type="password" minlength="6" /></label>
+        <div class="modal-actions"><button class="secondary-button" type="button" @click="createOpen = false">تراجع</button><button class="compact-primary" type="submit" :disabled="saving">{{ saving ? 'جارِ الإنشاء...' : 'إنشاء الحساب' }}</button></div>
+      </form>
+    </AppModal>
+
+    <AppModal v-if="actionUser && accountAction" :title="accountAction === 'email' ? 'إرسال تأكيد البريد' : 'إرسال رابط كلمة المرور'" @close="actionUser = undefined">
+      <p class="modal-copy">سيتم إرسال {{ accountAction === 'email' ? 'رسالة تأكيد البريد' : 'رابط إعادة كلمة المرور' }} إلى الحساب <strong>{{ actionUser.name || actionUser.userName }}</strong>.</p>
+      <div class="modal-actions"><button class="secondary-button" type="button" @click="actionUser = undefined">تراجع</button><button class="compact-primary" type="button" :disabled="saving" @click="sendAccountAction">{{ saving ? 'جارِ الإرسال...' : 'إرسال' }}</button></div>
+    </AppModal>
 
     <AppModal v-if="detailsUser" title="بيانات المستخدم" wide @close="detailsUser = undefined">
       <div class="user-details-heading">
@@ -156,8 +276,8 @@ onMounted(loadUsers)
         </div>
         <div><dt>الاسم الكامل</dt><dd>{{ detailsUser.name || '-' }}</dd></div>
         <div><dt>اسم المستخدم</dt><dd>{{ detailsUser.userName || '-' }}</dd></div>
-        <div><dt>رقم الهاتف</dt><dd>{{ detailsUser.phoneNumber || '-' }}</dd></div>
-        <div><dt>البريد الإلكتروني</dt><dd>{{ detailsUser.email || '-' }}</dd></div>
+        <div><dt>رقم الهاتف</dt><dd class="verified-value">{{ detailsUser.phoneNumber || '-' }} <span :class="detailsUser.phoneNumberConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="detailsUser.phoneNumberConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(detailsUser.phoneNumberConfirmed) }}</span></dd></div>
+        <div><dt>البريد الإلكتروني</dt><dd class="verified-value">{{ detailsUser.email || '-' }} <span :class="detailsUser.emailConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="detailsUser.emailConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(detailsUser.emailConfirmed) }}</span></dd></div>
         <div><dt>نوع الحساب</dt><dd>{{ roleLabel(detailsUser.roleName) }}</dd></div>
         <div><dt>حالة أول دخول</dt><dd>{{ detailsUser.isFirstLogin ? 'لم يكتمل بعد' : 'مكتمل' }}</dd></div>
         <div><dt>آخر تسجيل دخول</dt><dd>{{ formatDate(detailsUser.lastLoginDate) }}</dd></div>
@@ -182,5 +302,9 @@ onMounted(loadUsers)
 .user-details-grid div { padding: 11px; border: 1px solid var(--line); border-radius: 9px; background: #fbfdfc; }.user-details-grid .full-detail { grid-column: 1 / -1; }
 .user-details-grid dt { margin-bottom: 5px; color: var(--muted); font-size: 12px; }.user-details-grid dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
 .identifier-value { display: flex; align-items: center; gap: 7px; }.identifier-value code { direction: ltr; }.identifier-value button { display: grid; place-items: center; width: 29px; height: 29px; color: var(--primary); border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+.contact-stack { display: grid; gap: 7px; min-width: 210px; }.contact-stack span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }.contact-stack b { direction: ltr; font-weight: 700; }
+.confirm-ok, .confirm-wait { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 13px; font-size: 11px; font-weight: 700; }
+.confirm-ok { color: #167163; background: #e1f4ef; }.confirm-wait { color: #a46724; background: #fff1db; }
+.verified-value { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 @media (max-width: 600px) { .user-details-grid { grid-template-columns: 1fr; }.user-details-grid .full-detail { grid-column: auto; } }
 </style>

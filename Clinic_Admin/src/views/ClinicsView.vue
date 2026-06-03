@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Building2, CalendarDays, ExternalLink, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
+import AppPagination from '../components/AppPagination.vue'
 import { provinces } from '../constants/provinces'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
@@ -17,6 +18,8 @@ interface ScheduleDay extends DayItem {
 
 const notifications = useNotificationsStore()
 const clinics = ref<ClinicItem[]>([])
+const page = ref(1)
+const pageSize = 6
 const days = ref<DayItem[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -28,14 +31,28 @@ const form = reactive({
   id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '',
   mapUrl: '', phoneNumber: '', isVisible: true,
 })
+const totalPages = computed(() => Math.max(1, Math.ceil(clinics.value.length / pageSize)))
+const paginatedClinics = computed(() => clinics.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+
+function normalizePage() {
+  if (page.value > totalPages.value) page.value = totalPages.value
+}
+
+function changePage(newPage: number) {
+  page.value = newPage
+}
 
 async function loadClinics() {
   loading.value = true
   try {
     const response = await api.get<ApiResponse<ClinicItem[]>>('/Clinic/my')
     clinics.value = response.data.data
+    normalizePage()
   } catch (error: any) {
-    if (error.response?.status === 404) clinics.value = []
+    if (error.response?.status === 404) {
+      clinics.value = []
+      page.value = 1
+    }
     else notifications.show(getErrorMessage(error), 'error')
   } finally {
     loading.value = false
@@ -143,6 +160,26 @@ async function saveSchedule() {
   }
 }
 
+async function saveSingleDay(day: ScheduleDay) {
+  if (!scheduleClinic.value) return
+  saving.value = true
+  try {
+    const response = await api.put<ApiResponse<object>>('/DoctorAvailability/single-day', {
+      clinicId: scheduleClinic.value.id,
+      dayId: day.id,
+      startTime: `${day.startTime}:00`,
+      endTime: `${day.endTime}:00`,
+      maxAppointments: day.maxAppointments,
+      isAvailable: day.enabled,
+    })
+    notifications.show(response.data.message)
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
 onMounted(() => Promise.all([loadClinics(), loadDays()]))
 </script>
 
@@ -156,7 +193,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
     <div v-if="loading" class="empty-panel">جارِ تحميل العيادات...</div>
     <div v-else-if="!clinics.length" class="empty-panel"><Building2 :size="31" /><h3>لم تضف عيادات بعد</h3><p>أنشئ أول فرع ثم أضف جدول الدوام الأسبوعي الخاص به.</p><button class="compact-primary" type="button" @click="openEditor()"><Plus :size="17" /> إضافة عيادة</button></div>
     <section v-else class="clinic-grid">
-      <article v-for="clinic in clinics" :key="clinic.id" class="clinic-card">
+      <article v-for="clinic in paginatedClinics" :key="clinic.id" class="clinic-card">
         <div class="clinic-card-header"><span class="clinic-icon"><Building2 :size="21" /></span><div><h3>{{ clinic.name }}</h3><span class="status-badge" :class="clinic.isVisible ? 'status-success' : 'status-neutral'">{{ clinic.isVisible ? 'ظاهرة للمرضى' : 'مخفية' }}</span></div></div>
         <div class="clinic-details">
           <span><MapPin :size="16" /><b>{{ clinic.iraqiProvinceName }}</b>، {{ clinic.address }}</span>
@@ -171,6 +208,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
         </div>
       </article>
     </section>
+    <AppPagination :page="page" :total-pages="totalPages" @change="changePage" />
 
     <AppModal v-if="editorOpen" :title="form.id ? 'تعديل بيانات العيادة' : 'إضافة عيادة جديدة'" wide @close="editorOpen = false">
       <form class="modal-form form-grid" @submit.prevent="saveClinic">
@@ -194,6 +232,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
           <label><span>من</span><input v-model="day.startTime" type="time" :disabled="!day.enabled" required /></label>
           <label><span>إلى</span><input v-model="day.endTime" type="time" :disabled="!day.enabled" required /></label>
           <label><span>الأدوار</span><input v-model.number="day.maxAppointments" type="number" min="1" :disabled="!day.enabled" required /></label>
+          <button class="secondary-button schedule-save-day" type="button" :disabled="saving" @click="saveSingleDay(day)">حفظ اليوم</button>
         </div>
       </div>
       <div class="modal-actions"><button class="secondary-button" type="button" @click="scheduleClinic = undefined">تراجع</button><button class="compact-primary" type="button" :disabled="saving" @click="saveSchedule">{{ saving ? 'جارِ الحفظ...' : 'حفظ الدوام' }}</button></div>
@@ -205,3 +244,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
     </AppModal>
   </div>
 </template>
+
+<style scoped>
+.schedule-save-day { align-self: end; min-height: 36px; padding: 7px 9px; font-size: 12px; }
+</style>

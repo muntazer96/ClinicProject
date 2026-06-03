@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { CalendarOff, Pencil, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
+import AppPagination from '../components/AppPagination.vue'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
 import type { ApiResponse, ClinicExceptionItem, ClinicItem } from '../types/api'
@@ -10,26 +11,43 @@ import { getErrorMessage } from '../utils/errors'
 const notifications = useNotificationsStore()
 const clinics = ref<ClinicItem[]>([])
 const exceptions = ref<ClinicExceptionItem[]>([])
+const page = ref(1)
+const pageSize = 6
 const clinicId = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const editorOpen = ref(false)
 const deleteException = ref<ClinicExceptionItem>()
+const filters = reactive({ fromDate: '', toDate: '' })
 const form = reactive({ id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '' })
 const selectedClinicName = computed(() => clinics.value.find((clinic) => clinic.id === Number(clinicId.value))?.name)
+const totalPages = computed(() => Math.max(1, Math.ceil(exceptions.value.length / pageSize)))
+const paginatedExceptions = computed(() => exceptions.value.slice((page.value - 1) * pageSize, page.value * pageSize))
 
 function formatDate(value: string) { return new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'full' }).format(new Date(`${value}T00:00:00`)) }
+function normalizePage() { if (page.value > totalPages.value) page.value = totalPages.value }
+function changePage(newPage: number) { page.value = newPage }
+function applyExceptionFilters() {
+  page.value = 1
+  loadExceptions()
+}
 async function loadClinics() {
   const response = await api.get<ApiResponse<ClinicItem[]>>('/Clinic/my')
   clinics.value = response.data.data
   if (!clinicId.value && clinics.value.length) clinicId.value = String(clinics.value[0].id)
 }
 async function loadExceptions() {
-  if (!clinicId.value) { exceptions.value = []; return }
+  if (!clinicId.value) { exceptions.value = []; page.value = 1; return }
   loading.value = true
   try {
-    const response = await api.get<ApiResponse<ClinicExceptionItem[]>>(`/ClinicException/my/${clinicId.value}`)
+    const response = await api.get<ApiResponse<ClinicExceptionItem[]>>(`/ClinicException/my/${clinicId.value}`, {
+      params: {
+        fromDate: filters.fromDate || undefined,
+        toDate: filters.toDate || undefined,
+      },
+    })
     exceptions.value = response.data.data
+    normalizePage()
   } catch (error) { notifications.show(getErrorMessage(error), 'error') }
   finally { loading.value = false }
 }
@@ -71,18 +89,24 @@ onMounted(async () => {
       <div><span class="section-kicker">تنظيم الدوام</span><h2>الإجازات والاستثناءات</h2><p>أغلق يوماً كاملاً أو خصص عدد الأدوار وساعات الدوام لتاريخ محدد.</p></div>
       <div class="heading-actions"><button class="secondary-button" type="button" :disabled="loading" @click="loadExceptions"><RefreshCw :size="17" /> تحديث</button><button class="compact-primary" type="button" :disabled="!clinicId" @click="openEditor()"><Plus :size="17" /> إضافة استثناء</button></div>
     </div>
-    <div class="filter-card exception-filters"><select v-model="clinicId" @change="loadExceptions"><option value="" disabled>اختر العيادة</option><option v-for="clinic in clinics" :key="clinic.id" :value="clinic.id">{{ clinic.name }}</option></select></div>
+    <form class="filter-card exception-filters" @submit.prevent="applyExceptionFilters">
+      <select v-model="clinicId" @change="applyExceptionFilters"><option value="" disabled>اختر العيادة</option><option v-for="clinic in clinics" :key="clinic.id" :value="clinic.id">{{ clinic.name }}</option></select>
+      <input v-model="filters.fromDate" type="date" aria-label="من تاريخ" />
+      <input v-model="filters.toDate" type="date" aria-label="إلى تاريخ" />
+      <button class="compact-primary" type="submit">تطبيق</button>
+    </form>
     <div v-if="loading" class="empty-panel">جارِ تحميل الاستثناءات...</div>
     <div v-else-if="!clinics.length" class="empty-panel"><CalendarOff :size="31" /><h3>لا توجد عيادات</h3><p>أضف عيادة أولاً حتى تتمكن من إدارة الإجازات والاستثناءات.</p></div>
     <div v-else-if="!exceptions.length" class="empty-panel"><CalendarOff :size="31" /><h3>لا توجد استثناءات</h3><p>دوام {{ selectedClinicName }} يعمل وفق الجدول الأسبوعي بدون تعديلات إضافية.</p></div>
     <section v-else class="exception-grid">
-      <article v-for="item in exceptions" :key="item.id" class="exception-card">
+      <article v-for="item in paginatedExceptions" :key="item.id" class="exception-card">
         <div><span class="status-badge" :class="item.isClosed ? 'status-danger' : 'status-warning'">{{ item.isClosed ? 'إغلاق كامل' : 'دوام مخصص' }}</span><h3>{{ formatDate(item.exceptionDate) }}</h3></div>
         <p v-if="item.closureReason">{{ item.closureReason }}</p>
         <div v-if="!item.isClosed" class="exception-details"><span>الأدوار: <b>{{ item.maxAppointments ?? 'حسب الجدول' }}</b></span><span v-if="item.startTime">الدوام: <b>{{ item.startTime.slice(0, 5) }} - {{ item.endTime?.slice(0, 5) }}</b></span></div>
         <div class="clinic-card-actions"><button type="button" @click="openEditor(item)"><Pencil :size="16" /> تعديل</button><button class="danger-text" type="button" @click="deleteException = item"><Trash2 :size="16" /> حذف</button></div>
       </article>
     </section>
+    <AppPagination :page="page" :total-pages="totalPages" @change="changePage" />
     <AppModal v-if="editorOpen" :title="form.id ? 'تعديل الاستثناء' : 'إضافة استثناء جديد'" @close="editorOpen = false">
       <form class="modal-form" @submit.prevent="saveException">
         <label><span>التاريخ</span><input v-model="form.exceptionDate" type="date" required /></label>

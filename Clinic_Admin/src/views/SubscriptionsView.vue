@@ -21,6 +21,8 @@ const loading = ref(false)
 const page = ref(1)
 const totalPages = ref(1)
 const totalItems = ref(0)
+const packagePage = ref(1)
+const packagePageSize = 6
 const modal = ref<'create' | 'renew' | 'upgrade'>()
 const selectedSubscription = ref<DoctorSubscription>()
 const confirmation = ref<Confirmation>()
@@ -29,6 +31,8 @@ const featureDoctorId = ref('')
 const createForm = reactive({ doctorId: '', packageId: '', isYearly: false, status: '0' })
 const renewYearly = ref(false)
 const upgradePackageId = ref('')
+const packageTotalPages = computed(() => Math.max(1, Math.ceil(packages.value.length / packagePageSize)))
+const paginatedPackages = computed(() => packages.value.slice((packagePage.value - 1) * packagePageSize, packagePage.value * packagePageSize))
 
 const statusOptions = [
   { value: '0', label: 'نشط' },
@@ -129,8 +133,13 @@ async function initialize() {
 function selectTab(tab: Tab) {
   activeTab.value = tab
   page.value = 1
+  if (tab === 'packages') packagePage.value = 1
   if (tab === 'subscriptions') loadSubscriptions()
   if (tab === 'features') loadFeatures()
+}
+
+function changePackagePage(newPage: number) {
+  packagePage.value = newPage
 }
 
 async function createSubscription() {
@@ -288,7 +297,7 @@ onMounted(initialize)
     </template>
 
     <section v-if="activeTab === 'packages'" class="package-grid">
-      <article v-for="item in packages" :key="item.id" class="package-card">
+      <article v-for="item in paginatedPackages" :key="item.id" class="package-card">
         <div class="package-header"><span><Crown :size="20" /></span><div><h3>{{ item.name }}</h3><small>{{ item.normalizedName }}</small></div></div>
         <div class="package-price"><strong>{{ money(item.price) }}</strong><span>د.ع / شهر</span></div>
         <small class="yearly-price">{{ money(item.yearlyPrice) }} د.ع سنوياً</small>
@@ -299,6 +308,7 @@ onMounted(initialize)
       </article>
       <div v-if="!packages.length" class="empty-panel">لا توجد باقات للعرض.</div>
     </section>
+    <AppPagination v-if="activeTab === 'packages'" :page="packagePage" :total-pages="packageTotalPages" @change="changePackagePage" />
 
     <template v-if="activeTab === 'features'">
       <section class="filter-card feature-filters"><select v-model="featureDoctorId"><option value="">كل الأطباء</option><option v-for="doctor in doctors" :key="doctor.id" :value="doctor.id">{{ doctor.name }}</option></select><button class="compact-primary" type="button" @click="applyFilters">تطبيق</button></section>

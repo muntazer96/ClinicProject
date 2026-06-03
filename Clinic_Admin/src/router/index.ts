@@ -8,8 +8,13 @@ import ClinicsView from '../views/ClinicsView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import DoctorDetailsView from '../views/DoctorDetailsView.vue'
 import DoctorsView from '../views/DoctorsView.vue'
+import EmailConfirmView from '../views/EmailConfirmView.vue'
 import ExceptionsView from '../views/ExceptionsView.vue'
+import GuestBookingView from '../views/GuestBookingView.vue'
+import PasswordResetView from '../views/PasswordResetView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import PublicDirectoryView from '../views/PublicDirectoryView.vue'
+import PublicDoctorView from '../views/PublicDoctorView.vue'
 import ReviewsView from '../views/ReviewsView.vue'
 import SubscriptionsView from '../views/SubscriptionsView.vue'
 import UsersView from '../views/UsersView.vue'
@@ -18,6 +23,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
+    { path: '/email-confirm', name: 'email-confirm', component: EmailConfirmView },
+    { path: '/password-reset', name: 'password-reset', component: PasswordResetView },
+    { path: '/directory', name: 'public-directory', component: PublicDirectoryView },
+    { path: '/directory/:doctorId', name: 'public-doctor', component: PublicDoctorView },
+    { path: '/guest-booking', name: 'guest-booking', component: GuestBookingView },
     {
       path: '/',
       component: AdminLayout,
@@ -29,7 +39,7 @@ const router = createRouter({
         { path: 'doctors/:doctorId', name: 'doctor-details', component: DoctorDetailsView, meta: { title: 'تفاصيل الطبيب', roles: ['SuperAdmin'] } },
         { path: 'subscriptions', name: 'subscriptions', component: SubscriptionsView, meta: { title: 'الاشتراكات والباقات', roles: ['SuperAdmin'] } },
         { path: 'clinics', name: 'clinics', component: ClinicsView, meta: { title: 'عياداتي', roles: ['DoctorUser'] } },
-        { path: 'appointments', name: 'appointments', component: AppointmentsView, meta: { title: 'الحجوزات اليومية', roles: ['DoctorUser'] } },
+        { path: 'appointments', name: 'appointments', component: AppointmentsView, meta: { title: 'الحجوزات اليومية', roles: ['SuperAdmin', 'DoctorUser'] } },
         { path: 'exceptions', name: 'exceptions', component: ExceptionsView, meta: { title: 'الإجازات والاستثناءات', roles: ['DoctorUser'] } },
         { path: 'reviews', name: 'reviews', component: ReviewsView, meta: { title: 'التقييمات', roles: ['DoctorUser'] } },
         { path: 'profile', name: 'profile', component: ProfileView, meta: { title: 'الملف الشخصي', roles: ['DoctorUser'] } },
