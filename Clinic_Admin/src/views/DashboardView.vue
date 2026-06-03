@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Building2, CalendarCheck2, CircleDollarSign, Clock3, MessageSquareText, Stethoscope, UsersRound } from '@lucide/vue'
+import { AlertTriangle, Building2, CalendarCheck2, CircleDollarSign, Clock3, EyeOff, MessageSquareText, Stethoscope, UserX, UsersRound } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
@@ -12,12 +12,26 @@ const auth = useAuthStore()
 const notifications = useNotificationsStore()
 const isAdmin = auth.hasAnyRole(['SuperAdmin'])
 const loading = ref(false)
-const stats = ref({ doctors: 0, users: 0, subscriptions: 0, appointments: 0, pending: 0, clinics: 0, reviews: 0 })
+const stats = ref({
+  doctors: 0,
+  users: 0,
+  subscriptions: 0,
+  appointments: 0,
+  appointmentsToday: 0,
+  pending: 0,
+  clinics: 0,
+  reviews: 0,
+  unlinkedDoctors: 0,
+  hiddenDoctors: 0,
+})
 
 const adminStats = computed(() => [
   { label: 'الأطباء المسجلون', value: stats.value.doctors, note: 'إجمالي ملفات الأطباء', icon: Stethoscope, color: 'green' },
   { label: 'المستخدمون', value: stats.value.users, note: 'إجمالي حسابات النظام', icon: UsersRound, color: 'blue' },
   { label: 'الاشتراكات', value: stats.value.subscriptions, note: 'جميع سجلات الاشتراك', icon: CircleDollarSign, color: 'orange' },
+  { label: 'حجوزات اليوم', value: stats.value.appointmentsToday, note: 'كل الأطباء والعيادات', icon: CalendarCheck2, color: 'green' },
+  { label: 'أطباء بدون حساب', value: stats.value.unlinkedDoctors, note: 'يحتاجون ربط حساب دخول', icon: UserX, color: 'orange' },
+  { label: 'أطباء مخفيون', value: stats.value.hiddenDoctors, note: 'لا يظهرون في الدليل العام', icon: EyeOff, color: 'purple' },
 ])
 const doctorStats = computed(() => [
   { label: 'حجوزات اليوم', value: stats.value.appointments, note: 'جميع العيادات التابعة لك', icon: CalendarCheck2, color: 'green' },
@@ -30,10 +44,14 @@ const quickLinks = computed(() => isAdmin ? [
 ] : [
   { to: '/appointments', label: 'حجوزات اليوم' }, { to: '/clinics', label: 'العيادات والدوام' }, { to: '/exceptions', label: 'الإجازات' }, { to: '/reviews', label: 'التقييمات' },
 ])
+const adminWarnings = computed(() => [
+  stats.value.unlinkedDoctors ? `${stats.value.unlinkedDoctors} طبيب يحتاج ربط حساب دخول.` : '',
+  stats.value.hiddenDoctors ? `${stats.value.hiddenDoctors} طبيب مخفي عن الدليل العام.` : '',
+].filter(Boolean))
 
-async function pageTotal<T>(url: string) {
+async function pageTotal<T>(url: string, params: Record<string, unknown> = {}) {
   try {
-    const response = await api.get<ApiResponse<PageResult<T>>>(url, { params: { page: 1, pageSize: 1 } })
+    const response = await api.get<ApiResponse<PageResult<T>>>(url, { params: { ...params, page: 1, pageSize: 1 } })
     return response.data.data.totalItems
   } catch (error: any) {
     if (error.response?.status === 404) return 0
@@ -41,10 +59,23 @@ async function pageTotal<T>(url: string) {
   }
 }
 async function loadAdminStats() {
-  const [users, doctors, subscriptions] = await Promise.all([
-    pageTotal<UserItem>('/User'), pageTotal<DoctorItem>('/Doctor'), pageTotal<DoctorSubscription>('/DoctorSubscription'),
+  const date = new Date().toLocaleDateString('en-CA')
+  const [users, doctors, subscriptions, appointmentsToday, doctorsResponse] = await Promise.all([
+    pageTotal<UserItem>('/User'),
+    pageTotal<DoctorItem>('/Doctor'),
+    pageTotal<DoctorSubscription>('/DoctorSubscription'),
+    pageTotal<any>('/Appointment/GetListAsync', { fromDate: date, toDate: date }),
+    api.get<ApiResponse<PageResult<DoctorItem>>>('/Doctor', { params: { page: 1, pageSize: 100 } }),
   ])
-  Object.assign(stats.value, { users, doctors, subscriptions })
+  const doctorItems = doctorsResponse.data.data.items
+  Object.assign(stats.value, {
+    users,
+    doctors,
+    subscriptions,
+    appointmentsToday,
+    unlinkedDoctors: doctorItems.filter((doctor) => !doctor.userId).length,
+    hiddenDoctors: doctorItems.filter((doctor) => !doctor.isPubliclyVisible).length,
+  })
 }
 async function loadDoctorStats() {
   const date = new Date().toLocaleDateString('en-CA')
@@ -95,6 +126,9 @@ onMounted(async () => {
       <article class="panel-card muted-panel">
         <span class="section-kicker">حالة اللوحة</span><h3>البيانات متصلة بالنظام</h3>
         <p>المسارات محمية حسب الدور، وحالات التحميل والفراغ والأخطاء مهيأة للوحدات المنجزة.</p>
+        <div v-if="isAdmin && adminWarnings.length" class="dashboard-alerts">
+          <div v-for="warning in adminWarnings" :key="warning" class="dashboard-alert"><AlertTriangle :size="16" />{{ warning }}</div>
+        </div>
       </article>
     </section>
   </div>

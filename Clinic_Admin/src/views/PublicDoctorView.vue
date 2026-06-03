@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { ArrowRight, CheckCircle2, MapPin, Phone, RefreshCw, Star, Stethoscope } from '@lucide/vue'
+import { ArrowRight, CalendarDays, CheckCircle2, Copy, MapPin, Phone, RefreshCw, Star, Stethoscope } from '@lucide/vue'
 import api from '../services/api'
 import type { ApiResponse, PublicDoctorProfile, QueueAvailabilityItem } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
@@ -14,10 +14,17 @@ const booking = ref(false)
 const otpMode = ref(false)
 const message = ref('')
 const bookingResult = ref<{ code: string; queueNumber: number }>()
+const resendSeconds = ref(0)
+let resendTimer: number | undefined
 const form = reactive({ clinicId: '', appointmentDate: today(), guestName: '', guestPhoneNumber: '', notes: '', otpCode: '' })
 const doctorId = computed(() => Number(route.params.doctorId))
 const apiOrigin = new URL(api.defaults.baseURL ?? 'https://localhost:7136/api').origin
 const canBook = computed(() => doctor.value?.canBookOnline && form.clinicId && form.appointmentDate && form.guestName && form.guestPhoneNumber && (!availability.value || (availability.value.isAvailable && availability.value.remainingAppointments > 0)))
+const selectedClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.id === Number(form.clinicId)))
+const contactClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.phoneNumber))
+const mapClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.mapUrl))
+const firstBookableClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.availabilities.length > 0) ?? doctor.value?.clinics[0])
+const canConfirmOtp = computed(() => Boolean(form.otpCode.trim() && !booking.value))
 
 function today() {
   return new Date().toLocaleDateString('en-CA')
@@ -29,6 +36,34 @@ function imageUrl(imageName?: string) {
 
 function formatTime(value?: string) {
   return value?.slice(0, 5) ?? '-'
+}
+
+function jumpToBooking() {
+  if (firstBookableClinic.value) form.clinicId = String(firstBookableClinic.value.id)
+  document.getElementById('public-booking-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function startResendCooldown(seconds = 60) {
+  window.clearInterval(resendTimer)
+  resendSeconds.value = seconds
+  resendTimer = window.setInterval(() => {
+    if (resendSeconds.value <= 1) {
+      window.clearInterval(resendTimer)
+      resendSeconds.value = 0
+      return
+    }
+    resendSeconds.value -= 1
+  }, 1000)
+}
+
+async function copyBookingCode() {
+  if (!bookingResult.value?.code) return
+  try {
+    await navigator.clipboard.writeText(bookingResult.value.code)
+    message.value = 'تم نسخ كود الحجز.'
+  } catch {
+    message.value = 'تعذر نسخ الكود، انسخه يدوياً.'
+  }
 }
 
 async function loadDoctor() {
@@ -60,6 +95,15 @@ async function loadAvailability() {
 }
 
 async function createBooking() {
+  const accepted = window.confirm([
+    'تأكيد الحجز',
+    `الطبيب: ${doctor.value?.name ?? '-'}`,
+    `العيادة: ${selectedClinic.value?.name ?? '-'}`,
+    `التاريخ: ${availability.value?.dayName ?? ''} ${form.appointmentDate}`,
+    `المراجع: ${form.guestName}`,
+    `الهاتف: ${form.guestPhoneNumber}`,
+  ].join('\n'))
+  if (!accepted) return
   booking.value = true
   message.value = ''
   try {
@@ -76,6 +120,7 @@ async function createBooking() {
       queueNumber: response.data.data?.queueNumber ?? response.data.data?.QueueNumber ?? 0,
     }
     otpMode.value = true
+    startResendCooldown()
     message.value = response.data.message || 'تم إنشاء الحجز. أدخل رمز التحقق المرسل إلى الهاتف.'
   } catch (error) {
     message.value = getErrorMessage(error)
@@ -104,7 +149,7 @@ async function confirmOtp() {
 }
 
 async function resendOtp() {
-  if (!bookingResult.value) return
+  if (!bookingResult.value || resendSeconds.value > 0) return
   booking.value = true
   try {
     const response = await api.post<ApiResponse<object>>('/Appointment/otp/resend', {
@@ -112,6 +157,7 @@ async function resendOtp() {
       bookingCode: bookingResult.value.code,
     })
     message.value = response.data.message
+    startResendCooldown()
   } catch (error) {
     message.value = getErrorMessage(error)
   } finally {
@@ -121,6 +167,7 @@ async function resendOtp() {
 
 watch(() => [form.clinicId, form.appointmentDate], loadAvailability)
 onMounted(loadDoctor)
+onUnmounted(() => window.clearInterval(resendTimer))
 </script>
 
 <template>
@@ -137,7 +184,16 @@ onMounted(loadDoctor)
           <span class="section-kicker">{{ doctor.specializationName }}</span>
           <h1>{{ doctor.name }}</h1>
           <p>{{ doctor.description }}</p>
-          <span v-if="doctor.averageRating" class="rating-line"><Star :size="16" /> {{ doctor.averageRating.toFixed(1) }} · {{ doctor.reviewCount }} تقييم</span>
+          <div class="hero-metrics">
+            <span v-if="doctor.averageRating" class="rating-line"><Star :size="16" /> {{ doctor.averageRating.toFixed(1) }} · {{ doctor.reviewCount }} تقييم</span>
+            <span><Stethoscope :size="16" /> {{ doctor.clinics.length }} عيادة</span>
+            <span :class="doctor.canBookOnline ? 'available' : 'paused'"><CalendarDays :size="16" /> {{ doctor.canBookOnline ? 'الحجز متاح' : 'الحجز غير مفعل' }}</span>
+          </div>
+          <div class="hero-actions">
+            <button v-if="doctor.canBookOnline && firstBookableClinic" class="hero-action primary" type="button" @click="jumpToBooking"><CalendarDays :size="16" /> حجز سريع</button>
+            <a v-if="contactClinic?.phoneNumber" class="hero-action" :href="`tel:${contactClinic.phoneNumber}`"><Phone :size="16" /> اتصال</a>
+            <a v-if="mapClinic?.mapUrl" class="hero-action" :href="mapClinic.mapUrl" target="_blank" rel="noreferrer"><MapPin :size="16" /> الموقع</a>
+          </div>
         </div>
       </section>
 
@@ -147,19 +203,23 @@ onMounted(loadDoctor)
           <article v-for="clinic in doctor.clinics" :key="clinic.id" class="public-clinic-row">
             <strong>{{ clinic.name }}</strong>
             <span><MapPin :size="15" /> {{ clinic.iraqiProvinceName }}، {{ clinic.address }}</span>
-            <span v-if="clinic.phoneNumber"><Phone :size="15" /> {{ clinic.phoneNumber }}</span>
-            <div class="availability-tags"><span v-for="day in clinic.availabilities" :key="day.dayId">{{ day.dayName }} {{ formatTime(day.startTime) }}-{{ formatTime(day.endTime) }}</span></div>
+            <div class="clinic-actions">
+              <a v-if="clinic.phoneNumber" :href="`tel:${clinic.phoneNumber}`"><Phone :size="15" /> {{ clinic.phoneNumber }}</a>
+              <a v-if="clinic.mapUrl" :href="clinic.mapUrl" target="_blank" rel="noreferrer"><MapPin :size="15" /> موقع العيادة</a>
+            </div>
+            <div v-if="clinic.availabilities.length" class="availability-tags"><span v-for="day in clinic.availabilities" :key="day.dayId">{{ day.dayName }} {{ formatTime(day.startTime) }}-{{ formatTime(day.endTime) }} · {{ day.maxAppointments }} دور</span></div>
+            <small v-else class="empty-schedule">لم يتم تحديد دوام لهذه العيادة.</small>
           </article>
         </div>
 
-        <div class="public-panel booking-panel">
+        <div id="public-booking-panel" class="public-panel booking-panel">
           <h2>حجز دور</h2>
           <p v-if="!doctor.canBookOnline" class="form-error">الحجز الإلكتروني غير مفعل لهذا الطبيب حالياً.</p>
           <form v-else-if="!otpMode" class="modal-form" @submit.prevent="createBooking">
             <label><span>العيادة</span><select v-model="form.clinicId" required><option v-for="clinic in doctor.clinics" :key="clinic.id" :value="clinic.id">{{ clinic.name }}</option></select></label>
             <label><span>تاريخ الحجز</span><input v-model="form.appointmentDate" type="date" :min="today()" required /></label>
             <div v-if="availability" class="queue-box" :class="{ unavailable: !availability.isAvailable || availability.remainingAppointments <= 0 }">
-              <strong>{{ availability.isAvailable ? `${availability.remainingAppointments} دور متبقي` : 'اليوم غير متاح' }}</strong>
+              <strong>{{ availability.dayName }} - {{ availability.isAvailable ? `${availability.remainingAppointments} دور متبقي` : 'اليوم غير متاح' }}</strong>
               <span>{{ availability.closureReason || `${formatTime(availability.startTime)} - ${formatTime(availability.endTime)}` }}</span>
             </div>
             <label><span>اسم المراجع</span><input v-model="form.guestName" required maxlength="200" /></label>
@@ -169,10 +229,17 @@ onMounted(loadDoctor)
           </form>
 
           <form v-else class="modal-form" @submit.prevent="confirmOtp">
-            <div class="booking-code"><CheckCircle2 :size="20" /> كود الحجز: <strong>{{ bookingResult?.code }}</strong> · الدور #{{ bookingResult?.queueNumber }}</div>
+            <div class="booking-code">
+              <CheckCircle2 :size="20" />
+              كود الحجز: <strong>{{ bookingResult?.code }}</strong> · الدور #{{ bookingResult?.queueNumber }}
+              <button class="icon-copy-button" type="button" :disabled="!bookingResult?.code" @click="copyBookingCode" title="نسخ الكود"><Copy :size="15" /></button>
+            </div>
             <label><span>رمز التحقق OTP</span><input v-model="form.otpCode" required inputmode="numeric" /></label>
-            <button class="compact-primary" type="submit" :disabled="booking">{{ booking ? 'جارِ التأكيد...' : 'تأكيد الهاتف' }}</button>
-            <button class="secondary-button" type="button" :disabled="booking" @click="resendOtp"><RefreshCw :size="16" /> إعادة إرسال الرمز</button>
+            <button class="compact-primary" type="submit" :disabled="!canConfirmOtp">{{ booking ? 'جارِ التأكيد...' : 'تأكيد الهاتف' }}</button>
+            <button class="secondary-button" type="button" :disabled="booking || resendSeconds > 0" @click="resendOtp">
+              <RefreshCw :size="16" />
+              {{ resendSeconds > 0 ? `إعادة الإرسال بعد ${resendSeconds} ثانية` : 'إعادة إرسال الرمز' }}
+            </button>
           </form>
 
           <p v-if="message" class="booking-message">{{ message }}</p>
@@ -187,10 +254,14 @@ onMounted(loadDoctor)
 .doctor-public-hero { max-width: 1120px; margin: 0 auto 16px; display: flex; align-items: center; gap: 18px; padding: 22px; color: #fff; border-radius: 16px; background: linear-gradient(125deg, var(--primary-dark), #299789); box-shadow: var(--shadow); }
 .doctor-public-photo { display: grid; place-items: center; width: 104px; height: 104px; overflow: hidden; color: var(--primary); border: 4px solid rgba(255,255,255,.82); border-radius: 28px; background: var(--primary-soft); }.doctor-public-photo img { width: 100%; height: 100%; object-fit: cover; }
 .doctor-public-hero h1 { margin: 5px 0; font-size: 30px; }.doctor-public-hero p { margin: 0; color: #d9f1ed; line-height: 1.8; }.doctor-public-hero .section-kicker, .rating-line { color: #d7fffa; }
+.hero-metrics, .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }.hero-metrics span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; color: #d7fffa; border-radius: 999px; background: rgba(255,255,255,.13); font-size: 12px; font-weight: 800; }.hero-metrics .paused { color: #ffe2ad; }.hero-metrics .available { color: #d7fffa; }
+.hero-action { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; color: #fff; border: 1px solid rgba(255,255,255,.32); border-radius: 9px; background: rgba(255,255,255,.12); text-decoration: none; cursor: pointer; font-weight: 800; }.hero-action.primary { color: var(--primary-dark); border-color: #fff; background: #fff; }
 .public-details-grid { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; }.public-panel { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--shadow); }.public-panel h2 { margin: 0 0 14px; font-size: 21px; }
 .public-clinic-row { display: grid; gap: 8px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #fbfdfc; margin-top: 10px; }.public-clinic-row span { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 13px; }
+.clinic-actions { display: flex; flex-wrap: wrap; gap: 8px; }.clinic-actions a { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; color: var(--primary); border: 1px solid #c8eadf; border-radius: 8px; background: #f0faf6; text-decoration: none; font-size: 12px; font-weight: 800; }.empty-schedule { color: var(--muted); }
 .availability-tags { display: flex; flex-wrap: wrap; gap: 6px; }.availability-tags span { padding: 5px 7px; color: var(--primary); border-radius: 12px; background: var(--primary-soft); font-size: 11px; }
 .queue-box { display: grid; gap: 4px; padding: 11px; color: #167163; border: 1px solid #c8eadf; border-radius: 9px; background: #f0faf6; font-size: 13px; }.queue-box.unavailable { color: #a23d3d; border-color: #ffd6d6; background: #fff3f3; }
 .booking-code { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 11px; color: #167163; border-radius: 9px; background: #e1f4ef; }.booking-message { color: var(--muted); line-height: 1.8; margin: 13px 0 0; }
+.icon-copy-button { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-inline-start: auto; color: #167163; border: 1px solid #bde3d9; border-radius: 8px; background: #fff; cursor: pointer; }.icon-copy-button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 820px) { .public-details-grid { grid-template-columns: 1fr; }.doctor-public-hero { align-items: flex-start; }.doctor-public-photo { width: 82px; height: 82px; } }
 </style>

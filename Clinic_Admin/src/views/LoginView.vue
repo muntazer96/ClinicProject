@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Eye, EyeOff, HeartPulse, LockKeyhole, LogIn, Phone } from '@lucide/vue'
 import { useAuthStore } from '../stores/auth'
@@ -9,8 +9,13 @@ const router = useRouter()
 const phoneNumber = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const canSubmit = computed(() => Boolean(phoneNumber.value.trim() && password.value && !auth.loading))
 
 async function submit() {
+  if (!canSubmit.value) {
+    auth.error = 'أدخل رقم الهاتف أو اسم المستخدم وكلمة المرور.'
+    return
+  }
   try {
     await auth.login(phoneNumber.value.trim(), password.value)
     if (!auth.hasAnyRole(['SuperAdmin', 'DoctorUser'])) {
@@ -70,7 +75,7 @@ async function submit() {
           </div>
         </label>
 
-        <button class="primary-button" type="submit" :disabled="auth.loading">
+        <button class="primary-button" type="submit" :disabled="!canSubmit">
           <LogIn :size="19" />
           {{ auth.loading ? 'جاري تسجيل الدخول...' : 'دخول إلى لوحة التحكم' }}
         </button>

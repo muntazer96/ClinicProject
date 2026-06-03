@@ -98,6 +98,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .panel-card { padding: 20px; }
 .panel-card h3 { margin: 6px 0 13px; color: var(--ink); }
 .muted-panel { background: #fbfdfc; }
+.dashboard-alerts { display: grid; gap: 8px; margin-top: 14px; }
+.dashboard-alert { display: flex; align-items: center; gap: 7px; padding: 9px 10px; color: #8a5b12; border: 1px solid #f2d49c; border-radius: 8px; background: #fff8e8; font-size: 13px; font-weight: 700; }
 .timeline { display: grid; gap: 8px; }
 .timeline div { display: flex; align-items: center; gap: 11px; padding: 11px; border-radius: 9px; background: #f8fbfa; color: #4c625f; font-size: 14px; }
 .timeline b { color: var(--primary); }
