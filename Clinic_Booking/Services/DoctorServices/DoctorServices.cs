@@ -42,9 +42,7 @@ namespace Clinic_Booking.Services.DoctorServices
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            var doctors = await query
-                .OrderByDescending(d => d.SubscriptionRank)
-                .ThenBy(d => d.Name)
+            var doctors = await ApplyPublicSort(query, form.Sort, now)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(d => new PublicDoctorListDto
@@ -241,6 +239,66 @@ namespace Clinic_Booking.Services.DoctorServices
             }
 
             return query;
+        }
+
+        private static IOrderedQueryable<Doctor> ApplyPublicSort(
+            IQueryable<Doctor> query,
+            string? sort,
+            DateTime now)
+        {
+            var normalizedSort = sort?.Trim().ToLowerInvariant();
+            return normalizedSort switch
+            {
+                "rating" => query
+                    .OrderByDescending(d =>
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews
+                                .Where(review => !review.IsDeleted)
+                                .Select(review => (double?)review.Rating)
+                                .Average() ?? 0
+                            : 0)
+                    .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenBy(d => d.Name),
+                "reviews" => query
+                    .OrderByDescending(d =>
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowReviews) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowReviews")
+                            ? d.Reviews.Count(review => !review.IsDeleted)
+                            : 0)
+                    .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenBy(d => d.Name),
+                "booking" => query
+                    .OrderByDescending(d =>
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.EBooking) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "EBooking"))
+                    .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenBy(d => d.Name),
+                _ => query
+                    .OrderByDescending(d => d.SubscriptionRank)
+                    .ThenBy(d => d.Name),
+            };
         }
 
         public async Task<IActionResult> GetMyProfileAsync()

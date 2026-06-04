@@ -19,6 +19,7 @@ class DirectoryService {
     String? name,
     int? province,
     int? specialization,
+    String sort = 'default',
     int page = 1,
   }) async {
     final response = await _client.dio.get(
@@ -27,6 +28,7 @@ class DirectoryService {
         if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
         if (province != null) 'iraqiProvince': province,
         if (specialization != null) 'specialization': specialization,
+        if (sort.trim().isNotEmpty) 'sort': sort.trim(),
         'page': page,
         'pageSize': pageSize,
       },

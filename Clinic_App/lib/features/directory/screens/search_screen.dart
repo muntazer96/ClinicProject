@@ -33,22 +33,6 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _loadingMore = false;
   String? _error;
 
-  List<DoctorSummary> get _sortedDoctors {
-    final items = [..._doctors];
-    if (_sort == 'rating') {
-      items.sort(
-        (a, b) => (b.averageRating ?? 0).compareTo(a.averageRating ?? 0),
-      );
-    } else if (_sort == 'reviews') {
-      items.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
-    } else if (_sort == 'booking') {
-      items.sort(
-        (a, b) => (b.canBookOnline ? 1 : 0).compareTo(a.canBookOnline ? 1 : 0),
-      );
-    }
-    return items;
-  }
-
   bool get _hasMore => _page < _totalPages;
 
   @override
@@ -115,6 +99,7 @@ class _SearchScreenState extends State<SearchScreen> {
         name: _name.text,
         province: _province,
         specialization: _specialization,
+        sort: _sort,
         page: nextPage,
       );
       if (!mounted) return;
@@ -147,6 +132,11 @@ class _SearchScreenState extends State<SearchScreen> {
     _search();
   }
 
+  void _changeSort(String? value) {
+    setState(() => _sort = value ?? 'default');
+    _search();
+  }
+
   @override
   Widget build(BuildContext context) => AppScaffold(
     title: 'ابحث عن طبيب',
@@ -173,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onProvinceChanged: (value) => setState(() => _province = value),
           onSpecializationChanged: (value) =>
               setState(() => _specialization = value),
-          onSortChanged: (value) => setState(() => _sort = value ?? 'default'),
+          onSortChanged: _changeSort,
           onSearch: () => _search(),
           onReset: _resetFilters,
         ),
@@ -202,7 +192,7 @@ class _SearchScreenState extends State<SearchScreen> {
             text: 'جرب تغيير المحافظة أو الاختصاص أو اسم الطبيب.',
           )
         else ...[
-          ..._sortedDoctors.map(
+          ..._doctors.map(
             (doctor) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _DoctorCard(
