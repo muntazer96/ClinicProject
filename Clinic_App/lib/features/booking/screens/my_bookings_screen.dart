@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/external_links.dart';
 import '../../../widgets/app_scaffold.dart';
@@ -11,6 +13,7 @@ import '../../auth/auth_controller.dart';
 import '../../reviews/review_service.dart';
 import '../booking_service.dart';
 import '../models/booking_models.dart';
+import 'review_booking_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -67,81 +70,34 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   Future<void> _review(BookingDetails booking) async {
-    var rating = 5;
-    final comment = TextEditingController();
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          icon: const Icon(Icons.star_rounded, color: AppColors.warning),
-          title: const Text('تقييم الطبيب'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  5,
-                  (index) => IconButton(
-                    onPressed: () => setDialogState(() => rating = index + 1),
-                    icon: Icon(
-                      index < rating ? Icons.star_rounded : Icons.star_outline,
-                      color: const Color(0xFFFFB54A),
-                    ),
-                  ),
-                ),
-              ),
-              TextField(
-                controller: comment,
-                maxLength: 1000,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'اكتب تعليقك'),
-              ),
-            ],
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('تراجع'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('إرسال التقييم'),
-            ),
-          ],
-        ),
-      ),
+    final submission = await context.push<ReviewSubmission>(
+      '/booking/review',
+      extra: booking,
     );
-    if (accepted != true) {
-      comment.dispose();
-      return;
-    }
-    if (comment.text.trim().isEmpty) {
-      comment.dispose();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('اكتب تعليقاً قبل إرسال التقييم.')),
-        );
-      }
-      return;
-    }
+    if (submission == null) return;
     try {
       await _reviewService.addReview(
         doctorId: booking.doctorId,
         appointmentId: booking.id,
-        rating: rating,
-        comment: comment.text,
+        rating: submission.rating,
+        comment: submission.comment,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('شكراً لك، تم إرسال تقييمك.')),
+        showAppSnackBar(
+          context,
+          'شكراً لك، تم إرسال تقييمك.',
+          type: AppSnackBarType.success,
         );
       }
       await _load();
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
-    } finally {
-      comment.dispose();
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     }
   }
 
@@ -161,22 +117,24 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   Future<void> _cancel(BookingDetails booking) async {
-    final accepted = await showCancelBookingDialog(
-      context: context,
-      queueNumber: booking.queueNumber,
-      doctorName: booking.doctorName,
-    );
-    if (accepted != true) return;
     try {
       await _service.cancelMyBooking(booking.id);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(
+        showAppSnackBar(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الحجز.')));
+          'تم إلغاء الحجز.',
+          type: AppSnackBarType.success,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     }
   }
 
@@ -253,61 +211,6 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       ),
     );
   }
-}
-
-Future<bool?> showCancelBookingDialog({
-  required BuildContext context,
-  required int queueNumber,
-  String? doctorName,
-}) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      icon: const Icon(
-        Icons.cancel_outlined,
-        color: AppColors.danger,
-        size: 34,
-      ),
-      title: const Text('إلغاء الحجز'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'هل تريد إلغاء حجز الدور #$queueNumber؟',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          if (doctorName?.isNotEmpty == true) ...[
-            const SizedBox(height: 8),
-            Text(doctorName!, style: const TextStyle(color: AppColors.muted)),
-          ],
-        ],
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      actions: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('تراجع'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.danger,
-                ),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('تأكيد الإلغاء'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
 }
 
 class _BookingSummary extends StatelessWidget {
@@ -477,9 +380,11 @@ class BookingCard extends StatelessWidget {
   Future<void> _copyCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: booking.code));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
+    showAppSnackBar(
       context,
-    ).showSnackBar(const SnackBar(content: Text('تم نسخ كود الحجز.')));
+      'تم نسخ كود الحجز.',
+      type: AppSnackBarType.success,
+    );
   }
 
   @override
@@ -579,9 +484,10 @@ class BookingCard extends StatelessWidget {
                 if (onCancel != null)
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onCancel,
+                      onPressed: () => _showLongPressHint(context),
+                      onLongPress: onCancel,
                       icon: const Icon(Icons.close),
-                      label: const Text('إلغاء الحجز'),
+                      label: const Text('اضغط مطولاً للإلغاء'),
                     ),
                   ),
                 if (onCancel != null && onReview != null)
@@ -600,6 +506,14 @@ class BookingCard extends StatelessWidget {
         ],
       ),
     ),
+  );
+}
+
+void _showLongPressHint(BuildContext context) {
+  showAppSnackBar(
+    context,
+    'اضغط مطولاً على الزر لإلغاء الحجز.',
+    type: AppSnackBarType.info,
   );
 }
 

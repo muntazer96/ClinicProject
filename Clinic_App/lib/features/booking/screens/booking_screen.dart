@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
 import '../models/booking_models.dart';
+import 'booking_confirm_screen.dart';
 import 'otp_screen.dart';
 import 'success_screen.dart';
 
@@ -99,13 +101,18 @@ class _BookingScreenState extends State<BookingScreen> {
     // }
     if (!auth.isAuthenticated &&
         (_name.text.trim().isEmpty || _phone.text.trim().isEmpty)) {
-      setState(() => _error = 'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.');
+      showAppSnackBar(
+        context,
+        'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.',
+        type: AppSnackBarType.warning,
+      );
       return;
     }
     if (auth.isAuthenticated && auth.phoneNumber == null) {
-      setState(
-        () => _error =
-            'سجل الخروج ثم ادخل إلى حسابك مرة أخرى قبل الحجز لتأكيد رقم الهاتف.',
+      showAppSnackBar(
+        context,
+        'سجل الخروج ثم ادخل إلى حسابك مرة أخرى قبل الحجز لتأكيد رقم الهاتف.',
+        type: AppSnackBarType.warning,
       );
       return;
     }
@@ -153,7 +160,13 @@ class _BookingScreenState extends State<BookingScreen> {
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -162,52 +175,16 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<bool?> _confirmBookingSummary(bool authenticated) {
     final selected = _selected;
     if (selected == null) return Future.value(false);
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(
-          Icons.event_available_rounded,
-          color: AppColors.primary,
-          size: 34,
-        ),
-        title: const Text('تأكيد الحجز'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _SummaryLine('الطبيب', widget.doctorName),
-            _SummaryLine('العيادة', widget.clinicName),
-            _SummaryLine(
-              'التاريخ',
-              '${selected.dayName} - ${DateFormat('yyyy/MM/dd').format(selected.date)}',
-            ),
-            if (!authenticated) ...[
-              _SummaryLine('المراجع', _name.text.trim()),
-              _SummaryLine('الهاتف', _phone.text.trim()),
-            ],
-            if (_notes.text.trim().isNotEmpty)
-              _SummaryLine('الملاحظات', _notes.text.trim()),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('تراجع'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('تثبيت الحجز'),
-                ),
-              ),
-            ],
-          ),
-        ],
+    return context.push<bool>(
+      '/booking/confirm',
+      extra: BookingConfirmArgs(
+        doctorName: widget.doctorName,
+        clinicName: widget.clinicName,
+        dayName: selected.dayName,
+        date: selected.date,
+        guestName: authenticated ? null : _name.text.trim(),
+        guestPhone: authenticated ? null : _phone.text.trim(),
+        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       ),
     );
   }
@@ -394,37 +371,6 @@ class _SelectedDaySummary extends StatelessWidget {
         Expanded(
           child: Text(
             '${day.dayName} ${DateFormat('yyyy/MM/dd').format(day.date)} - ${day.remainingAppointments} دور متبقٍ',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _SummaryLine extends StatelessWidget {
-  const _SummaryLine(this.label, this.value);
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 76,
-          child: Text(label, style: const TextStyle(color: AppColors.muted)),
-        ),
-        Expanded(
-          child: Text(
-            value,
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),

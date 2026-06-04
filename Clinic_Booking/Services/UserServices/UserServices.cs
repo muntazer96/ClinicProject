@@ -934,6 +934,31 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
+            var now = DateTime.UtcNow;
+            var lastRequest = await _context.UserPhoneOtpRequests
+                .Where(request => request.UserId == user.Id && request.PhoneNumber == user.PhoneNumber)
+                .OrderByDescending(request => request.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (lastRequest != null)
+            {
+                var resendAvailableAt = lastRequest.SentAt.AddMinutes(2);
+                if (resendAvailableAt > now)
+                {
+                    var remainingSeconds = (int)Math.Ceiling((resendAvailableAt - now).TotalSeconds);
+                    return new ObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 429,
+                        Message = $"يمكنك طلب رمز جديد بعد {remainingSeconds} ثانية.",
+                        Data = new { RemainingSeconds = remainingSeconds }
+                    })
+                    {
+                        StatusCode = StatusCodes.Status429TooManyRequests
+                    };
+                }
+            }
+
             var oldRequests = await _context.UserPhoneOtpRequests
                 .Where(request => request.UserId == user.Id && !request.IsUsed)
                 .ToListAsync();
@@ -946,11 +971,12 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             var otpCode = GenerateNumericOtp(6);
-            Console.WriteLine("//////////////////////////////");
+
+            Console.WriteLine("//////////////////////////");
             Console.WriteLine(otpCode);
-            Console.WriteLine("//////////////////////////////");
+            Console.WriteLine("//////////////////////////");
+
             var codeSalt = GenerateOtpSalt();
-            var now = DateTime.UtcNow;
             _context.UserPhoneOtpRequests.Add(new UserPhoneOtpRequest
             {
                 UserId = user.Id,

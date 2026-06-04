@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'app_snack_bar.dart';
+
 Future<void> openPhone(BuildContext context, String phoneNumber) async {
   await _open(context, Uri(scheme: 'tel', path: phoneNumber.trim()));
 }
@@ -31,7 +33,9 @@ Future<void> _open(BuildContext context, Uri uri) async {
 }
 
 void _showError(BuildContext context) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('تعذر فتح الرابط على هذا الجهاز.')),
+  showAppSnackBar(
+    context,
+    'تعذر فتح الرابط على هذا الجهاز.',
+    type: AppSnackBarType.error,
   );
 }

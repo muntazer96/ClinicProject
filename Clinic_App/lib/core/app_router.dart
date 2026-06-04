@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/account/change_password_screen.dart';
+import '../features/account/edit_name_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/screens/email_confirm_screen.dart';
@@ -9,10 +10,13 @@ import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/password_reset_screen.dart';
 import '../features/auth/screens/register_screen.dart';
+import '../features/booking/models/booking_models.dart';
+import '../features/booking/screens/booking_confirm_screen.dart';
 import '../features/booking/screens/booking_screen.dart';
 import '../features/booking/screens/guest_booking_screen.dart';
 import '../features/booking/screens/my_bookings_screen.dart';
 import '../features/booking/screens/otp_screen.dart';
+import '../features/booking/screens/review_booking_screen.dart';
 import '../features/booking/screens/success_screen.dart';
 import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
@@ -72,6 +76,18 @@ GoRouter createRouter(AuthController auth) => GoRouter(
           : const _MissingBookingData(),
     ),
     GoRoute(
+      path: '/booking/confirm',
+      builder: (_, state) => state.extra is BookingConfirmArgs
+          ? BookingConfirmScreen(args: state.extra! as BookingConfirmArgs)
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
+      path: '/booking/review',
+      builder: (_, state) => state.extra is BookingDetails
+          ? ReviewBookingScreen(booking: state.extra! as BookingDetails)
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
       path: '/booking/success',
       builder: (_, state) => state.extra is BookingSuccessArgs
           ? BookingSuccessScreen(args: state.extra! as BookingSuccessArgs)
@@ -116,6 +132,20 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       ),
     ),
     GoRoute(
+      path: '/profile/edit-name',
+      builder: (_, state) => AppScaffold(
+        title: 'تعديل الاسم',
+        child: EditNameScreen(
+          initialName: state.uri.queryParameters['name'] ?? '',
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/profile/confirm-phone',
+      builder: (_, __) =>
+          const AppScaffold(title: 'تأكيد الهاتف', child: ConfirmPhoneScreen()),
+    ),
+    GoRoute(
       path: '/guest-booking',
       builder: (_, __) => const GuestBookingScreen(),
     ),
@@ -129,6 +159,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/bookings',
       '/profile',
       '/profile/change-password',
+      '/profile/edit-name',
+      '/profile/confirm-phone',
     };
     if (protectedPages.contains(state.uri.path) && !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';

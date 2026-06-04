@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/app_snack_bar.dart';
 import '../../core/app_theme.dart';
 import '../auth/auth_controller.dart';
 import 'profile_service.dart';
@@ -23,7 +24,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _showCurrent = false;
   bool _showNew = false;
   bool _showConfirm = false;
-  String? _error;
 
   @override
   void initState() {
@@ -41,22 +41,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _submit() async {
     if (_currentPassword.text.isEmpty || _newPassword.text.isEmpty) {
-      setState(() => _error = 'أدخل كلمة السر الحالية والجديدة.');
+      showAppSnackBar(
+        context,
+        'أدخل كلمة السر الحالية والجديدة.',
+        type: AppSnackBarType.warning,
+      );
       return;
     }
     if (_newPassword.text.length < 6) {
-      setState(() => _error = 'كلمة السر الجديدة يجب أن لا تقل عن 6 أحرف.');
+      showAppSnackBar(
+        context,
+        'كلمة السر الجديدة يجب أن لا تقل عن 6 أحرف.',
+        type: AppSnackBarType.warning,
+      );
       return;
     }
     if (_newPassword.text != _confirmPassword.text) {
-      setState(() => _error = 'تأكيد كلمة السر لا يطابق كلمة السر الجديدة.');
+      showAppSnackBar(
+        context,
+        'تأكيد كلمة السر لا يطابق كلمة السر الجديدة.',
+        type: AppSnackBarType.warning,
+      );
       return;
     }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       await _service.changePassword(
         currentPassword: _currentPassword.text,
@@ -65,14 +74,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       await context.read<AuthController>().logout();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تغيير كلمة المرور. سجل الدخول مجدداً.'),
-        ),
+      showAppSnackBar(
+        context,
+        'تم تغيير كلمة المرور. سجل الدخول مجدداً.',
+        type: AppSnackBarType.success,
       );
       context.go('/login');
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -117,14 +132,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 visible: _showConfirm,
                 onToggle: () => setState(() => _showConfirm = !_showConfirm),
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Colors.red.shade800),
-                  textAlign: TextAlign.center,
-                ),
-              ],
               const SizedBox(height: 14),
               FilledButton.icon(
                 onPressed: _loading ? null : _submit,

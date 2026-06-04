@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
@@ -41,7 +42,6 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _loading = false;
   bool _resending = false;
   int _resendSeconds = 60;
-  String? _error;
   Timer? _timer;
 
   @override
@@ -66,10 +66,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _confirm() async {
     if (_code.text.trim().isEmpty) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       await _service.confirmOtp(
         phoneNumber: widget.args.phoneNumber,
@@ -91,7 +88,13 @@ class _OtpScreenState extends State<OtpScreen> {
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -99,7 +102,6 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _resend() async {
     if (_resending || _resendSeconds > 0) return;
-    setState(() => _error = null);
     try {
       setState(() => _resending = true);
       await _service.resendOtp(
@@ -108,12 +110,20 @@ class _OtpScreenState extends State<OtpScreen> {
       );
       if (mounted) {
         _startCooldown();
-        ScaffoldMessenger.of(
+        showAppSnackBar(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تم إرسال رمز جديد.')));
+          'تم إرسال رمز جديد.',
+          type: AppSnackBarType.success,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _resending = false);
     }
@@ -176,12 +186,6 @@ class _OtpScreenState extends State<OtpScreen> {
           decoration: const InputDecoration(labelText: 'رمز OTP'),
           onSubmitted: (_) => _confirm(),
         ),
-        if (_error != null)
-          Text(
-            _error!,
-            style: TextStyle(color: Colors.red.shade800),
-            textAlign: TextAlign.center,
-          ),
         const SizedBox(height: 10),
         FilledButton(
           onPressed: _loading || _code.text.trim().isEmpty ? null : _confirm,

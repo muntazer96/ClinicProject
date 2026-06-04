@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/app_snack_bar.dart';
 import '../../core/app_theme.dart';
 import '../auth/auth_controller.dart';
 import 'profile_service.dart';
@@ -22,7 +23,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _sendingEmailConfirmation = false;
   bool _sendingPhoneConfirmation = false;
   String? _error;
-  String? _success;
 
   @override
   void initState() {
@@ -51,58 +51,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editName() async {
     final profile = _profile;
     if (profile == null) return;
-    final controller = TextEditingController(text: profile.name);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-        title: const Text('تعديل الاسم'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'الاسم الكامل'),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('تراجع'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () =>
-                      Navigator.pop(context, controller.text.trim()),
-                  child: const Text('حفظ'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    final name = await context.push<String>(
+      '/profile/edit-name?name=${Uri.encodeComponent(profile.name)}',
     );
-    controller.dispose();
     if (name == null || name.isEmpty || name == profile.name) return;
 
     setState(() {
       _savingName = true;
       _error = null;
-      _success = null;
     });
     try {
       final updated = await _service.updateName(current: profile, name: name);
       if (!mounted) return;
       setState(() {
         _profile = updated;
-        _success = 'تم تحديث الاسم بنجاح.';
       });
       context.read<AuthController>().setProfile(updated);
+      showAppSnackBar(
+        context,
+        'تم تحديث الاسم بنجاح.',
+        type: AppSnackBarType.success,
+      );
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _savingName = false);
     }
@@ -114,15 +91,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _sendingEmailConfirmation = true;
       _error = null;
-      _success = null;
     });
     try {
       await _service.sendEmailConfirmation(profile.email);
       if (mounted) {
-        setState(() => _success = 'تم إرسال رابط تأكيد البريد الإلكتروني.');
+        showAppSnackBar(
+          context,
+          'تم إرسال رابط تأكيد البريد الإلكتروني.',
+          type: AppSnackBarType.success,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _sendingEmailConfirmation = false);
     }
@@ -132,68 +118,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _sendingPhoneConfirmation = true;
       _error = null;
-      _success = null;
     });
     try {
       await _service.sendPhoneConfirmation();
       if (!mounted) return;
-      setState(() => _success = 'تم إرسال رمز تأكيد الهاتف.');
-      await _confirmPhoneDialog();
+      setState(() {
+        _sendingPhoneConfirmation = false;
+      });
+      showAppSnackBar(
+        context,
+        'تم إرسال رمز تأكيد الهاتف.',
+        type: AppSnackBarType.success,
+      );
+      await _openPhoneConfirmationPage();
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      final message = ApiClient.errorMessage(error);
+      if (message.contains('رمز جديد') && mounted) {
+        setState(() {
+          _sendingPhoneConfirmation = false;
+        });
+        showAppSnackBar(context, message, type: AppSnackBarType.warning);
+        await _openPhoneConfirmationPage();
+      } else if (mounted) {
+        showAppSnackBar(context, message, type: AppSnackBarType.error);
+      }
     } finally {
       if (mounted) setState(() => _sendingPhoneConfirmation = false);
     }
   }
 
-  Future<void> _confirmPhoneDialog() async {
-    final controller = TextEditingController();
-    final otpCode = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: const Icon(Icons.sms_outlined, color: AppColors.primary),
-        title: const Text('تأكيد رقم الهاتف'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          maxLength: 8,
-          textAlign: TextAlign.center,
-          decoration: const InputDecoration(labelText: 'رمز التأكيد'),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('لاحقاً'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () =>
-                      Navigator.pop(context, controller.text.trim()),
-                  child: const Text('تأكيد'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (otpCode == null || otpCode.isEmpty) return;
-    try {
-      await _service.confirmPhone(otpCode);
+  Future<void> _openPhoneConfirmationPage() async {
+    final confirmed = await context.push<bool>('/profile/confirm-phone');
+    if (confirmed == true) {
+      if (mounted) setState(() => _sendingPhoneConfirmation = false);
       await _load();
-      if (mounted) {
-        setState(() => _success = 'تم تأكيد رقم الهاتف بنجاح.');
-      }
-    } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
     }
   }
 
@@ -229,8 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           if (_error != null) _Notice(text: _error!, error: true),
-          if (_success != null) _Notice(text: _success!),
-          if (_error != null || _success != null) const SizedBox(height: 12),
+          if (_error != null) const SizedBox(height: 12),
           _SectionCard(
             title: 'معلومات الحساب',
             icon: Icons.badge_outlined,

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
@@ -26,7 +27,6 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
   BookingDetails? _booking;
   bool _loading = false;
   bool _hasSavedLookup = false;
-  String? _error;
 
   @override
   void initState() {
@@ -66,7 +66,6 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
     setState(() {
       _hasSavedLookup = false;
       _booking = null;
-      _error = null;
       _phone.clear();
       _code.clear();
     });
@@ -74,12 +73,15 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
 
   Future<void> _search() async {
     if (_phone.text.trim().isEmpty || _code.text.trim().isEmpty) {
-      setState(() => _error = 'أدخل رقم الهاتف وكود الحجز.');
+      showAppSnackBar(
+        context,
+        'أدخل رقم الهاتف وكود الحجز.',
+        type: AppSnackBarType.warning,
+      );
       return;
     }
     setState(() {
       _loading = true;
-      _error = null;
       _booking = null;
     });
     try {
@@ -90,20 +92,19 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
       await _saveLastLookup();
       if (mounted) setState(() => _booking = booking);
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _cancel() async {
-    final booking = _booking;
-    final accepted = await showCancelBookingDialog(
-      context: context,
-      queueNumber: booking?.queueNumber ?? 0,
-      doctorName: booking?.doctorName,
-    );
-    if (accepted != true) return;
     try {
       await _service.cancelGuestBooking(
         phoneNumber: _phone.text,
@@ -111,12 +112,20 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
       );
       await _search();
       if (mounted) {
-        ScaffoldMessenger.of(
+        showAppSnackBar(
           context,
-        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الحجز بنجاح.')));
+          'تم إلغاء الحجز بنجاح.',
+          type: AppSnackBarType.success,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
     }
   }
 
@@ -167,10 +176,6 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
           icon: const Icon(Icons.search),
           label: Text(_loading ? 'جاري البحث...' : 'عرض الحجز'),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 10),
-          Text(_error!, style: TextStyle(color: Colors.red.shade800)),
-        ],
         if (_booking != null) ...[
           const SizedBox(height: 14),
           BookingCard(

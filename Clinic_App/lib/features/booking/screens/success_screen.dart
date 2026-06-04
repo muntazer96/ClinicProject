@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../models/booking_models.dart';
@@ -29,9 +30,11 @@ class BookingSuccessScreen extends StatelessWidget {
   Future<void> _copyCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: args.result.code));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
+    showAppSnackBar(
       context,
-    ).showSnackBar(const SnackBar(content: Text('تم نسخ كود الحجز.')));
+      'تم نسخ كود الحجز.',
+      type: AppSnackBarType.success,
+    );
   }
 
   @override
