@@ -78,25 +78,25 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _submit() async {
     final auth = context.read<AuthController>();
     if (_selected == null) return;
-    if (auth.isAuthenticated &&
-        (auth.profile?.phoneConfirmed != true ||
-            auth.profile?.emailConfirmed != true)) {
-      setState(
-        () => _error = 'يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.',
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('أكمل تأكيد الحساب من الملف الشخصي.'),
-            action: SnackBarAction(
-              label: 'الملف الشخصي',
-              onPressed: () => context.go('/profile'),
-            ),
-          ),
-        );
-      }
-      return;
-    }
+    // if (auth.isAuthenticated &&
+    //     (auth.profile?.phoneConfirmed != true ||
+    //         auth.profile?.emailConfirmed != true)) {
+    //   setState(
+    //     () => _error = 'يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.',
+    //   );
+    //   if (mounted) {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: const Text('أكمل تأكيد الحساب من الملف الشخصي.'),
+    //         action: SnackBarAction(
+    //           label: 'الملف الشخصي',
+    //           onPressed: () => context.go('/profile'),
+    //         ),
+    //       ),
+    //     );
+    //   }
+    //   return;
+    // }
     if (!auth.isAuthenticated &&
         (_name.text.trim().isEmpty || _phone.text.trim().isEmpty)) {
       setState(() => _error = 'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.');

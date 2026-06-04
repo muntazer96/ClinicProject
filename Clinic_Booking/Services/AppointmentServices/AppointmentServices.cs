@@ -564,16 +564,16 @@ namespace Clinic_Booking.Services.AppointmentServices
                     .FirstOrDefaultAsync()
                 : null;
 
-            if (userId.HasValue && bookingUser is { PhoneNumberConfirmed: false } or { EmailConfirmed: false })
-            {
-                return new BadRequestObjectResult(new ResponseDto<object>
-                {
-                    Status = "Error",
-                    Code = 400,
-                    Message = "يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.",
-                    Data = null
-                });
-            }
+            //if (userId.HasValue && bookingUser is { PhoneNumberConfirmed: false } or { EmailConfirmed: false })
+            //{
+            //    return new BadRequestObjectResult(new ResponseDto<object>
+            //    {
+            //        Status = "Error",
+            //        Code = 400,
+            //        Message = "يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.",
+            //        Data = null
+            //    });
+            //}
 
             var bookingPhoneNumber = userId.HasValue
                 ? bookingUser?.PhoneNumber
