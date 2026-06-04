@@ -646,40 +646,28 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            string uniqueCode;
-            do
-            {
-                uniqueCode = GenerateRandomCode();
-            } while (await _context.Appointments.AnyAsync(a => a.Code == uniqueCode));
-
-            var queueNumber = await _context.Appointments
-                .Where(a =>
-                    a.ClinicId == form.ClinicId &&
-                    a.AppointmentDate.Date == appointmentDate)
-                .Select(a => (int?)a.QueueNumber)
-                .MaxAsync() ?? 0;
-
-            var appointment = new Appointment
-            {
-                UserId = userId,
-                DoctorId = clinic.DoctorId,
-                ClinicId = clinic.Id,
-                AppointmentDate = appointmentDate,
-                QueueNumber = queueNumber + 1,
-                GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
-                GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
-                Notes = form.Notes?.Trim(),
-                IsPhoneConfirmed = !_bookingOtpOptions.Enabled,
-                Status = AppointmentStatus.Pending,
-                PaymentStatus = PaymentStatus.Pending,
-                CreatorId = userId,
-                Code = uniqueCode
-            };
-
-            _context.Appointments.Add(appointment);
+            Appointment appointment;
             try
             {
-                await _context.SaveChangesAsync();
+                appointment = await CreateQueuedAppointmentAsync(
+                    clinic.Id,
+                    appointmentDate,
+                    queueNumber => new Appointment
+                    {
+                        UserId = userId,
+                        DoctorId = clinic.DoctorId,
+                        ClinicId = clinic.Id,
+                        AppointmentDate = appointmentDate,
+                        QueueNumber = queueNumber,
+                        GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
+                        GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
+                        Notes = form.Notes?.Trim(),
+                        IsPhoneConfirmed = !_bookingOtpOptions.Enabled,
+                        Status = AppointmentStatus.Pending,
+                        PaymentStatus = PaymentStatus.Pending,
+                        CreatorId = userId,
+                        Code = GenerateRandomCode()
+                    });
 
                 if (_bookingOtpOptions.Enabled)
                 {
@@ -843,36 +831,27 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            string uniqueCode;
-            do
-            {
-                uniqueCode = GenerateRandomCode();
-            } while (await _context.Appointments.AnyAsync(a => a.Code == uniqueCode));
-
-            var queueNumber = await _context.Appointments
-                .Where(a => a.ClinicId == form.ClinicId && a.AppointmentDate.Date == appointmentDate)
-                .Select(a => (int?)a.QueueNumber)
-                .MaxAsync() ?? 0;
-
-            var appointment = new Appointment
-            {
-                DoctorId = clinic.DoctorId,
-                ClinicId = clinic.Id,
-                AppointmentDate = appointmentDate,
-                QueueNumber = queueNumber + 1,
-                GuestName = patientName,
-                GuestPhoneNumber = patientPhoneNumber,
-                Notes = form.Notes?.Trim(),
-                IsPhoneConfirmed = true,
-                Status = AppointmentStatus.Confirmed,
-                PaymentStatus = PaymentStatus.Pending,
-                CreatorId = userId,
-                Code = uniqueCode
-            };
-            _context.Appointments.Add(appointment);
+            Appointment appointment;
             try
             {
-                await _context.SaveChangesAsync();
+                appointment = await CreateQueuedAppointmentAsync(
+                    clinic.Id,
+                    appointmentDate,
+                    queueNumber => new Appointment
+                    {
+                        DoctorId = clinic.DoctorId,
+                        ClinicId = clinic.Id,
+                        AppointmentDate = appointmentDate,
+                        QueueNumber = queueNumber,
+                        GuestName = patientName,
+                        GuestPhoneNumber = patientPhoneNumber,
+                        Notes = form.Notes?.Trim(),
+                        IsPhoneConfirmed = true,
+                        Status = AppointmentStatus.Confirmed,
+                        PaymentStatus = PaymentStatus.Pending,
+                        CreatorId = userId,
+                        Code = GenerateRandomCode()
+                    });
             }
             catch (DbUpdateException)
             {
@@ -1230,6 +1209,35 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Message = "تم تحديث حالة الحجز إلى مكتمل.",
                 Data = null
             });
+        }
+
+        private async Task<Appointment> CreateQueuedAppointmentAsync(
+            int clinicId,
+            DateTime appointmentDate,
+            Func<int, Appointment> appointmentFactory)
+        {
+            const int maxAttempts = 3;
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                var queueNumber = await _context.Appointments
+                    .Where(a => a.ClinicId == clinicId && a.AppointmentDate.Date == appointmentDate.Date)
+                    .Select(a => (int?)a.QueueNumber)
+                    .MaxAsync() ?? 0;
+
+                var appointment = appointmentFactory(queueNumber + 1);
+                _context.Appointments.Add(appointment);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    return appointment;
+                }
+                catch (DbUpdateException) when (attempt < maxAttempts)
+                {
+                    _context.Entry(appointment).State = EntityState.Detached;
+                }
+            }
+
+            throw new DbUpdateException("Unable to allocate a queue number after retrying concurrent booking collisions.");
         }
 
         private static string GenerateRandomCode(int length = 6)

@@ -12,6 +12,7 @@ using Clinic_Booking.Entities.Message;
 using Clinic_Booking.Entities.Notification;
 using Clinic_Booking.Entities.Payment;
 using Clinic_Booking.Entities.Referral;
+using Clinic_Booking.Entities.RefreshToken;
 using Clinic_Booking.Entities.Review;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.Specialization;
@@ -43,6 +44,7 @@ namespace Clinic_Booking.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<BookingOtpRequest> BookingOtpRequests { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -55,8 +57,6 @@ namespace Clinic_Booking.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            var hasher = new PasswordHasher<AspNetUsers>();
-
             base.OnModelCreating(modelBuilder);
 
             // User
@@ -69,11 +69,11 @@ namespace Clinic_Booking.Data
 
                 entity.HasData(new Entities.User.AspNetUsers()
                 {
-                    Id = Guid.NewGuid(),
-                    CreatedAt = DateTime.UtcNow,
+                    Id = Guid.Parse("db3946f4-275b-4bc1-ac3a-a6e1f3f4badb"),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 30, DateTimeKind.Utc).AddTicks(7963),
                     NormalizedUserName = "SUPERADMIN",
-                    PasswordHash = hasher.HashPassword(null, "password"),
-                    SecurityStamp = Guid.NewGuid().ToString(),
+                    PasswordHash = "AQAAAAIAAYagAAAAEDoyZr7jFYw+dhzSmNW6K5jP/J6IiwtTB3xhO0utvtAPVvUYjIoXdfAFhW0FNbvKgQ==",
+                    SecurityStamp = "86523971-50c4-48c6-bd51-d95f235847dc",
                     PhoneNumber = null,
                     UserName = "superadmin",
                 });
@@ -85,22 +85,26 @@ namespace Clinic_Booking.Data
                 entity.HasKey(e => e.Id);
                 entity.HasData(new AspNetRoles()
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.Parse("f6efb588-1fd1-4df4-a453-eb11f69f9046"),
+                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7316),
                     Name = "SuperAdmin",
                     NormalizedName = "SUPERADMIN",
                 }, new AspNetRoles()
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.Parse("5ca230af-a98f-4d9e-b99d-0b58d33a4379"),
+                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7335),
                     Name = "NormalUser",
                     NormalizedName = "NORMALUSER",
                 }, new AspNetRoles()
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.Parse("99f94c2e-be3b-4f90-b59f-81ac294980bf"),
+                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7338),
                     Name = "DoctorUser",
                     NormalizedName = "DOCTORUSER",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("6f03ef0f-c1ac-43f6-9df2-2be6d5385b72"),
+                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7347),
                     Name = AppRoles.ClinicStaff,
                     NormalizedName = "CLINICSTAFF",
                 });
@@ -357,6 +361,21 @@ namespace Clinic_Booking.Data
                 entity.HasOne(p => p.Appointment)
                     .WithMany()
                     .HasForeignKey(p => p.AppointmentId);
+            });
+
+            // RefreshToken
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TokenHash).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.ReplacedByTokenHash).HasMaxLength(128);
+                entity.HasIndex(e => e.TokenHash).IsUnique();
+                entity.HasIndex(e => new { e.UserId, e.ExpiresAt, e.RevokedAt });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Review

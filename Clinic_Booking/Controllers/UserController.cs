@@ -2,6 +2,7 @@
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,9 +24,23 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("signin")]
+        [EnableRateLimiting("Auth")]
         public async Task<IActionResult> SignInAsync([FromBody] SignInDto form)
         {
             return await _service.LoginAsync(form);
+        }
+
+        [HttpPost("refresh")]
+        [EnableRateLimiting("Auth")]
+        public async Task<IActionResult> RefreshTokenAsync([FromBody] RefreshTokenDto form)
+        {
+            return await _service.RefreshTokenAsync(form);
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> RevokeRefreshTokenAsync([FromBody] RefreshTokenDto form)
+        {
+            return await _service.RevokeRefreshTokenAsync(form);
         }
 
         [HttpPut("{id}")]
@@ -64,6 +79,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("email-confirmation")]
+        [EnableRateLimiting("AccountRecovery")]
         public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
         {
             return await _service.SendEmailConfirmationAsync(identifier);
@@ -76,6 +92,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("password/reset-link")]
+        [EnableRateLimiting("AccountRecovery")]
         public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
         {
             return await _service.SendResetPasswordLinkAsync(identifier);

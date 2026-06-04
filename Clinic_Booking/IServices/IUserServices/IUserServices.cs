@@ -8,6 +8,8 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> CreateUserAsync(SignUpDto form);
         Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form);
         Task<IActionResult> LoginAsync(SignInDto form);
+        Task<IActionResult> RefreshTokenAsync(RefreshTokenDto form);
+        Task<IActionResult> RevokeRefreshTokenAsync(RefreshTokenDto form);
         Task<IActionResult> SoftDeleteUserAsync(string id);
         Task<IActionResult> ToggleUserLockStatusAsync(string id);
         Task<IActionResult> GetPaginatedUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10);

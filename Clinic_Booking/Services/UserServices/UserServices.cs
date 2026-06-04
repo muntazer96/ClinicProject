@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.RefreshToken;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.IServices.IEmailServices;
@@ -11,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 
@@ -25,6 +27,7 @@ namespace Clinic_Booking.Services.UserServices
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailServices _emailServices;
+        private readonly ILogger<UserServices> _logger;
 
 
 
@@ -34,7 +37,8 @@ namespace Clinic_Booking.Services.UserServices
             ILoadServices load,
             ApplicationDbContext context,
             IConfiguration configuration,
-            IEmailServices emailServices)
+            IEmailServices emailServices,
+            ILogger<UserServices> logger)
         {
             _load = load;
             _userManager = userManager;
@@ -43,6 +47,7 @@ namespace Clinic_Booking.Services.UserServices
             _context = context;
             _configuration = configuration;
             _emailServices = emailServices;
+            _logger = logger;
         }
         public async Task<IActionResult> CreateUserAsync(SignUpDto form)
         {
@@ -192,35 +197,31 @@ namespace Clinic_Booking.Services.UserServices
                 await _userManager.ResetAccessFailedCountAsync(user);
                 await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue);
 
-                // إعداد صلاحيات المستخدم
                 var userRoles = await _userManager.GetRolesAsync(user);
-                var authClaims = new List<Claim>
-                {
-                    new Claim("username", user.UserName),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
-                };
-
-                foreach (var role in userRoles)
-                {
-                    authClaims.Add(new Claim("Role", role));
-                    authClaims.Add(new Claim(ClaimTypes.Role, role));
-                    authClaims.Add(new Claim("roleId", GetRoleIdByName(role)));
-                }
+                var authClaims = BuildUserClaims(user, userRoles);
 
                 // توليد التوكن
                 var token = GetToken(authClaims);
+                var refreshToken = CreateRefreshToken(user.Id);
+                _context.RefreshTokens.Add(refreshToken.Entity);
 
                 // تحديث وقت تسجيل الدخول الأخير
-                user.LastLoginDate = DateTime.Now;
+                user.LastLoginDate = DateTime.UtcNow;
                 await _userManager.UpdateAsync(user);
+                await _context.SaveChangesAsync();
 
-                return new OkObjectResult(new ResponseDto<object> { Status = "Success", Code = 200, Message = "تم تسجيل الدخول بنجاح", Data = new { token = new JwtSecurityTokenHandler().WriteToken(token) } });
+                return new OkObjectResult(new ResponseDto<AuthTokenDto>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تسجيل الدخول بنجاح",
+                    Data = BuildAuthTokenDto(token, refreshToken.RawToken, refreshToken.Entity.ExpiresAt)
+                });
 
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Database update exception: {ex.Message}");
-                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError(ex, "Database update exception while signing in user {PhoneNumber}", form.PhoneNumber);
 
                 return new ObjectResult(new ResponseDto<string> { Status = "Error", Code = 500, Message = "حاول مرة اخرى!" })
                 {
@@ -229,13 +230,89 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected exception: {ex.Message}");
+                _logger.LogError(ex, "Unexpected exception while signing in user {PhoneNumber}", form.PhoneNumber);
 
                 return new ObjectResult(new ResponseDto<string> { Status = "Error", Code = 500, Message = "حاول مرة اخرى!" })
                 {
                     StatusCode = 500
                 };
             }
+        }
+        public async Task<IActionResult> RefreshTokenAsync(RefreshTokenDto form)
+        {
+            var refreshTokenValue = form.RefreshToken?.Trim();
+            if (string.IsNullOrWhiteSpace(refreshTokenValue))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز تحديث الجلسة مطلوب."
+                });
+            }
+
+            var refreshTokenHash = HashRefreshToken(refreshTokenValue);
+            var storedToken = await _context.RefreshTokens
+                .Include(token => token.User)
+                .FirstOrDefaultAsync(token => token.TokenHash == refreshTokenHash && !token.IsDeleted);
+
+            if (storedToken == null || storedToken.IsRevoked || storedToken.IsExpired || storedToken.User.IsDeleted || storedToken.User.IsLocked)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى."
+                });
+            }
+
+            var userRoles = await _userManager.GetRolesAsync(storedToken.User);
+            var authClaims = BuildUserClaims(storedToken.User, userRoles);
+            var accessToken = GetToken(authClaims);
+            var replacement = CreateRefreshToken(storedToken.UserId);
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.ReplacedByTokenHash = replacement.Entity.TokenHash;
+            storedToken.ModifiedAt = DateTime.UtcNow;
+            _context.RefreshTokens.Add(replacement.Entity);
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<AuthTokenDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تحديث الجلسة بنجاح.",
+                Data = BuildAuthTokenDto(accessToken, replacement.RawToken, replacement.Entity.ExpiresAt)
+            });
+        }
+        public async Task<IActionResult> RevokeRefreshTokenAsync(RefreshTokenDto form)
+        {
+            var refreshTokenValue = form.RefreshToken?.Trim();
+            if (string.IsNullOrWhiteSpace(refreshTokenValue))
+            {
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تسجيل الخروج."
+                });
+            }
+
+            var refreshTokenHash = HashRefreshToken(refreshTokenValue);
+            var storedToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(token => token.TokenHash == refreshTokenHash && !token.IsDeleted);
+            if (storedToken != null && !storedToken.IsRevoked)
+            {
+                storedToken.RevokedAt = DateTime.UtcNow;
+                storedToken.ModifiedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تسجيل الخروج."
+            });
         }
         public async Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form)
         {
@@ -883,6 +960,27 @@ namespace Clinic_Booking.Services.UserServices
             return await _userManager.FindByEmailAsync(value)
                 ?? await _userManager.FindByNameAsync(value);
         }
+        private List<Claim> BuildUserClaims(AspNetUsers user, IEnumerable<string> userRoles)
+        {
+            var authClaims = new List<Claim>
+            {
+                new Claim("username", user.UserName ?? string.Empty),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+            };
+
+            foreach (var role in userRoles)
+            {
+                authClaims.Add(new Claim("Role", role));
+                authClaims.Add(new Claim(ClaimTypes.Role, role));
+                var roleId = GetRoleIdByName(role);
+                if (!string.IsNullOrWhiteSpace(roleId))
+                {
+                    authClaims.Add(new Claim("roleId", roleId));
+                }
+            }
+
+            return authClaims;
+        }
         private string GetRoleIdByName(string roleName)
         {
             var role = _context.Roles.FirstOrDefault(r => r.Name == roleName);
@@ -894,6 +992,31 @@ namespace Clinic_Booking.Services.UserServices
 
             return null;
         }
+        private AuthTokenDto BuildAuthTokenDto(JwtSecurityToken accessToken, string refreshToken, DateTime refreshTokenExpiresAt)
+        {
+            return new AuthTokenDto
+            {
+                Token = new JwtSecurityTokenHandler().WriteToken(accessToken),
+                TokenExpiresAt = accessToken.ValidTo,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiresAt = refreshTokenExpiresAt
+            };
+        }
+        private (RefreshToken Entity, string RawToken) CreateRefreshToken(Guid userId)
+        {
+            var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            return (new RefreshToken
+            {
+                UserId = userId,
+                TokenHash = HashRefreshToken(rawToken),
+                ExpiresAt = DateTime.UtcNow.AddDays(14),
+                CreatorId = userId
+            }, rawToken);
+        }
+        private static string HashRefreshToken(string token)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        }
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
@@ -902,7 +1025,7 @@ namespace Clinic_Booking.Services.UserServices
                 (
                     issuer: _configuration["JWT:ValidIssuer"],
                     audience: _configuration["JWT:ValidAudience"],
-                    expires: DateTime.Now.AddDays(30),
+                    expires: DateTime.UtcNow.AddMinutes(15),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );

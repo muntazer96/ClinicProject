@@ -1,6 +1,7 @@
 using Clinic_Booking.Authorization;
 using Clinic_Booking.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Clinic_Booking.Tests;
 
@@ -43,5 +44,22 @@ public class AuthorizationTests
             .GetMethod(nameof(AppointmentController.CreateAppointmentAsync))!;
 
         Assert.Empty(method.GetCustomAttributes(typeof(AuthorizeAttribute), true));
+    }
+
+    [Theory]
+    [InlineData(typeof(UserController), nameof(UserController.SignInAsync), "Auth")]
+    [InlineData(typeof(UserController), nameof(UserController.RefreshTokenAsync), "Auth")]
+    [InlineData(typeof(UserController), nameof(UserController.SendResetPasswordLinkAsync), "AccountRecovery")]
+    [InlineData(typeof(AppointmentController), nameof(AppointmentController.CreateAppointmentAsync), "Booking")]
+    [InlineData(typeof(AppointmentController), nameof(AppointmentController.ResendBookingOtpAsync), "Otp")]
+    [InlineData(typeof(AppointmentController), nameof(AppointmentController.ConfirmBookingOtpAsync), "Otp")]
+    public void AbuseProneEndpoint_HasRateLimitPolicy(Type controller, string action, string expectedPolicy)
+    {
+        var method = controller.GetMethod(action)!;
+        var rateLimit = method.GetCustomAttributes(typeof(EnableRateLimitingAttribute), true)
+            .Cast<EnableRateLimitingAttribute>()
+            .Single();
+
+        Assert.Equal(expectedPolicy, rateLimit.PolicyName);
     }
 }

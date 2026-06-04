@@ -15,10 +15,24 @@ class ApiClient {
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
         ),
-      ) {
+  ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onError: (error, handler) async {
+          final request = error.requestOptions;
+          final alreadyRetried = request.extra['retriedAfterRefresh'] == true;
+          if (error.response?.statusCode == 401 && !alreadyRetried) {
+            final refreshed = await _refreshAccessToken();
+            if (refreshed != null) {
+              request.extra['retriedAfterRefresh'] = true;
+              request.headers['Authorization'] = 'Bearer $refreshed';
+              try {
+                final response = await dio.fetch(request);
+                handler.resolve(response);
+                return;
+              } catch (_) {}
+            }
+          }
           if (error.response?.statusCode == 401) {
             await onUnauthorized?.call();
           }
@@ -30,6 +44,8 @@ class ApiClient {
 
   final Dio dio;
   Future<void> Function()? onUnauthorized;
+  Future<String?> Function()? getRefreshToken;
+  Future<void> Function(String token, String refreshToken)? onTokensRefreshed;
 
   static String doctorImageUrl(String imageName) {
     final apiUri = Uri.parse(_baseUrl);
@@ -43,6 +59,29 @@ class ApiClient {
       dio.options.headers.remove('Authorization');
     } else {
       dio.options.headers['Authorization'] = 'Bearer $token';
+    }
+  }
+
+  Future<String?> _refreshAccessToken() async {
+    final refreshToken = await getRefreshToken?.call();
+    if (refreshToken == null || refreshToken.isEmpty) return null;
+    try {
+      final response = await dio.post(
+        '/User/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(extra: {'retriedAfterRefresh': true}),
+      );
+      final data = response.data['data'];
+      final token = data?['token'] as String?;
+      final newRefreshToken = data?['refreshToken'] as String?;
+      if (token == null || token.isEmpty || newRefreshToken == null || newRefreshToken.isEmpty) {
+        return null;
+      }
+      setToken(token);
+      await onTokensRefreshed?.call(token, newRefreshToken);
+      return token;
+    } catch (_) {
+      return null;
     }
   }
 

@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import api from '../services/api'
+import api, { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api'
 
-const TOKEN_KEY = 'clinic_admin_token'
+const TOKEN_KEY = ACCESS_TOKEN_KEY
 
 interface LoginResponse {
   data?: {
     token?: string
+    refreshToken?: string
   }
 }
 
@@ -35,6 +36,7 @@ function asArray(value?: string | string[]) {
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem(TOKEN_KEY) ?? '')
+  const refreshToken = ref(localStorage.getItem(REFRESH_TOKEN_KEY) ?? '')
   const loading = ref(false)
   const error = ref('')
 
@@ -63,9 +65,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.post<LoginResponse>('/User/signin', { phoneNumber, password })
       const newToken = response.data.data?.token
+      const newRefreshToken = response.data.data?.refreshToken
       if (!newToken) throw new Error('لم يرجع الخادم رمز دخول صالحاً.')
       token.value = newToken
+      refreshToken.value = newRefreshToken ?? ''
       localStorage.setItem(TOKEN_KEY, newToken)
+      if (newRefreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken)
     } catch (requestError: any) {
       error.value = requestError.response?.data?.message ?? requestError.message ?? 'تعذر تسجيل الدخول.'
       throw requestError
@@ -75,9 +80,22 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
+    const currentRefreshToken = refreshToken.value
     token.value = ''
+    refreshToken.value = ''
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    if (currentRefreshToken) {
+      api.post('/User/logout', { refreshToken: currentRefreshToken }).catch(() => {})
+    }
   }
 
-  return { token, roles, primaryRole, isAuthenticated, loading, error, login, logout, hasAnyRole }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('clinic-auth-refreshed', ((event: CustomEvent<{ token?: string; refreshToken?: string }>) => {
+      if (event.detail?.token) token.value = event.detail.token
+      if (event.detail?.refreshToken) refreshToken.value = event.detail.refreshToken
+    }) as EventListener)
+  }
+
+  return { token, refreshToken, roles, primaryRole, isAuthenticated, loading, error, login, logout, hasAnyRole }
 })

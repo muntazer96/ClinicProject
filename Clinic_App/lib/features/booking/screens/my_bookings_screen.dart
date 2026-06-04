@@ -42,6 +42,15 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       _bookings.where((booking) => booking.status == 3).length;
   int get _cancelledCount =>
       _bookings.where((booking) => booking.status == 2).length;
+  BookingDetails? get _nextBooking {
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    final upcoming = _bookings
+        .where((booking) => booking.canCancel && !booking.appointmentDate.isBefore(startOfToday))
+        .toList()
+      ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    return upcoming.isEmpty ? null : upcoming.first;
+  }
 
   @override
   void initState() {
@@ -212,6 +221,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               completed: _completedCount,
               cancelled: _cancelledCount,
             ),
+            if (_nextBooking != null) ...[
+              const SizedBox(height: 12),
+              _NextBookingBanner(booking: _nextBooking!),
+            ],
             const SizedBox(height: 12),
             _BookingFilterBar(
               value: _filter,
@@ -320,6 +333,45 @@ class _SummaryTile extends StatelessWidget {
           ),
         ),
         Text(label, style: const TextStyle(color: AppColors.muted)),
+      ],
+    ),
+  );
+}
+
+class _NextBookingBanner extends StatelessWidget {
+  const _NextBookingBanner({required this.booking});
+
+  final BookingDetails booking;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppColors.softBlue,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFFCFE1FF)),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.event_available_rounded, color: AppColors.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'أقرب حجز قادم',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${booking.doctorName} - ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)} - الدور #${booking.queueNumber}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ],
     ),
   );

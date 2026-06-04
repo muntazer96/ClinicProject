@@ -4,6 +4,7 @@ using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Clinic_Booking.Controllers
 {
@@ -56,6 +57,7 @@ namespace Clinic_Booking.Controllers
             return await _service.GetMyAppointmentAsync(appointmentId);
         }
         [HttpPost]
+        [EnableRateLimiting("Booking")]
         public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
         {
             return await _service.CreateAppointmentAsync(form);
@@ -67,11 +69,13 @@ namespace Clinic_Booking.Controllers
             return await _service.CreateManualAppointmentAsync(form);
         }
         [HttpPost("otp/resend")]
+        [EnableRateLimiting("Otp")]
         public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
         {
             return await _service.ResendBookingOtpAsync(form);
         }
         [HttpPost("otp/confirm")]
+        [EnableRateLimiting("Otp")]
         public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
         {
             return await _service.ConfirmBookingOtpAsync(form);
