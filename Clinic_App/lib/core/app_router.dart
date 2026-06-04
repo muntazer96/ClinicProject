@@ -18,12 +18,18 @@ import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
 import '../features/directory/screens/specializations_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/onboarding/onboarding_screen.dart';
+import '../features/onboarding/startup_splash_screen.dart';
+import '../features/reviews/screens/doctor_reviews_screen.dart';
 import '../widgets/app_scaffold.dart';
 import 'app_theme.dart';
 
 GoRouter createRouter(AuthController auth) => GoRouter(
+  initialLocation: '/splash',
   refreshListenable: auth,
   routes: [
+    GoRoute(path: '/splash', builder: (_, __) => const StartupSplashScreen()),
+    GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
     GoRoute(
       path: '/search',
@@ -41,6 +47,13 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       path: '/doctors/:doctorId',
       builder: (_, state) => DoctorDetailsScreen(
         doctorId: int.parse(state.pathParameters['doctorId']!),
+      ),
+    ),
+    GoRoute(
+      path: '/doctors/:doctorId/reviews',
+      builder: (_, state) => DoctorReviewsScreen(
+        doctorId: int.parse(state.pathParameters['doctorId']!),
+        doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
       ),
     ),
     GoRoute(
@@ -109,6 +122,9 @@ GoRouter createRouter(AuthController auth) => GoRouter(
   ],
   redirect: (_, state) {
     final authPages = {'/login', '/register', '/forgot-password'};
+    if (state.uri.path == '/splash' || state.uri.path == '/onboarding') {
+      return null;
+    }
     final protectedPages = {
       '/bookings',
       '/profile',

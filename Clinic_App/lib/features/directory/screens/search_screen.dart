@@ -20,6 +20,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _service = DirectoryService();
   final _name = TextEditingController();
+  final _scrollController = ScrollController();
   List<Specialization> _specializations = [];
   List<DoctorSummary> _doctors = [];
   int? _province;
@@ -54,6 +55,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _specialization = widget.initialSpecialization;
+    _scrollController.addListener(_onScroll);
     _loadInitialData();
   }
 
@@ -68,8 +70,23 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _name.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients ||
+        _loading ||
+        _loadingMore ||
+        !_hasMore) {
+      return;
+    }
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 260) {
+      _search(reset: false);
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -134,6 +151,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) => AppScaffold(
     title: 'ابحث عن طبيب',
     child: ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       children: [
         const Text(
@@ -193,20 +211,11 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-          if (_hasMore) ...[
+          if (_loadingMore) ...[
             const SizedBox(height: 4),
-            OutlinedButton.icon(
-              onPressed: _loadingMore ? null : () => _search(reset: false),
-              icon: _loadingMore
-                  ? const SizedBox(
-                      width: 17,
-                      height: 17,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.expand_more_rounded),
-              label: Text(
-                _loadingMore ? 'جاري تحميل المزيد...' : 'تحميل المزيد',
-              ),
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: Center(child: CircularProgressIndicator()),
             ),
           ],
         ],

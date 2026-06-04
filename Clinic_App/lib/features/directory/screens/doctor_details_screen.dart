@@ -61,6 +61,11 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
               ? const Center(child: CircularProgressIndicator())
               : _ErrorView(text: _error!, onRetry: _load)
         : ListView(
+            primary: true,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
+            ),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
               _ProfileCard(doctor: _doctor!),
@@ -102,93 +107,42 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 ),
               if (_reviews?.isEnabled == true) ...[
                 const SizedBox(height: 10),
-                _ReviewsSection(reviews: _reviews!),
+                _ReviewsButton(doctor: _doctor!, reviews: _reviews!),
               ],
             ],
           ),
   );
 }
 
-class _ReviewsSection extends StatelessWidget {
-  const _ReviewsSection({required this.reviews});
+class _ReviewsButton extends StatelessWidget {
+  const _ReviewsButton({required this.doctor, required this.reviews});
+  final DoctorProfile doctor;
   final DoctorReviews reviews;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const _Title('تقييمات المراجعين'),
-      const SizedBox(height: 8),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.star_rounded, color: Color(0xFFFFB54A)),
-                  const SizedBox(width: 5),
-                  Text(
-                    reviews.averageRating?.toStringAsFixed(1) ?? '-',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    'من 5 (${reviews.reviewCount} تقييم)',
-                    style: const TextStyle(color: AppColors.muted),
-                  ),
-                ],
-              ),
-              if (reviews.reviews.isEmpty) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'لا توجد تقييمات حتى الآن.',
-                  style: TextStyle(color: AppColors.muted),
-                ),
-              ] else
-                ...reviews.reviews.map(
-                  (review) => Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(11),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  review.userName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              _StarRating(rating: review.rating),
-                            ],
-                          ),
-                          if (review.comment.isNotEmpty) ...[
-                            const SizedBox(height: 5),
-                            Text(review.comment),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, color: AppColors.warning, size: 28),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${reviews.averageRating?.toStringAsFixed(1) ?? '-'} من 5 (${reviews.reviewCount} تقييم)',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
-        ),
+          FilledButton.icon(
+            onPressed: () => context.push(
+              '/doctors/${doctor.id}/reviews?doctorName=${Uri.encodeComponent(doctor.name)}',
+            ),
+            icon: const Icon(Icons.rate_review_outlined),
+            label: const Text('عرض التقييمات'),
+          ),
+        ],
       ),
-    ],
+    ),
   );
 }
 
@@ -261,23 +215,6 @@ class _ProfileCard extends StatelessWidget {
           ),
         ),
       ],
-    ),
-  );
-}
-
-class _StarRating extends StatelessWidget {
-  const _StarRating({required this.rating});
-  final int rating;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: List.generate(
-      5,
-      (index) => Icon(
-        index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-        color: const Color(0xFFFFB54A),
-        size: 16,
-      ),
     ),
   );
 }
@@ -366,7 +303,12 @@ class _ClinicCard extends StatelessWidget {
                 if (clinic.mapUrl?.isNotEmpty == true)
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => openMap(context, clinic.mapUrl!),
+                      onPressed: () => openMap(
+                        context,
+                        clinic.mapUrl!,
+                        query:
+                            '${clinic.name} ${clinic.provinceName} ${clinic.address}',
+                      ),
                       icon: const Icon(Icons.map_outlined),
                       label: const Text('الموقع'),
                     ),
@@ -395,14 +337,17 @@ class _ClinicCard extends StatelessWidget {
             ),
           if (clinic.availabilities.isNotEmpty && canBookOnline) ...[
             const SizedBox(height: 10),
-            FilledButton.icon(
-              onPressed: () => context.push(
-                '/book/$doctorId/${clinic.id}'
-                '?doctorName=${Uri.encodeComponent(doctorName)}'
-                '&clinicName=${Uri.encodeComponent(clinic.name)}',
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.push(
+                  '/book/$doctorId/${clinic.id}'
+                  '?doctorName=${Uri.encodeComponent(doctorName)}'
+                  '&clinicName=${Uri.encodeComponent(clinic.name)}',
+                ),
+                icon: const Icon(Icons.calendar_month_rounded),
+                label: const Text('احجز دورك الآن'),
               ),
-              icon: const Icon(Icons.calendar_month_rounded),
-              label: const Text('احجز دورك الآن'),
             ),
           ],
         ],

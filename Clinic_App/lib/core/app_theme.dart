@@ -69,7 +69,7 @@ ThemeData buildAppTheme() {
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(52),
+        minimumSize: const Size(0, 52),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
         shape: rounded8,
       ),
@@ -77,7 +77,7 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        minimumSize: const Size.fromHeight(48),
+        minimumSize: const Size(0, 48),
         side: const BorderSide(color: AppColors.border),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
         shape: rounded8,

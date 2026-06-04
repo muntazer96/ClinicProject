@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
+import '../../auth/auth_controller.dart';
 import '../models/booking_models.dart';
 
 class BookingSuccessArgs {
@@ -33,85 +35,99 @@ class BookingSuccessScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('تم الحجز')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Icon(Icons.check_circle, size: 74, color: AppColors.primary),
-        const SizedBox(height: 12),
-        const Text(
-          'تم تثبيت حجزك بنجاح',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _Row('رقم الدور', '#${args.result.queueNumber}'),
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  padding: const EdgeInsets.all(13),
-                  decoration: BoxDecoration(
-                    color: AppColors.softBlue,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'كود الحجز',
-                        style: TextStyle(color: AppColors.muted),
-                      ),
-                      const SizedBox(height: 5),
-                      SelectableText(
-                        args.result.code,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primaryDark,
+  Widget build(BuildContext context) {
+    final isAuthenticated = context.watch<AuthController>().isAuthenticated;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('تم الحجز')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(Icons.check_circle, size: 74, color: AppColors.primary),
+          const SizedBox(height: 12),
+          const Text(
+            'تم تثبيت حجزك بنجاح',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _Row('رقم الدور', '#${args.result.queueNumber}'),
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      color: AppColors.softBlue,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'كود الحجز',
+                          style: TextStyle(color: AppColors.muted),
                         ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => _copyCode(context),
-                        icon: const Icon(Icons.copy_rounded),
-                        label: const Text('نسخ الكود'),
-                      ),
-                    ],
+                        const SizedBox(height: 5),
+                        SelectableText(
+                          args.result.code,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _copyCode(context),
+                          icon: const Icon(Icons.copy_rounded),
+                          label: const Text('نسخ الكود'),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _Row('الطبيب', args.doctorName),
-                _Row('العيادة', args.clinicName),
-                _Row('التاريخ', DateFormat('yyyy/MM/dd').format(args.date)),
-              ],
+                  _Row('الطبيب', args.doctorName),
+                  _Row('العيادة', args.clinicName),
+                  _Row('التاريخ', DateFormat('yyyy/MM/dd').format(args.date)),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'احتفظ بكود الحجز. ستحتاجه لمتابعة الحجز أو إلغائه إذا كان الحجز كزائر.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.muted),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: () => context.go('/bookings'),
-          child: const Text('الذهاب إلى حجوزاتي'),
-        ),
-        OutlinedButton(
-          onPressed: () => context.go('/guest-booking'),
-          child: const Text('متابعة حجز الزائر'),
-        ),
-        TextButton(
-          onPressed: () => context.go('/'),
-          child: const Text('العودة إلى الرئيسية'),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 12),
+          Text(
+            isAuthenticated
+                ? 'تگدر تتابع تفاصيل الحجز من صفحة حجوزاتي.'
+                : 'احتفظ بكود الحجز. ستحتاجه لمتابعة الحجز أو إلغائه كزائر.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          const SizedBox(height: 16),
+          if (isAuthenticated)
+            FilledButton(
+              onPressed: () => context.go('/bookings'),
+              child: const Text('الذهاب إلى حجوزاتي'),
+            )
+          else ...[
+            FilledButton(
+              onPressed: () => context.go('/guest-booking'),
+              child: const Text('متابعة حجز الزائر'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: () => context.go('/register'),
+              child: const Text('إنشاء حساب'),
+            ),
+          ],
+          TextButton(
+            onPressed: () => context.go('/'),
+            child: const Text('العودة إلى الرئيسية'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Row extends StatelessWidget {

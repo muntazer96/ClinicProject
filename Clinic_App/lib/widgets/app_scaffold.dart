@@ -35,7 +35,7 @@ class AppScaffold extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: const [
                   BoxShadow(
@@ -45,10 +45,9 @@ class AppScaffold extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.medical_services_rounded,
-                color: Colors.white,
-                size: 23,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Image.asset('assets/app_logo.png'),
               ),
             ),
             const SizedBox(width: 10),

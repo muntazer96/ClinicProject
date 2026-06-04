@@ -5,7 +5,7 @@ class DirectoryService {
   DirectoryService([ApiClient? client]) : _client = client ?? ApiClient();
 
   final ApiClient _client;
-  static const int pageSize = 10;
+  static const int pageSize = 15;
 
   Future<List<Specialization>> getSpecializations() async {
     final response = await _client.dio.get('/Specialization');

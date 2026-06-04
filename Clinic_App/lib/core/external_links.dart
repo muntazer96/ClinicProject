@@ -5,13 +5,20 @@ Future<void> openPhone(BuildContext context, String phoneNumber) async {
   await _open(context, Uri(scheme: 'tel', path: phoneNumber.trim()));
 }
 
-Future<void> openMap(BuildContext context, String url) async {
-  final uri = Uri.tryParse(url.trim());
-  if (uri == null) {
-    _showError(context);
-    return;
-  }
-  await _open(context, uri);
+Future<void> openMap(
+  BuildContext context,
+  String value, {
+  String? query,
+}) async {
+  final trimmed = value.trim();
+  final uri = Uri.tryParse(trimmed);
+  final mapUri = uri != null && uri.hasScheme
+      ? uri
+      : Uri.https('www.google.com', '/maps/search/', {
+          'api': '1',
+          'query': (query?.trim().isNotEmpty == true ? query : trimmed)!,
+        });
+  await _open(context, mapUri);
 }
 
 Future<void> _open(BuildContext context, Uri uri) async {

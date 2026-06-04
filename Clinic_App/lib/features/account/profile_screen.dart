@@ -257,29 +257,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   if (!profile.phoneConfirmed)
-                    FilledButton.icon(
-                      onPressed: _sendingPhoneConfirmation
-                          ? null
-                          : _sendPhoneConfirmation,
-                      icon: const Icon(Icons.sms_outlined),
-                      label: Text(
-                        _sendingPhoneConfirmation
-                            ? 'جاري الإرسال...'
-                            : 'تأكيد رقم الهاتف',
+                    _FullWidthButton(
+                      child: FilledButton.icon(
+                        onPressed: _sendingPhoneConfirmation
+                            ? null
+                            : _sendPhoneConfirmation,
+                        icon: const Icon(Icons.sms_outlined),
+                        label: Text(
+                          _sendingPhoneConfirmation
+                              ? 'جاري الإرسال...'
+                              : 'تأكيد رقم الهاتف',
+                        ),
                       ),
                     ),
                   if (!profile.phoneConfirmed && !profile.emailConfirmed)
                     const SizedBox(height: 10),
                   if (!profile.emailConfirmed)
-                    OutlinedButton.icon(
-                      onPressed: _sendingEmailConfirmation
-                          ? null
-                          : _sendEmailConfirmation,
-                      icon: const Icon(Icons.email_outlined),
-                      label: Text(
-                        _sendingEmailConfirmation
-                            ? 'جاري الإرسال...'
-                            : 'تأكيد البريد الإلكتروني',
+                    _FullWidthButton(
+                      child: OutlinedButton.icon(
+                        onPressed: _sendingEmailConfirmation
+                            ? null
+                            : _sendEmailConfirmation,
+                        icon: const Icon(Icons.email_outlined),
+                        label: Text(
+                          _sendingEmailConfirmation
+                              ? 'جاري الإرسال...'
+                              : 'تأكيد البريد الإلكتروني',
+                        ),
                       ),
                     ),
                 ],
@@ -290,10 +294,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _SectionCard(
             title: 'الأمان',
             icon: Icons.lock_outline,
-            child: FilledButton.icon(
-              onPressed: () => context.go('/profile/change-password'),
-              icon: const Icon(Icons.lock_reset_rounded),
-              label: const Text('تغيير كلمة المرور'),
+            child: _FullWidthButton(
+              child: FilledButton.icon(
+                onPressed: () => context.go('/profile/change-password'),
+                icon: const Icon(Icons.lock_reset_rounded),
+                label: const Text('تغيير كلمة المرور'),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -318,10 +324,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('تسجيل الخروج'),
+          _FullWidthButton(
+            child: OutlinedButton.icon(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('تسجيل الخروج'),
+            ),
           ),
         ],
       ),
@@ -446,6 +454,15 @@ class _StatusPill extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _FullWidthButton extends StatelessWidget {
+  const _FullWidthButton({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      SizedBox(width: double.infinity, child: child);
 }
 
 class _SectionCard extends StatelessWidget {
@@ -625,7 +642,9 @@ class _ProfileMessage extends StatelessWidget {
                 style: const TextStyle(color: AppColors.muted),
               ),
               const SizedBox(height: 16),
-              FilledButton(onPressed: action, child: Text(actionText)),
+              _FullWidthButton(
+                child: FilledButton(onPressed: action, child: Text(actionText)),
+              ),
             ],
           ),
         ),
