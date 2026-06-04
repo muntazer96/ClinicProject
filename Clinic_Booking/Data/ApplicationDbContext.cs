@@ -18,6 +18,7 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.Specialization;
 using Clinic_Booking.Entities.SubscriptionPackage;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.Entities.UserPhoneOtpRequest;
 using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -45,6 +46,7 @@ namespace Clinic_Booking.Data
         public DbSet<BookingOtpRequest> BookingOtpRequests { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<UserPhoneOtpRequest> UserPhoneOtpRequests { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -376,6 +378,23 @@ namespace Clinic_Booking.Data
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // UserPhoneOtpRequest
+            modelBuilder.Entity<UserPhoneOtpRequest>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PhoneNumber).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.CodeHash).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.CodeSalt).IsRequired().HasMaxLength(64);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.UserId, e.IsUsed });
+                entity.HasIndex(e => new { e.PhoneNumber, e.IsUsed });
             });
 
             // Review

@@ -9,7 +9,9 @@ import '../models/directory_models.dart';
 import '../widgets/doctor_avatar.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialSpecialization});
+
+  final int? initialSpecialization;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -40,8 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
       items.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
     } else if (_sort == 'booking') {
       items.sort(
-        (a, b) =>
-            (b.canBookOnline ? 1 : 0).compareTo(a.canBookOnline ? 1 : 0),
+        (a, b) => (b.canBookOnline ? 1 : 0).compareTo(a.canBookOnline ? 1 : 0),
       );
     }
     return items;
@@ -52,7 +53,17 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    _specialization = widget.initialSpecialization;
     _loadInitialData();
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSpecialization != widget.initialSpecialization) {
+      _specialization = widget.initialSpecialization;
+      _search();
+    }
   }
 
   @override
@@ -170,36 +181,35 @@ class _SearchScreenState extends State<SearchScreen> {
           const _MessageCard(
             icon: Icons.search_off_outlined,
             title: 'لا توجد نتائج',
-            text: 'جرّب تغيير المحافظة أو الاختصاص أو اسم الطبيب.',
+            text: 'جرب تغيير المحافظة أو الاختصاص أو اسم الطبيب.',
           )
-        else
-          ...[
-            ..._sortedDoctors.map(
-              (doctor) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _DoctorCard(
-                  doctor: doctor,
-                  onTap: () => context.push('/doctors/${doctor.id}'),
-                ),
+        else ...[
+          ..._sortedDoctors.map(
+            (doctor) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _DoctorCard(
+                doctor: doctor,
+                onTap: () => context.push('/doctors/${doctor.id}'),
               ),
             ),
-            if (_hasMore) ...[
-              const SizedBox(height: 4),
-              OutlinedButton.icon(
-                onPressed: _loadingMore ? null : () => _search(reset: false),
-                icon: _loadingMore
-                    ? const SizedBox(
-                        width: 17,
-                        height: 17,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.expand_more_rounded),
-                label: Text(
-                  _loadingMore ? 'جارِ تحميل المزيد...' : 'تحميل المزيد',
-                ),
+          ),
+          if (_hasMore) ...[
+            const SizedBox(height: 4),
+            OutlinedButton.icon(
+              onPressed: _loadingMore ? null : () => _search(reset: false),
+              icon: _loadingMore
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.expand_more_rounded),
+              label: Text(
+                _loadingMore ? 'جاري تحميل المزيد...' : 'تحميل المزيد',
               ),
-            ],
+            ),
           ],
+        ],
       ],
     ),
   );
@@ -231,95 +241,114 @@ class _FiltersCard extends StatelessWidget {
   final VoidCallback onReset;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(13),
-      child: Column(
-        children: [
-          TextField(
-            controller: name,
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => onSearch(),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              labelText: 'اسم الطبيب',
-            ),
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<int>(
-            value: province,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.location_on_outlined),
-              labelText: 'المحافظة',
-            ),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('كل المحافظات')),
-              ...provinces.map(
-                (item) =>
-                    DropdownMenuItem(value: item.id, child: Text(item.name)),
+  Widget build(BuildContext context) {
+    final selectedSpecialization =
+        specializations.any((item) => item.id == specialization)
+        ? specialization
+        : null;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(13),
+        child: Column(
+          children: [
+            TextField(
+              controller: name,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => onSearch(),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'اسم الطبيب',
               ),
-            ],
-            onChanged: onProvinceChanged,
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<int>(
-            value: specialization,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.medical_services_outlined),
-              labelText: 'الاختصاص',
             ),
-            items: [
-              const DropdownMenuItem(value: null, child: Text('كل الاختصاصات')),
-              ...specializations.map(
-                (item) =>
-                    DropdownMenuItem(value: item.id, child: Text(item.name)),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              value: province,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.location_on_outlined),
+                labelText: 'المحافظة',
               ),
-            ],
-            onChanged: onSpecializationChanged,
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            value: sort,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.sort_rounded),
-              labelText: 'ترتيب النتائج',
-            ),
-            items: const [
-              DropdownMenuItem(
-                value: 'default',
-                child: Text('الترتيب الافتراضي'),
-              ),
-              DropdownMenuItem(value: 'rating', child: Text('الأعلى تقييماً')),
-              DropdownMenuItem(value: 'reviews', child: Text('الأكثر مراجعات')),
-              DropdownMenuItem(
-                value: 'booking',
-                child: Text('الحجز الإلكتروني أولاً'),
-              ),
-            ],
-            onChanged: onSortChanged,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onSearch,
-                  icon: const Icon(Icons.search),
-                  label: const Text('عرض الأطباء'),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('كل المحافظات'),
                 ),
+                ...provinces.map(
+                  (item) =>
+                      DropdownMenuItem(value: item.id, child: Text(item.name)),
+                ),
+              ],
+              onChanged: onProvinceChanged,
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              value: selectedSpecialization,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.medical_services_outlined),
+                labelText: 'الاختصاص',
               ),
-              const SizedBox(width: 8),
-              IconButton.filledTonal(
-                tooltip: 'مسح الفلاتر',
-                onPressed: onReset,
-                icon: const Icon(Icons.filter_alt_off_rounded),
+              items: [
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('كل الاختصاصات'),
+                ),
+                ...specializations.map(
+                  (item) =>
+                      DropdownMenuItem(value: item.id, child: Text(item.name)),
+                ),
+              ],
+              onChanged: onSpecializationChanged,
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: sort,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.sort_rounded),
+                labelText: 'ترتيب النتائج',
               ),
-            ],
-          ),
-        ],
+              items: const [
+                DropdownMenuItem(
+                  value: 'default',
+                  child: Text('الترتيب الافتراضي'),
+                ),
+                DropdownMenuItem(
+                  value: 'rating',
+                  child: Text('الأعلى تقييماً'),
+                ),
+                DropdownMenuItem(
+                  value: 'reviews',
+                  child: Text('الأكثر مراجعات'),
+                ),
+                DropdownMenuItem(
+                  value: 'booking',
+                  child: Text('الحجز الإلكتروني أولاً'),
+                ),
+              ],
+              onChanged: onSortChanged,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onSearch,
+                    icon: const Icon(Icons.search),
+                    label: const Text('عرض الأطباء'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'مسح الفلاتر',
+                  onPressed: onReset,
+                  icon: const Icon(Icons.filter_alt_off_rounded),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _DoctorCard extends StatelessWidget {
@@ -331,7 +360,7 @@ class _DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(13),
@@ -391,7 +420,7 @@ class _DoctorCard extends StatelessWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(11),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.arrow_back_rounded,

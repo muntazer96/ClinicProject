@@ -14,24 +14,34 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final path = GoRouterState.of(context).uri.path;
+    final fallbackInitial = auth.displayName.trim().isEmpty
+        ? 'م'
+        : String.fromCharCode(auth.displayName.trim().runes.first);
+    final selectedIndex = path == '/profile'
+        ? 3
+        : path == '/bookings'
+        ? 2
+        : path == '/search' || path.startsWith('/doctors/')
+        ? 1
+        : 0;
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 76,
+        titleSpacing: 16,
         title: Row(
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                ),
-                borderRadius: BorderRadius.circular(15),
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x3313796B),
-                    blurRadius: 14,
-                    offset: Offset(0, 6),
+                    color: Color(0x22155E75),
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
                   ),
                 ],
               ),
@@ -42,57 +52,64 @@ class AppScaffold extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const Text(
-                  'دليلك الطبي',
-                  style: TextStyle(fontSize: 11, color: AppColors.muted),
-                ),
-              ],
+                  Text(
+                    auth.isAuthenticated
+                        ? auth.displayName
+                        : 'دليلك الطبي الذكي',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         actions: [
-          if (!auth.isAuthenticated)
-            IconButton(
-              tooltip: 'متابعة حجز زائر',
-              onPressed: () => context.go('/guest-booking'),
-              icon: const Icon(Icons.manage_search_rounded),
+          IconButton(
+            tooltip: 'متابعة حجز زائر',
+            onPressed: () => context.go('/guest-booking'),
+            icon: const Icon(Icons.manage_search_rounded),
+          ),
+          IconButton(
+            tooltip: auth.isAuthenticated ? 'حسابي' : 'تسجيل الدخول',
+            onPressed: () => context.go(
+              auth.isAuthenticated ? '/profile' : '/login?redirect=/profile',
             ),
-          if (auth.isAuthenticated)
-            IconButton(
-              tooltip: 'حجوزاتي',
-              onPressed: () => context.go('/bookings'),
-              icon: const Icon(Icons.calendar_month_rounded),
-            ),
-          if (auth.isAuthenticated)
-            IconButton(
-              tooltip: 'تسجيل الخروج',
-              onPressed: () async {
-                await auth.logout();
-                if (context.mounted) context.go('/');
-              },
-              icon: const Icon(Icons.logout_rounded),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: TextButton(
-                onPressed: () => context.go('/login'),
-                child: const Text(
-                  'دخول',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
+            icon: auth.isAuthenticated
+                ? CircleAvatar(
+                    radius: 15,
+                    backgroundColor: AppColors.softAmber,
+                    child: Text(
+                      auth.profile?.initials ?? fallbackInitial,
+                      style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  )
+                : const Icon(Icons.person_outline_rounded),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: child,
@@ -108,16 +125,21 @@ class AppScaffold extends StatelessWidget {
           ],
         ),
         child: NavigationBar(
-          selectedIndex: path == '/bookings'
-              ? 2
-              : path == '/search' || path.startsWith('/doctors/')
-              ? 1
-              : 0,
+          selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             if (index == 0) context.go('/');
             if (index == 1) context.go('/search');
             if (index == 2) {
-              context.go(auth.isAuthenticated ? '/bookings' : '/login');
+              context.go(
+                auth.isAuthenticated
+                    ? '/bookings'
+                    : '/login?redirect=/bookings',
+              );
+            }
+            if (index == 3) {
+              context.go(
+                auth.isAuthenticated ? '/profile' : '/login?redirect=/profile',
+              );
             }
           },
           destinations: const [
@@ -128,12 +150,17 @@ class AppScaffold extends StatelessWidget {
             ),
             NavigationDestination(
               icon: Icon(Icons.search_rounded),
-              label: 'البحث',
+              label: 'الأطباء',
             ),
             NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month_rounded),
               label: 'حجوزاتي',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'حسابي',
             ),
           ],
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/account/change_password_screen.dart';
+import '../features/account/profile_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/screens/email_confirm_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
@@ -14,14 +16,27 @@ import '../features/booking/screens/otp_screen.dart';
 import '../features/booking/screens/success_screen.dart';
 import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
+import '../features/directory/screens/specializations_screen.dart';
 import '../features/home/home_screen.dart';
+import '../widgets/app_scaffold.dart';
 import 'app_theme.dart';
 
 GoRouter createRouter(AuthController auth) => GoRouter(
   refreshListenable: auth,
   routes: [
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
+    GoRoute(
+      path: '/search',
+      builder: (_, state) => SearchScreen(
+        initialSpecialization: int.tryParse(
+          state.uri.queryParameters['specialization'] ?? '',
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/specializations',
+      builder: (_, __) => const SpecializationsScreen(),
+    ),
     GoRoute(
       path: '/doctors/:doctorId',
       builder: (_, state) => DoctorDetailsScreen(
@@ -76,13 +91,30 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(path: '/bookings', builder: (_, __) => const MyBookingsScreen()),
     GoRoute(
+      path: '/profile',
+      builder: (_, __) =>
+          const AppScaffold(title: 'حسابي', child: ProfileScreen()),
+    ),
+    GoRoute(
+      path: '/profile/change-password',
+      builder: (_, __) => const AppScaffold(
+        title: 'تغيير كلمة المرور',
+        child: ChangePasswordScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/guest-booking',
       builder: (_, __) => const GuestBookingScreen(),
     ),
   ],
   redirect: (_, state) {
     final authPages = {'/login', '/register', '/forgot-password'};
-    if (state.uri.path == '/bookings' && !auth.isAuthenticated) {
+    final protectedPages = {
+      '/bookings',
+      '/profile',
+      '/profile/change-password',
+    };
+    if (protectedPages.contains(state.uri.path) && !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
     }
     if (auth.isAuthenticated && authPages.contains(state.uri.path)) return '/';

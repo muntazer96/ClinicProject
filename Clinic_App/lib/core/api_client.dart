@@ -3,8 +3,6 @@ import 'package:dio/dio.dart';
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-
-    //defaultValue: 'http://192.174.0.120:7136/api',
     defaultValue: 'https://localhost:7136/api',
   );
 
@@ -15,7 +13,7 @@ class ApiClient {
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
         ),
-  ) {
+      ) {
     dio.interceptors.add(
       InterceptorsWrapper(
         onError: (error, handler) async {
@@ -74,7 +72,10 @@ class ApiClient {
       final data = response.data['data'];
       final token = data?['token'] as String?;
       final newRefreshToken = data?['refreshToken'] as String?;
-      if (token == null || token.isEmpty || newRefreshToken == null || newRefreshToken.isEmpty) {
+      if (token == null ||
+          token.isEmpty ||
+          newRefreshToken == null ||
+          newRefreshToken.isEmpty) {
         return null;
       }
       setToken(token);
@@ -90,10 +91,18 @@ class ApiClient {
       final data = error.response?.data;
       if (data is Map && data['message'] is String) return data['message'];
       final statusCode = error.response?.statusCode;
-      if (statusCode == 400) return 'البيانات غير مكتملة أو غير صحيحة.';
-      if (statusCode == 401) return 'انتهت الجلسة. سجل الدخول مرة أخرى.';
-      if (statusCode == 403) return 'لا تملك صلاحية تنفيذ هذه العملية.';
-      if (statusCode == 404) return 'لم يتم العثور على البيانات المطلوبة.';
+      if (statusCode == 400) {
+        return 'البيانات غير مكتملة أو غير صحيحة.';
+      }
+      if (statusCode == 401) {
+        return 'انتهت الجلسة. سجل الدخول مرة أخرى.';
+      }
+      if (statusCode == 403) {
+        return 'لا تملك صلاحية تنفيذ هذه العملية.';
+      }
+      if (statusCode == 404) {
+        return 'لم يتم العثور على البيانات المطلوبة.';
+      }
       if (statusCode != null && statusCode >= 500) {
         return 'حدث خلل في الخادم. حاول مرة أخرى بعد قليل.';
       }

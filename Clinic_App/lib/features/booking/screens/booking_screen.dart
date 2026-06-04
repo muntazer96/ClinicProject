@@ -66,13 +66,7 @@ class _BookingScreenState extends State<BookingScreen> {
       if (!mounted) return;
       setState(() {
         _days = days;
-        _selected = null;
-        for (final day in days) {
-          if (day.isAvailable) {
-            _selected = day;
-            break;
-          }
-        }
+        _selected = days.where((day) => day.isAvailable).firstOrNull;
       });
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
@@ -84,6 +78,25 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _submit() async {
     final auth = context.read<AuthController>();
     if (_selected == null) return;
+    if (auth.isAuthenticated &&
+        (auth.profile?.phoneConfirmed != true ||
+            auth.profile?.emailConfirmed != true)) {
+      setState(
+        () => _error = 'يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('أكمل تأكيد الحساب من الملف الشخصي.'),
+            action: SnackBarAction(
+              label: 'الملف الشخصي',
+              onPressed: () => context.go('/profile'),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     if (!auth.isAuthenticated &&
         (_name.text.trim().isEmpty || _phone.text.trim().isEmpty)) {
       setState(() => _error = 'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.');
@@ -126,6 +139,8 @@ class _BookingScreenState extends State<BookingScreen> {
             date: _selected!.date,
           ),
         );
+      } else if (auth.isAuthenticated) {
+        context.go('/bookings');
       } else {
         context.go(
           '/booking/success',
@@ -150,10 +165,14 @@ class _BookingScreenState extends State<BookingScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        icon: const Icon(
+          Icons.event_available_rounded,
+          color: AppColors.primary,
+          size: 34,
+        ),
         title: const Text('تأكيد الحجز'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _SummaryLine('الطبيب', widget.doctorName),
             _SummaryLine('العيادة', widget.clinicName),
@@ -169,14 +188,24 @@ class _BookingScreenState extends State<BookingScreen> {
               _SummaryLine('الملاحظات', _notes.text.trim()),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('تراجع'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('تثبيت الحجز'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('تراجع'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('تثبيت الحجز'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -269,7 +298,7 @@ class _BookingScreenState extends State<BookingScreen> {
           FilledButton.icon(
             onPressed: _selected == null || _saving ? null : _submit,
             icon: const Icon(Icons.check_circle_outline),
-            label: Text(_saving ? 'جارِ تثبيت الحجز...' : 'تأكيد حجز الدور'),
+            label: Text(_saving ? 'جاري تثبيت الحجز...' : 'تأكيد حجز الدور'),
           ),
         ],
       ),
@@ -286,26 +315,17 @@ class _DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(16),
+    borderRadius: BorderRadius.circular(8),
     onTap: onTap,
     child: Container(
       width: 132,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: selected ? AppColors.primary : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: selected ? AppColors.primary : AppColors.border,
         ),
-        boxShadow: selected
-            ? const [
-                BoxShadow(
-                  color: Color(0x3313796B),
-                  blurRadius: 14,
-                  offset: Offset(0, 7),
-                ),
-              ]
-            : null,
       ),
       child: Column(
         children: [
@@ -324,7 +344,8 @@ class _DayCard extends StatelessWidget {
             style: TextStyle(color: selected ? Colors.white : AppColors.muted),
           ),
           const SizedBox(height: 5),
-          if (day.startTime?.isNotEmpty == true && day.endTime?.isNotEmpty == true)
+          if (day.startTime?.isNotEmpty == true &&
+              day.endTime?.isNotEmpty == true)
             Text(
               '${_shortTime(day.startTime!)} - ${_shortTime(day.endTime!)}',
               maxLines: 1,
@@ -356,7 +377,6 @@ class _DayCard extends StatelessWidget {
 
 class _SelectedDaySummary extends StatelessWidget {
   const _SelectedDaySummary({required this.day});
-
   final QueueAvailability day;
 
   @override
@@ -364,7 +384,7 @@ class _SelectedDaySummary extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: AppColors.softBlue,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: AppColors.border),
     ),
     child: Row(
@@ -384,13 +404,17 @@ class _SelectedDaySummary extends StatelessWidget {
 
 class _SummaryLine extends StatelessWidget {
   const _SummaryLine(this.label, this.value);
-
   final String label;
   final String value;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceMuted,
+      borderRadius: BorderRadius.circular(8),
+    ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -399,7 +423,10 @@ class _SummaryLine extends StatelessWidget {
           child: Text(label, style: const TextStyle(color: AppColors.muted)),
         ),
         Expanded(
-          child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
       ],
     ),
@@ -416,7 +443,7 @@ class _Notice extends StatelessWidget {
     padding: const EdgeInsets.all(11),
     decoration: BoxDecoration(
       color: error ? Colors.red.shade50 : AppColors.softBlue,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       text,
@@ -437,17 +464,8 @@ class _DoctorHeader extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(17),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [AppColors.primary, AppColors.primaryDark],
-      ),
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x3313796B),
-          blurRadius: 18,
-          offset: Offset(0, 9),
-        ),
-      ],
+      color: AppColors.primaryDark,
+      borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
       children: [
@@ -456,7 +474,7 @@ class _DoctorHeader extends StatelessWidget {
           height: 51,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: .17),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.calendar_month_rounded, color: Colors.white),
         ),

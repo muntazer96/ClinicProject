@@ -3,6 +3,8 @@ using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.RefreshToken;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.Entities.UserPhoneOtpRequest;
+using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IUserServices;
@@ -27,6 +29,7 @@ namespace Clinic_Booking.Services.UserServices
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailServices _emailServices;
+        private readonly IBookingSmsServices _bookingSmsServices;
         private readonly ILogger<UserServices> _logger;
 
 
@@ -38,6 +41,7 @@ namespace Clinic_Booking.Services.UserServices
             ApplicationDbContext context,
             IConfiguration configuration,
             IEmailServices emailServices,
+            IBookingSmsServices bookingSmsServices,
             ILogger<UserServices> logger)
         {
             _load = load;
@@ -47,6 +51,7 @@ namespace Clinic_Booking.Services.UserServices
             _context = context;
             _configuration = configuration;
             _emailServices = emailServices;
+            _bookingSmsServices = bookingSmsServices;
             _logger = logger;
         }
         public async Task<IActionResult> CreateUserAsync(SignUpDto form)
@@ -313,6 +318,76 @@ namespace Clinic_Booking.Services.UserServices
                 Code = 200,
                 Message = "تم تسجيل الخروج."
             });
+        }
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var roleName = roles.FirstOrDefault();
+            var role = !string.IsNullOrWhiteSpace(roleName)
+                ? await _roleManager.FindByNameAsync(roleName)
+                : null;
+
+            return new OkObjectResult(new ResponseDto<UserGetDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب الملف الشخصي بنجاح.",
+                Data = new UserGetDto
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    PhoneNumber = user.PhoneNumber,
+                    PhoneNumberConfirmed = user.PhoneNumberConfirmed,
+                    Email = user.Email,
+                    EmailConfirmed = user.EmailConfirmed,
+                    UserName = user.UserName,
+                    ImageName = user.ImageName,
+                    IsLocked = user.IsLocked,
+                    IsFirstLogin = user.IsFirstLogin,
+                    LastLoginDate = user.LastLoginDate,
+                    IsDeleted = user.IsDeleted,
+                    DeletedAt = user.DeletedAt,
+                    RoleName = roleName,
+                    RoleId = role?.Id
+                }
+            });
+        }
+        public async Task<IActionResult> UpdateMyProfileAsync(UserUpdateDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            return await UpdateUserAsync(userId.ToString(), form);
         }
         public async Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form)
         {
@@ -815,6 +890,187 @@ namespace Clinic_Booking.Services.UserServices
                 Message = "فشل تأكيد البريد الإلكتروني، الرابط غير صالح أو منتهي"
             });
         }
+        public async Task<IActionResult> SendPhoneConfirmationAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "لا يوجد رقم هاتف مرتبط بالحساب."
+                });
+            }
+
+            if (user.PhoneNumberConfirmed)
+            {
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "رقم الهاتف مؤكد مسبقاً."
+                });
+            }
+
+            var oldRequests = await _context.UserPhoneOtpRequests
+                .Where(request => request.UserId == user.Id && !request.IsUsed)
+                .ToListAsync();
+
+            foreach (var request in oldRequests)
+            {
+                request.IsUsed = true;
+                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifierId = user.Id;
+            }
+
+            var otpCode = GenerateNumericOtp(6);
+            Console.WriteLine("//////////////////////////////");
+            Console.WriteLine(otpCode);
+            Console.WriteLine("//////////////////////////////");
+            var codeSalt = GenerateOtpSalt();
+            var now = DateTime.UtcNow;
+            _context.UserPhoneOtpRequests.Add(new UserPhoneOtpRequest
+            {
+                UserId = user.Id,
+                PhoneNumber = user.PhoneNumber,
+                CodeHash = HashOtpCode(otpCode, codeSalt),
+                CodeSalt = codeSalt,
+                SentAt = now,
+                ExpiresAt = now.AddMinutes(10),
+                CreatorId = user.Id
+            });
+
+            await _context.SaveChangesAsync();
+            await _bookingSmsServices.SendBookingOtpAsync(user.PhoneNumber, otpCode);
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم إرسال رمز تأكيد الهاتف."
+            });
+        }
+
+        public async Task<IActionResult> ConfirmPhoneAsync(ConfirmPhoneDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود."
+                });
+            }
+
+            var otpCode = form.OtpCode?.Trim();
+            if (string.IsNullOrWhiteSpace(otpCode))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "أدخل رمز التأكيد."
+                });
+            }
+
+            var request = await _context.UserPhoneOtpRequests
+                .Where(item =>
+                    item.UserId == user.Id &&
+                    item.PhoneNumber == user.PhoneNumber &&
+                    !item.IsUsed)
+                .OrderByDescending(item => item.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (request == null || request.ExpiresAt < DateTime.UtcNow)
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز التأكيد غير صالح أو منتهي."
+                });
+            }
+
+            if (request.AttemptCount >= 5)
+            {
+                request.IsUsed = true;
+                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifierId = user.Id;
+                await _context.SaveChangesAsync();
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "تم تجاوز عدد المحاولات. اطلب رمزاً جديداً."
+                });
+            }
+
+            request.AttemptCount++;
+            if (!string.Equals(request.CodeHash, HashOtpCode(otpCode, request.CodeSalt), StringComparison.OrdinalIgnoreCase))
+            {
+                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifierId = user.Id;
+                await _context.SaveChangesAsync();
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز التأكيد غير صحيح."
+                });
+            }
+
+            request.IsUsed = true;
+            request.VerifiedAt = DateTime.UtcNow;
+            request.ModifiedAt = DateTime.UtcNow;
+            request.ModifierId = user.Id;
+            user.PhoneNumberConfirmed = true;
+            await _userManager.UpdateAsync(user);
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تأكيد رقم الهاتف بنجاح."
+            });
+        }
         public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
         {
             var user = await FindUserAsync(identifier);
@@ -1016,6 +1272,21 @@ namespace Clinic_Booking.Services.UserServices
         private static string HashRefreshToken(string token)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        }
+        private static string GenerateNumericOtp(int length)
+        {
+            var safeLength = Math.Clamp(length, 4, 8);
+            var minValue = (int)Math.Pow(10, safeLength - 1);
+            var maxValue = (int)Math.Pow(10, safeLength);
+            return RandomNumberGenerator.GetInt32(minValue, maxValue).ToString();
+        }
+        private static string GenerateOtpSalt()
+        {
+            return Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
+        }
+        private static string HashOtpCode(string code, string salt)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{salt}:{code}")));
         }
         private JwtSecurityToken GetToken(List<Claim> authClaims)
         {

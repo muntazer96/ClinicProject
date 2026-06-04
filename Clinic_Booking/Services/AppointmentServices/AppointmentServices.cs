@@ -552,11 +552,31 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            var bookingPhoneNumber = userId.HasValue
+            var bookingUser = userId.HasValue
                 ? await _context.AspNetUsers
                     .Where(user => user.Id == userId)
-                    .Select(user => user.PhoneNumber)
+                    .Select(user => new
+                    {
+                        user.PhoneNumber,
+                        user.PhoneNumberConfirmed,
+                        user.EmailConfirmed
+                    })
                     .FirstOrDefaultAsync()
+                : null;
+
+            if (userId.HasValue && bookingUser is { PhoneNumberConfirmed: false } or { EmailConfirmed: false })
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.",
+                    Data = null
+                });
+            }
+
+            var bookingPhoneNumber = userId.HasValue
+                ? bookingUser?.PhoneNumber
                 : form.GuestPhoneNumber?.Trim();
 
             if (_bookingOtpOptions.Enabled && string.IsNullOrWhiteSpace(bookingPhoneNumber))

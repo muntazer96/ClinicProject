@@ -27,9 +27,9 @@ class BookingSuccessScreen extends StatelessWidget {
   Future<void> _copyCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: args.result.code));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نسخ كود الحجز.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم نسخ كود الحجز.')));
   }
 
   @override
@@ -58,7 +58,7 @@ class BookingSuccessScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(13),
                   decoration: BoxDecoration(
                     color: AppColors.softBlue,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
                     children: [
@@ -98,12 +98,12 @@ class BookingSuccessScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         FilledButton(
-          onPressed: () => context.go('/guest-booking'),
-          child: const Text('متابعة الحجز'),
+          onPressed: () => context.go('/bookings'),
+          child: const Text('الذهاب إلى حجوزاتي'),
         ),
         OutlinedButton(
-          onPressed: () => context.go('/search'),
-          child: const Text('البحث عن طبيب آخر'),
+          onPressed: () => context.go('/guest-booking'),
+          child: const Text('متابعة حجز الزائر'),
         ),
         TextButton(
           onPressed: () => context.go('/'),

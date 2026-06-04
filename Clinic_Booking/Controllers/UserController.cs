@@ -43,6 +43,20 @@ namespace Clinic_Booking.Controllers
             return await _service.RevokeRefreshTokenAsync(form);
         }
 
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            return await _service.GetMyProfileAsync();
+        }
+
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UserUpdateDto form)
+        {
+            return await _service.UpdateMyProfileAsync(form);
+        }
+
         [HttpPut("{id}")]
         [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> UpdateUserAsync(string id, [FromBody] UserUpdateDto form)
@@ -89,6 +103,22 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
         {
             return await _service.ConfirmEmailAsync(userId, token);
+        }
+
+        [HttpPost("phone-confirmation")]
+        [Authorize]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> SendPhoneConfirmationAsync()
+        {
+            return await _service.SendPhoneConfirmationAsync();
+        }
+
+        [HttpPost("phone-confirm")]
+        [Authorize]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> ConfirmPhoneAsync([FromBody] ConfirmPhoneDto form)
+        {
+            return await _service.ConfirmPhoneAsync(form);
         }
 
         [HttpPost("password/reset-link")]

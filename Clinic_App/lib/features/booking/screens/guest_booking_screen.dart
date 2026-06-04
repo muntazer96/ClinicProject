@@ -97,22 +97,11 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
   }
 
   Future<void> _cancel() async {
-    final accepted = await showDialog<bool>(
+    final booking = _booking;
+    final accepted = await showCancelBookingDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('إلغاء الحجز'),
-        content: const Text('هل تريد إلغاء حجز الزائر؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('تراجع'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد الإلغاء'),
-          ),
-        ],
-      ),
+      queueNumber: booking?.queueNumber ?? 0,
+      doctorName: booking?.doctorName,
     );
     if (accepted != true) return;
     try {
@@ -122,9 +111,9 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
       );
       await _search();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الحجز بنجاح.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم إلغاء الحجز بنجاح.')));
       }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
@@ -176,7 +165,7 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
         FilledButton.icon(
           onPressed: _loading ? null : _search,
           icon: const Icon(Icons.search),
-          label: Text(_loading ? 'جارِ البحث...' : 'عرض الحجز'),
+          label: Text(_loading ? 'جاري البحث...' : 'عرض الحجز'),
         ),
         if (_error != null) ...[
           const SizedBox(height: 10),
@@ -205,7 +194,7 @@ class _SavedLookupNotice extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: AppColors.softBlue,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: AppColors.border),
     ),
     child: Row(
@@ -214,7 +203,7 @@ class _SavedLookupNotice extends StatelessWidget {
         const SizedBox(width: 10),
         const Expanded(
           child: Text(
-            'تم تعبئة آخر حجز زائر محفوظ.',
+            'تمت تعبئة آخر حجز زائر محفوظ.',
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
         ),

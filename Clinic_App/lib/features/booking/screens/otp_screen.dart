@@ -77,15 +77,19 @@ class _OtpScreenState extends State<OtpScreen> {
         otpCode: _code.text,
       );
       if (!mounted) return;
-      context.go(
-        '/booking/success',
-        extra: BookingSuccessArgs(
-          result: widget.args.result,
-          doctorName: widget.args.doctorName,
-          clinicName: widget.args.clinicName,
-          date: widget.args.date,
-        ),
-      );
+      if (context.read<AuthController>().isAuthenticated) {
+        context.go('/bookings');
+      } else {
+        context.go(
+          '/booking/success',
+          extra: BookingSuccessArgs(
+            result: widget.args.result,
+            doctorName: widget.args.doctorName,
+            clinicName: widget.args.clinicName,
+            date: widget.args.date,
+          ),
+        );
+      }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
     } finally {
@@ -181,7 +185,7 @@ class _OtpScreenState extends State<OtpScreen> {
         const SizedBox(height: 10),
         FilledButton(
           onPressed: _loading || _code.text.trim().isEmpty ? null : _confirm,
-          child: Text(_loading ? 'جارِ التحقق...' : 'تأكيد الرمز'),
+          child: Text(_loading ? 'جاري التحقق...' : 'تأكيد الرمز'),
         ),
         TextButton(
           onPressed: _resending || _resendSeconds > 0 ? null : _resend,
@@ -189,7 +193,7 @@ class _OtpScreenState extends State<OtpScreen> {
             _resendSeconds > 0
                 ? 'إعادة الإرسال بعد $_resendSeconds ثانية'
                 : _resending
-                ? 'جارِ إعادة الإرسال...'
+                ? 'جاري إعادة الإرسال...'
                 : 'إعادة إرسال الرمز',
           ),
         ),

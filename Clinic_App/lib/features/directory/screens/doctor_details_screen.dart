@@ -64,8 +64,6 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
               _ProfileCard(doctor: _doctor!),
-              const SizedBox(height: 10),
-              _ProfileActions(doctor: _doctor!),
               const SizedBox(height: 16),
               if (_doctor!.description.isNotEmpty) ...[
                 const _Title('نبذة عن الطبيب'),
@@ -158,8 +156,8 @@ class _ReviewsSection extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(11),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF7FBFA),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,19 +197,7 @@ class _ProfileCard extends StatelessWidget {
   final DoctorProfile doctor;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(26),
-      border: Border.all(color: AppColors.border),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x141D4A44),
-          blurRadius: 20,
-          offset: Offset(0, 9),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => Card(
     child: Column(
       children: [
         Container(
@@ -219,7 +205,7 @@ class _ProfileCard extends StatelessWidget {
           padding: const EdgeInsets.only(top: 18),
           decoration: const BoxDecoration(
             color: AppColors.softBlue,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Center(
             child: DoctorAvatar(
@@ -281,20 +267,19 @@ class _ProfileCard extends StatelessWidget {
 
 class _StarRating extends StatelessWidget {
   const _StarRating({required this.rating});
-
   final int rating;
 
   @override
   Widget build(BuildContext context) => Row(
-        children: List.generate(
-          5,
-          (index) => Icon(
-            index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-            color: const Color(0xFFFFB54A),
-            size: 16,
-          ),
-        ),
-      );
+    children: List.generate(
+      5,
+      (index) => Icon(
+        index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+        color: const Color(0xFFFFB54A),
+        size: 16,
+      ),
+    ),
+  );
 }
 
 class _DoctorMetric extends StatelessWidget {
@@ -319,7 +304,7 @@ class _DoctorMetric extends StatelessWidget {
           height: 38,
           decoration: BoxDecoration(
             color: iconColor.withValues(alpha: .12),
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: iconColor, size: 20),
         ),
@@ -332,99 +317,6 @@ class _DoctorMetric extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _ProfileActions extends StatelessWidget {
-  const _ProfileActions({required this.doctor});
-
-  final DoctorProfile doctor;
-
-  ClinicDetails? get _firstBookableClinic {
-    for (final clinic in doctor.clinicDetails) {
-      if (clinic.availabilities.isNotEmpty) return clinic;
-    }
-    return doctor.clinicDetails.isEmpty ? null : doctor.clinicDetails.first;
-  }
-
-  ClinicDetails? get _firstPhoneClinic {
-    for (final clinic in doctor.clinicDetails) {
-      if (clinic.phoneNumber?.isNotEmpty == true) return clinic;
-    }
-    return null;
-  }
-
-  ClinicDetails? get _firstMapClinic {
-    for (final clinic in doctor.clinicDetails) {
-      if (clinic.mapUrl?.isNotEmpty == true) return clinic;
-    }
-    return null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bookClinic = _firstBookableClinic;
-    final phoneClinic = _firstPhoneClinic;
-    final mapClinic = _firstMapClinic;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  doctor.canBookOnline
-                      ? Icons.check_circle_rounded
-                      : Icons.info_outline_rounded,
-                  color:
-                      doctor.canBookOnline ? AppColors.primary : AppColors.warning,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    doctor.canBookOnline
-                        ? 'الحجز الإلكتروني متاح لهذا الطبيب'
-                        : 'الحجز الإلكتروني غير مفعل حالياً',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (doctor.canBookOnline && bookClinic != null)
-                  FilledButton.icon(
-                    onPressed: () => context.push(
-                      '/book/${doctor.id}/${bookClinic.id}'
-                      '?doctorName=${Uri.encodeComponent(doctor.name)}'
-                      '&clinicName=${Uri.encodeComponent(bookClinic.name)}',
-                    ),
-                    icon: const Icon(Icons.calendar_month_rounded),
-                    label: const Text('احجز الآن'),
-                  ),
-                if (phoneClinic != null)
-                  OutlinedButton.icon(
-                    onPressed: () => openPhone(context, phoneClinic.phoneNumber!),
-                    icon: const Icon(Icons.phone_outlined),
-                    label: const Text('اتصال'),
-                  ),
-                if (mapClinic != null)
-                  OutlinedButton.icon(
-                    onPressed: () => openMap(context, mapClinic.mapUrl!),
-                    icon: const Icon(Icons.map_outlined),
-                    label: const Text('الموقع'),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _ClinicCard extends StatelessWidget {
@@ -455,18 +347,33 @@ class _ClinicCard extends StatelessWidget {
             icon: Icons.location_on_outlined,
             text: '${clinic.provinceName} - ${clinic.address}',
           ),
-          if (clinic.phoneNumber?.isNotEmpty == true)
-            _InfoRow(
-              icon: Icons.phone_outlined,
-              text: clinic.phoneNumber!,
-              onTap: () => openPhone(context, clinic.phoneNumber!),
+          if (clinic.phoneNumber?.isNotEmpty == true ||
+              clinic.mapUrl?.isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (clinic.phoneNumber?.isNotEmpty == true)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => openPhone(context, clinic.phoneNumber!),
+                      icon: const Icon(Icons.phone_outlined),
+                      label: const Text('اتصال'),
+                    ),
+                  ),
+                if (clinic.phoneNumber?.isNotEmpty == true &&
+                    clinic.mapUrl?.isNotEmpty == true)
+                  const SizedBox(width: 8),
+                if (clinic.mapUrl?.isNotEmpty == true)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => openMap(context, clinic.mapUrl!),
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text('الموقع'),
+                    ),
+                  ),
+              ],
             ),
-          if (clinic.mapUrl?.isNotEmpty == true)
-            _InfoRow(
-              icon: Icons.map_outlined,
-              text: 'فتح موقع العيادة على الخارطة',
-              onTap: () => openMap(context, clinic.mapUrl!),
-            ),
+          ],
           const Divider(height: 22),
           const Text(
             'أوقات الدوام',
@@ -487,7 +394,7 @@ class _ClinicCard extends StatelessWidget {
                   .toList(),
             ),
           if (clinic.availabilities.isNotEmpty && canBookOnline) ...[
-            const SizedBox(height: 7),
+            const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: () => context.push(
                 '/book/$doctorId/${clinic.id}'
@@ -506,76 +413,62 @@ class _ClinicCard extends StatelessWidget {
 
 class _AvailabilityChip extends StatelessWidget {
   const _AvailabilityChip({required this.item});
-
   final ClinicAvailability item;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7FBFA),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+    width: double.infinity,
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceMuted,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            item.dayName,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.dayName,
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-            Text(
-              '${_shortTime(item.startTime)} - ${_shortTime(item.endTime)}',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(width: 9),
-            Text(
-              '${item.maxAppointments} دور',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
-            ),
-          ],
+        Text(
+          '${_shortTime(item.startTime)} - ${_shortTime(item.endTime)}',
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      );
+        const SizedBox(width: 9),
+        Text(
+          '${item.maxAppointments} دور',
+          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        ),
+      ],
+    ),
+  );
 
   static String _shortTime(String value) =>
       value.length >= 5 ? value.substring(0, 5) : value;
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.text, this.onTap});
+  const _InfoRow({required this.icon, required this.text});
   final IconData icon;
   final String text;
-  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(8),
-    child: Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: onTap == null ? AppColors.muted : AppColors.primary,
-                decoration: onTap == null ? null : TextDecoration.underline,
-              ),
-            ),
-          ),
-          if (onTap != null)
-            const Icon(Icons.open_in_new, size: 15, color: AppColors.primary),
-        ],
-      ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 7),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(text, style: const TextStyle(color: AppColors.muted)),
+        ),
+      ],
     ),
   );
 }
