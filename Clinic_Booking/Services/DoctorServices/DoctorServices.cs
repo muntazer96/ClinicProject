@@ -95,7 +95,7 @@ namespace Clinic_Booking.Services.DoctorServices
                         subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
                         subscription.StartDate <= now &&
                         subscription.EndDate >= now &&
-                        subscription.Package.Price > 0),
+                        subscription.Package.NormalizedName == "Premium"),
                     ActiveSubscriptionName = d.DoctorSubscriptions
                         .Where(subscription =>
                             subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
@@ -200,7 +200,7 @@ namespace Clinic_Booking.Services.DoctorServices
                         subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
                         subscription.StartDate <= now &&
                         subscription.EndDate >= now &&
-                        subscription.Package.Price > 0),
+                        subscription.Package.NormalizedName == "Premium"),
                     ActiveSubscriptionName = d.DoctorSubscriptions
                         .Where(subscription =>
                             subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&

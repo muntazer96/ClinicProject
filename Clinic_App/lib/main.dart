@@ -10,14 +10,17 @@ import 'features/auth/auth_controller.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (!PushNotificationService.isSupported) return;
   await Firebase.initializeApp();
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await PushNotificationService.initializeForegroundNotifications();
+  if (PushNotificationService.isSupported) {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await PushNotificationService.initializeForegroundNotifications();
+  }
   final auth = AuthController(ApiClient());
   await auth.restoreSession();
   runApp(ChangeNotifierProvider.value(value: auth, child: const ClinicApp()));

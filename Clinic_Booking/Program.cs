@@ -2,6 +2,7 @@
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.Configuration;
+using Clinic_Booking.IServices.IAppVersionServices;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.IClinicServices;
@@ -20,6 +21,7 @@ using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.Services.AppointmentServices;
+using Clinic_Booking.Services.AppVersionServices;
 using Clinic_Booking.Services.BookingSmsServices;
 using Clinic_Booking.Services.ClinicServices;
 using Clinic_Booking.Services.ClinicExceptionServices;
@@ -60,6 +62,7 @@ builder.Services.AddScoped<IFeatureServices, FeatureServices>();
 builder.Services.AddScoped<IDoctorFeatureServices, DoctorFeatureServices>();
 builder.Services.AddScoped<IDoctorAvailabilityServices, DoctorAvailabilityService>();
 builder.Services.AddScoped<IAppointmentServices, AppointmentServices>();
+builder.Services.AddScoped<IAppVersionServices, AppVersionServices>();
 builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>();
 builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
@@ -233,6 +236,7 @@ if (app.Configuration.GetValue("Database:AutoMigrate", app.Environment.IsDevelop
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.Migrate();
+    await AppVersionPolicySeeder.SeedAsync(dbContext);
 }
 
 app.Run();

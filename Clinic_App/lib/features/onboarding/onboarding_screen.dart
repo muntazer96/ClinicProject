@@ -118,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   icon: Icon(
                     _page == _items.length - 1
                         ? Icons.check_rounded
-                        : Icons.arrow_back_rounded,
+                        : Icons.arrow_forward_rounded,
                   ),
                   label: Text(
                     _page == _items.length - 1 ? 'ابدأ الآن' : 'التالي',

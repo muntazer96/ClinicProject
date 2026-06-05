@@ -1,4 +1,5 @@
 ﻿using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.AppVersion;
 using Clinic_Booking.Entities.Clinic;
 using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Entities.BookingOtpRequest;
@@ -57,11 +58,24 @@ namespace Clinic_Booking.Data
         public DbSet<DoctorAvailability> DoctorAvailabilities { get; set; }
         public DbSet<Feature> Features { get; set; }
         public DbSet<DoctorFeature> DoctorFeature { get; set; }
+        public DbSet<AppVersionPolicy> AppVersionPolicies { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<AppVersionPolicy>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Platform).IsUnique();
+                entity.Property(e => e.Platform).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.LatestVersion).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.MinimumSupportedVersion).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.Message).IsRequired().HasMaxLength(600);
+                entity.Property(e => e.UpdateUrl).HasMaxLength(500);
+            });
 
             // User
             modelBuilder.Entity<AspNetUsers>(entity =>

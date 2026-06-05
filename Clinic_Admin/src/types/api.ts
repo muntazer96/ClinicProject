@@ -255,3 +255,33 @@ export interface BookingDetails {
   latitude?: number
   longitude?: number
 }
+
+export interface AppVersionPolicy {
+  id: number
+  platform: string
+  latestVersion: string
+  latestBuildNumber: number
+  minimumSupportedVersion: string
+  minimumSupportedBuildNumber: number
+  forceUpdate: boolean
+  isEnabled: boolean
+  title: string
+  message: string
+  updateUrl?: string
+}
+
+export interface AppVersionCheck {
+  platform: string
+  currentVersion: string
+  currentBuildNumber: number
+  latestVersion: string
+  latestBuildNumber: number
+  minimumSupportedVersion: string
+  minimumSupportedBuildNumber: number
+  updateAvailable: boolean
+  updateRequired: boolean
+  forceUpdate: boolean
+  title: string
+  message: string
+  updateUrl?: string
+}

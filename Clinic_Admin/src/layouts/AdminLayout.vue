@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
   Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
-  House, KeyRound, LogOut, Menu, MessageSquareText, Stethoscope, UserRound, UsersRound, X,
+  House, KeyRound, LogOut, Menu, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import api from '../services/api'
@@ -27,6 +27,7 @@ const links = computed(() => [
   { label: 'المستخدمون', to: '/users', icon: UsersRound, roles: ['SuperAdmin'] },
   { label: 'الأطباء', to: '/doctors', icon: Stethoscope, roles: ['SuperAdmin'] },
   { label: 'الاشتراكات', to: '/subscriptions', icon: ClipboardList, roles: ['SuperAdmin'] },
+  { label: 'إصدارات التطبيق', to: '/app-versions', icon: Smartphone, roles: ['SuperAdmin'] },
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin'] },
   { label: 'عياداتي', to: '/clinics', icon: Building2, roles: ['DoctorUser'] },
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['DoctorUser'] },

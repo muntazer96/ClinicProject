@@ -3,6 +3,7 @@ import { pinia } from '../stores'
 import { useAuthStore } from '../stores/auth'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import AppointmentsView from '../views/AppointmentsView.vue'
+import AppVersionsView from '../views/AppVersionsView.vue'
 import LoginView from '../views/LoginView.vue'
 import ClinicsView from '../views/ClinicsView.vue'
 import DashboardView from '../views/DashboardView.vue'
@@ -38,6 +39,7 @@ const router = createRouter({
         { path: 'doctors', name: 'doctors', component: DoctorsView, meta: { title: 'إدارة الأطباء', roles: ['SuperAdmin'] } },
         { path: 'doctors/:doctorId', name: 'doctor-details', component: DoctorDetailsView, meta: { title: 'تفاصيل الطبيب', roles: ['SuperAdmin'] } },
         { path: 'subscriptions', name: 'subscriptions', component: SubscriptionsView, meta: { title: 'الاشتراكات والباقات', roles: ['SuperAdmin'] } },
+        { path: 'app-versions', name: 'app-versions', component: AppVersionsView, meta: { title: 'إصدارات التطبيق', roles: ['SuperAdmin'] } },
         { path: 'clinics', name: 'clinics', component: ClinicsView, meta: { title: 'عياداتي', roles: ['DoctorUser'] } },
         { path: 'appointments', name: 'appointments', component: AppointmentsView, meta: { title: 'الحجوزات اليومية', roles: ['SuperAdmin', 'DoctorUser'] } },
         { path: 'exceptions', name: 'exceptions', component: ExceptionsView, meta: { title: 'الإجازات والاستثناءات', roles: ['DoctorUser'] } },

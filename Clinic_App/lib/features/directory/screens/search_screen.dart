@@ -359,152 +359,180 @@ class _DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final featured = doctor.isFeatured;
-    final accent = _featuredAccent(doctor);
-    final subscriptionName = doctor.activeSubscriptionName?.trim();
+    const premiumColor = Color(0xFFD49A00);
 
     return Card(
-    color: featured ? const Color(0xFFFFFCF1) : Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: BorderSide(
-        color: featured ? accent.withOpacity(0.82) : AppColors.border,
-        width: featured ? 1.4 : 1,
-      ),
-    ),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Stack(
-        children: [
-          Padding(
-        padding: EdgeInsets.fromLTRB(13, featured ? 38 : 13, 13, 13),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DoctorAvatar(imageName: doctor.imageName, size: 76),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doctor.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    doctor.specializationName,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 6,
-                    children: [
-                      if (doctor.clinics.isNotEmpty)
-                        _Tag(
-                          icon: Icons.location_on_outlined,
-                          text: doctor.clinics.first.provinceName,
-                        ),
-                      if (doctor.averageRating != null)
-                        _Tag(
-                          icon: Icons.star_rounded,
-                          text:
-                              '${doctor.averageRating!.toStringAsFixed(1)} (${doctor.reviewCount})',
-                          color: const Color(0xFFB16A2B),
-                        ),
-                      if (doctor.canBookOnline)
-                        const _Tag(
-                          icon: Icons.calendar_month_outlined,
-                          text: 'حجز إلكتروني',
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: featured ? accent : AppColors.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.arrow_back_rounded,
-                color: Colors.white,
-                size: 19,
-              ),
-            ),
-          ],
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: featured ? premiumColor : AppColors.border,
+          width: featured ? 1.5 : 1,
         ),
-          ),
-          if (featured)
-            Positioned(
-              top: 10,
-              right: 12,
-              child: _FeaturedBadge(
-                color: accent,
-                text: subscriptionName?.isNotEmpty == true
-                    ? subscriptionName!
-                    : 'Ù…Ù…ÙŠØ²',
-              ),
-            ),
-        ],
       ),
-    ),
-  );
-  }
-
-  Color _featuredAccent(DoctorSummary doctor) {
-    final name = doctor.activeSubscriptionNormalizedName?.toLowerCase() ?? '';
-    if (name.contains('diamond') || name.contains('premium')) {
-      return const Color(0xFF0E7490);
-    }
-    return const Color(0xFFB7791F);
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              DoctorAvatar(
+                imageName: doctor.imageName,
+                size: 76,
+                foreground: featured ? premiumColor : AppColors.primary,
+                background: featured
+                    ? const Color(0xFFFFF4D8)
+                    : const Color(0xFFEAF6F8),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        if (featured) ...[
+                          const Icon(
+                            Icons.workspace_premium_rounded,
+                            color: premiumColor,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Expanded(
+                          child: Text(
+                            doctor.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      doctor.specializationName,
+                      style: TextStyle(
+                        color: featured ? premiumColor : AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    if (doctor.clinics.isNotEmpty)
+                      _InlineLocation(text: doctor.clinics.first.provinceName),
+                    if (featured) ...[
+                      const SizedBox(height: 10),
+                      const _PremiumDoctorBadge(),
+                    ] else ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 6,
+                        children: [
+                          if (doctor.averageRating != null)
+                            _Tag(
+                              icon: Icons.star_rounded,
+                              text:
+                                  '${doctor.averageRating!.toStringAsFixed(1)} (${doctor.reviewCount})',
+                              color: const Color(0xFFB16A2B),
+                            ),
+                          if (doctor.canBookOnline)
+                            const _Tag(
+                              icon: Icons.calendar_month_outlined,
+                              text: 'حجز إلكتروني',
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: featured ? premiumColor : AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: featured
+                      ? [
+                          BoxShadow(
+                            color: premiumColor.withValues(alpha: .22),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 25,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
-class _FeaturedBadge extends StatelessWidget {
-  const _FeaturedBadge({required this.color, required this.text});
+class _InlineLocation extends StatelessWidget {
+  const _InlineLocation({required this.text});
 
-  final Color color;
   final String text;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(8),
-      boxShadow: [
-        BoxShadow(
-          color: color.withOpacity(0.24),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(
-          Icons.workspace_premium_rounded,
-          size: 15,
-          color: Colors.white,
-        ),
-        const SizedBox(width: 4),
-        Text(
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Icon(Icons.location_on_outlined, color: AppColors.muted, size: 18),
+      const SizedBox(width: 4),
+      Flexible(
+        child: Text(
           text,
           style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
+            color: AppColors.muted,
+            fontWeight: FontWeight.w700,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
+}
+
+class _PremiumDoctorBadge extends StatelessWidget {
+  const _PremiumDoctorBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFFBF0),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0xFFE4B23C), width: 1.1),
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.diamond_outlined, color: Color(0xFFD49A00), size: 16),
+        SizedBox(width: 5),
+        Text(
+          'طبيب مميز',
+          style: TextStyle(
+            color: Color(0xFFD49A00),
+            fontSize: 12,
             fontWeight: FontWeight.w900,
           ),
         ),

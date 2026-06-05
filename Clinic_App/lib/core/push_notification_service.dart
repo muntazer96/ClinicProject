@@ -16,11 +16,14 @@ class PushNotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   static bool _foregroundNotificationsInitialized = false;
+  static bool get isSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   final ApiClient _client;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
   static Future<void> initializeForegroundNotifications() async {
+    if (!isSupported) return;
     if (_foregroundNotificationsInitialized) return;
 
     const initializationSettings = InitializationSettings(
@@ -69,6 +72,7 @@ class PushNotificationService {
   }
 
   Future<void> registerCurrentDevice() async {
+    if (!isSupported) return;
     await _requestPermissionIfNeeded();
     final token = await _messaging.getToken();
     if (token == null || token.trim().isEmpty) return;
@@ -81,6 +85,7 @@ class PushNotificationService {
   }
 
   Future<void> unregisterCurrentDevice() async {
+    if (!isSupported) return;
     final token = await _messaging.getToken();
     if (token == null || token.trim().isEmpty) return;
 
