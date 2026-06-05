@@ -4,6 +4,7 @@ using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Review;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.IServices.IReviewServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +15,16 @@ namespace Clinic_Booking.Services.ReviewServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
+        private readonly IPushNotificationServices _pushNotificationServices;
 
-        public ReviewServices(ApplicationDbContext context, ILoadServices load)
+        public ReviewServices(
+            ApplicationDbContext context,
+            ILoadServices load,
+            IPushNotificationServices pushNotificationServices)
         {
             _context = context;
             _load = load;
+            _pushNotificationServices = pushNotificationServices;
         }
 
         public async Task<IActionResult> GetByDoctorAsync(int doctorId)
@@ -123,7 +129,35 @@ namespace Clinic_Booking.Services.ReviewServices
                 return Conflict("This booking has already been reviewed.");
             }
 
+            await NotifyDoctorAboutReviewAsync(review);
+
             return Ok(new { ReviewId = review.Id }, "Review added successfully.");
+        }
+
+        private async Task NotifyDoctorAboutReviewAsync(Review review)
+        {
+            var doctorUserId = await _context.Doctors
+                .Where(doctor => doctor.Id == review.DoctorId && !doctor.IsDeleted && doctor.UserId.HasValue)
+                .Select(doctor => doctor.UserId)
+                .FirstOrDefaultAsync();
+
+            if (!doctorUserId.HasValue)
+            {
+                return;
+            }
+
+            await _pushNotificationServices.SendToUserAsync(
+                doctorUserId.Value,
+                "وصل تقييم جديد",
+                $"قام أحد المراجعين بتقييمك {review.Rating} من 5 بعد الحجز رقم {review.AppoinmentId}.",
+                new Dictionary<string, string>
+                {
+                    ["type"] = "review",
+                    ["reviewId"] = review.Id.ToString(),
+                    ["doctorId"] = review.DoctorId.ToString(),
+                    ["appointmentId"] = review.AppoinmentId.ToString(),
+                    ["rating"] = review.Rating.ToString()
+                });
         }
 
         private Task<bool> IsReviewFeatureEnabledAsync(int doctorId)

@@ -7,6 +7,7 @@ using Clinic_Booking.Entities.Doctor;
 using Clinic_Booking.Entities.DoctorAvailability;
 using Clinic_Booking.Entities.DoctorFeature;
 using Clinic_Booking.Entities.DoctorSubscription;
+using Clinic_Booking.Entities.DeviceToken;
 using Clinic_Booking.Entities.Feature;
 using Clinic_Booking.Entities.Message;
 using Clinic_Booking.Entities.Notification;
@@ -46,6 +47,7 @@ namespace Clinic_Booking.Data
         public DbSet<BookingOtpRequest> BookingOtpRequests { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<UserPhoneOtpRequest> UserPhoneOtpRequests { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
@@ -373,6 +375,22 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.ReplacedByTokenHash).HasMaxLength(128);
                 entity.HasIndex(e => e.TokenHash).IsUnique();
                 entity.HasIndex(e => new { e.UserId, e.ExpiresAt, e.RevokedAt });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // DeviceToken
+            modelBuilder.Entity<DeviceToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Token).IsRequired().HasMaxLength(2048);
+                entity.Property(e => e.Platform).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.DeviceId).HasMaxLength(200);
+                entity.HasIndex(e => e.Token).IsUnique();
+                entity.HasIndex(e => new { e.UserId, e.Platform, e.IsDeleted });
 
                 entity.HasOne(e => e.User)
                     .WithMany()

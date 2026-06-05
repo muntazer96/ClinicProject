@@ -1,20 +1,29 @@
 ﻿using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Clinic_Booking.Controllers
 {
     public class UserController : BaseApiController
     {
         private readonly IUserServices _service;
+        private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(IUserServices service)
+        public UserController(
+            IUserServices service,
+            IPushNotificationServices pushNotificationServices,
+            ILogger<UserController> logger)
         {
             _service = service;
+            _pushNotificationServices = pushNotificationServices;
+            _logger = logger;
         }
 
         [HttpPost("signup")]
@@ -119,6 +128,77 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> ConfirmPhoneAsync([FromBody] ConfirmPhoneDto form)
         {
             return await _service.ConfirmPhoneAsync(form);
+        }
+
+        [HttpPost("device-token")]
+        [Authorize]
+        public async Task<IActionResult> RegisterDeviceTokenAsync([FromBody] DeviceTokenDto form)
+        {
+            return await _service.RegisterDeviceTokenAsync(form);
+        }
+
+        [HttpDelete("device-token")]
+        [Authorize]
+        public async Task<IActionResult> DeleteDeviceTokenAsync([FromBody] DeviceTokenDto form)
+        {
+            return await _service.DeleteDeviceTokenAsync(form);
+        }
+
+        [HttpPost("device-token/test")]
+        [Authorize]
+        public async Task<IActionResult> SendTestPushNotificationAsync()
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdValue, out var userId))
+            {
+                return Unauthorized(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            _logger.LogInformation("Manual test push requested. UserId={UserId}", userId);
+            await _pushNotificationServices.SendToUserAsync(
+                userId,
+                "اختبار الإشعارات",
+                "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.",
+                new Dictionary<string, string>
+                {
+                    ["type"] = "test",
+                    ["createdAt"] = DateTime.UtcNow.ToString("O")
+                });
+
+            return Ok(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تمت محاولة إرسال إشعار تجريبي. راقب لوكات الباك لمعرفة النتيجة."
+            });
+        }
+
+        [HttpPost("{userId}/device-token/test")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> SendTestPushNotificationToUserAsync(Guid userId)
+        {
+            _logger.LogInformation("Manual admin test push requested. TargetUserId={UserId}", userId);
+            await _pushNotificationServices.SendToUserAsync(
+                userId,
+                "اختبار الإشعارات",
+                "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.",
+                new Dictionary<string, string>
+                {
+                    ["type"] = "test",
+                    ["createdAt"] = DateTime.UtcNow.ToString("O")
+                });
+
+            return Ok(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تمت محاولة إرسال إشعار تجريبي للمستخدم المحدد. راقب لوكات الباك لمعرفة النتيجة."
+            });
         }
 
         [HttpPost("password/reset-link")]

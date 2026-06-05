@@ -15,6 +15,10 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public bool CanBookOnline { get; set; }
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
+        public bool IsFeatured { get; set; }
+        public string? ActiveSubscriptionName { get; set; }
+        public string? ActiveSubscriptionNormalizedName { get; set; }
+        public decimal ActiveSubscriptionWeight { get; set; }
         public List<PublicDoctorClinicSummaryDto> Clinics { get; set; } = [];
     }
 
@@ -31,6 +35,10 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public bool CanBookOnline { get; set; }
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
+        public bool IsFeatured { get; set; }
+        public string? ActiveSubscriptionName { get; set; }
+        public string? ActiveSubscriptionNormalizedName { get; set; }
+        public decimal ActiveSubscriptionWeight { get; set; }
         public List<PublicDoctorClinicDto> Clinics { get; set; } = [];
     }
 

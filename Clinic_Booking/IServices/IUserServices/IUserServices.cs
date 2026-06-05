@@ -20,6 +20,8 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> ConfirmEmailAsync(Guid userId, string token);
         Task<IActionResult> SendPhoneConfirmationAsync();
         Task<IActionResult> ConfirmPhoneAsync(ConfirmPhoneDto form);
+        Task<IActionResult> RegisterDeviceTokenAsync(DeviceTokenDto form);
+        Task<IActionResult> DeleteDeviceTokenAsync(DeviceTokenDto form);
         Task<IActionResult> SendResetPasswordLinkAsync(string guid);
         Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form);
         Task<IActionResult> ChangePasswordAsync(ChangePasswordDto form);

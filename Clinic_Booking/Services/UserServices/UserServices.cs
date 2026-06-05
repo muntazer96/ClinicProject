@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.DeviceToken;
 using Clinic_Booking.Entities.RefreshToken;
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
@@ -1097,6 +1098,131 @@ namespace Clinic_Booking.Services.UserServices
                 Message = "تم تأكيد رقم الهاتف بنجاح."
             });
         }
+
+        public async Task<IActionResult> RegisterDeviceTokenAsync(DeviceTokenDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var token = form.Token?.Trim();
+            var platform = form.Platform?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(platform))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز الجهاز ونوع المنصة مطلوبان."
+                });
+            }
+
+            var existingToken = await _context.DeviceTokens
+                .FirstOrDefaultAsync(item => item.Token == token);
+
+            if (existingToken == null)
+            {
+                _context.DeviceTokens.Add(new DeviceToken
+                {
+                    UserId = userId.Value,
+                    Token = token,
+                    Platform = platform,
+                    DeviceId = form.DeviceId?.Trim(),
+                    LastSeenAt = DateTime.UtcNow,
+                    CreatorId = userId
+                });
+
+                _logger.LogInformation(
+                    "Device token registered. UserId={UserId}, Platform={Platform}, Token={Token}, DeviceId={DeviceId}",
+                    userId,
+                    platform,
+                    MaskDeviceToken(token),
+                    form.DeviceId?.Trim());
+            }
+            else
+            {
+                existingToken.UserId = userId.Value;
+                existingToken.Platform = platform;
+                existingToken.DeviceId = form.DeviceId?.Trim();
+                existingToken.LastSeenAt = DateTime.UtcNow;
+                existingToken.IsDeleted = false;
+                existingToken.DeletedAt = null;
+                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifierId = userId;
+
+                _logger.LogInformation(
+                    "Device token refreshed. UserId={UserId}, Platform={Platform}, Token={Token}, DeviceId={DeviceId}",
+                    userId,
+                    platform,
+                    MaskDeviceToken(token),
+                    form.DeviceId?.Trim());
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تسجيل الجهاز لاستلام الإشعارات."
+            });
+        }
+
+        public async Task<IActionResult> DeleteDeviceTokenAsync(DeviceTokenDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var token = form.Token?.Trim();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم حذف الجهاز من الإشعارات."
+                });
+            }
+
+            var existingToken = await _context.DeviceTokens
+                .FirstOrDefaultAsync(item => item.UserId == userId && item.Token == token && !item.IsDeleted);
+
+            if (existingToken != null)
+            {
+                existingToken.IsDeleted = true;
+                existingToken.DeletedAt = DateTime.UtcNow;
+                existingToken.DeleterId = userId;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Device token deleted. UserId={UserId}, Token={Token}",
+                    userId,
+                    MaskDeviceToken(token));
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم حذف الجهاز من الإشعارات."
+            });
+        }
+
         public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
         {
             var user = await FindUserAsync(identifier);
@@ -1298,6 +1424,20 @@ namespace Clinic_Booking.Services.UserServices
         private static string HashRefreshToken(string token)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+        }
+        private static string MaskDeviceToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return "(empty)";
+            }
+
+            if (token.Length <= 16)
+            {
+                return $"{token[..Math.Min(4, token.Length)]}...";
+            }
+
+            return $"{token[..8]}...{token[^6..]}";
         }
         private static string GenerateNumericOtp(int length)
         {

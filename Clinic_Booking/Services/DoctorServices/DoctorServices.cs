@@ -91,6 +91,36 @@ namespace Clinic_Booking.Services.DoctorServices
                             feature.Feature.NormalizedName == "ShowReviews")
                             ? d.Reviews.Count(review => !review.IsDeleted)
                             : 0,
+                    IsFeatured = d.DoctorSubscriptions.Any(subscription =>
+                        subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                        subscription.StartDate <= now &&
+                        subscription.EndDate >= now &&
+                        subscription.Package.Price > 0),
+                    ActiveSubscriptionName = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .OrderByDescending(subscription => subscription.Package.YearlyPrice)
+                        .ThenByDescending(subscription => subscription.Package.Price)
+                        .Select(subscription => subscription.Package.Name)
+                        .FirstOrDefault(),
+                    ActiveSubscriptionNormalizedName = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .OrderByDescending(subscription => subscription.Package.YearlyPrice)
+                        .ThenByDescending(subscription => subscription.Package.Price)
+                        .Select(subscription => subscription.Package.NormalizedName)
+                        .FirstOrDefault(),
+                    ActiveSubscriptionWeight = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0,
                     Clinics = d.Clinics
                         .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
                         .OrderBy(clinic => clinic.Id)
@@ -166,6 +196,36 @@ namespace Clinic_Booking.Services.DoctorServices
                             feature.Feature.NormalizedName == "ShowReviews")
                             ? d.Reviews.Count(review => !review.IsDeleted)
                             : 0,
+                    IsFeatured = d.DoctorSubscriptions.Any(subscription =>
+                        subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                        subscription.StartDate <= now &&
+                        subscription.EndDate >= now &&
+                        subscription.Package.Price > 0),
+                    ActiveSubscriptionName = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .OrderByDescending(subscription => subscription.Package.YearlyPrice)
+                        .ThenByDescending(subscription => subscription.Package.Price)
+                        .Select(subscription => subscription.Package.Name)
+                        .FirstOrDefault(),
+                    ActiveSubscriptionNormalizedName = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .OrderByDescending(subscription => subscription.Package.YearlyPrice)
+                        .ThenByDescending(subscription => subscription.Package.Price)
+                        .Select(subscription => subscription.Package.NormalizedName)
+                        .FirstOrDefault(),
+                    ActiveSubscriptionWeight = d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0,
                     Clinics = d.Clinics
                         .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
                         .OrderBy(clinic => clinic.Id)
@@ -266,6 +326,13 @@ namespace Clinic_Booking.Services.DoctorServices
                                 .Average() ?? 0
                             : 0)
                     .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenByDescending(d => d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0)
                     .ThenBy(d => d.Name),
                 "reviews" => query
                     .OrderByDescending(d =>
@@ -281,6 +348,13 @@ namespace Clinic_Booking.Services.DoctorServices
                             ? d.Reviews.Count(review => !review.IsDeleted)
                             : 0)
                     .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenByDescending(d => d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0)
                     .ThenBy(d => d.Name),
                 "booking" => query
                     .OrderByDescending(d =>
@@ -294,9 +368,30 @@ namespace Clinic_Booking.Services.DoctorServices
                             feature.IsEnabled &&
                             feature.Feature.NormalizedName == "EBooking"))
                     .ThenByDescending(d => d.SubscriptionRank)
+                    .ThenByDescending(d => d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0)
                     .ThenBy(d => d.Name),
                 _ => query
-                    .OrderByDescending(d => d.SubscriptionRank)
+                    .OrderByDescending(d => d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                        .Max() ?? 0)
+                    .ThenByDescending(d => d.DoctorSubscriptions
+                        .Where(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now)
+                        .Select(subscription => (decimal?)subscription.Package.Price)
+                        .Max() ?? 0)
+                    .ThenByDescending(d => d.SubscriptionRank)
                     .ThenBy(d => d.Name),
             };
         }

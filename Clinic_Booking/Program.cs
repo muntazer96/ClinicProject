@@ -14,6 +14,7 @@ using Clinic_Booking.IServices.IDoctorSubscriptionServices;
 using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.IFeatureServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.IServices.IReviewServices;
 using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
@@ -30,6 +31,7 @@ using Clinic_Booking.Services.DoctorSubscriptionServices;
 using Clinic_Booking.Services.EmailServices;
 using Clinic_Booking.Services.FeatureServices;
 using Clinic_Booking.Services.LoadServices;
+using Clinic_Booking.Services.PushNotificationServices;
 using Clinic_Booking.Services.ReviewServices;
 using Clinic_Booking.Services.SpecializationServices;
 using Clinic_Booking.Services.SubscriptionPackagesServices;
@@ -62,9 +64,12 @@ builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>()
 builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
 builder.Services.AddScoped<IReviewServices, ReviewServices>();
+builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServices>();
 builder.Services.AddHostedService<SubscriptionExpirationService>();
 builder.Services.Configure<BookingOtpOptions>(
     builder.Configuration.GetSection(BookingOtpOptions.SectionName));
+builder.Services.Configure<PushNotificationOptions>(
+    builder.Configuration.GetSection(PushNotificationOptions.SectionName));
 
 
 builder.Services.AddTransient<IEmailServices, EmailServices>();
@@ -135,7 +140,7 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.TokenValidationParameters = new TokenValidationParameters()
     {
         ValidateIssuer = true,
@@ -155,10 +160,8 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-
-
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -205,11 +208,11 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-app.UseSwagger();
-app.UseSwaggerUI();
-//}
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 
@@ -225,10 +228,11 @@ app.MapControllers();
 
 app.UseStaticFiles();
 
-var scope = app.Services.CreateScope();
-
-var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-dbContext.Database.Migrate();
+if (app.Configuration.GetValue("Database:AutoMigrate", app.Environment.IsDevelopment()))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
