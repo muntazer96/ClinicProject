@@ -14,7 +14,7 @@ const loading = ref(false)
 const message = ref('')
 const page = ref(1)
 const totalPages = ref(1)
-const filters = reactive({ name: '', specialization: '', iraqiProvince: '' })
+const filters = reactive({ name: '', specialization: '', iraqiProvince: '', sort: 'default' })
 const apiOrigin = new URL(api.defaults.baseURL ?? 'https://localhost:7136/api').origin
 
 function doctorImage(imageName?: string) {
@@ -35,6 +35,7 @@ async function loadDoctors() {
         name: filters.name || undefined,
         specialization: filters.specialization || undefined,
         iraqiProvince: filters.iraqiProvince === '' ? undefined : filters.iraqiProvince,
+        sort: filters.sort || undefined,
         page: page.value,
         pageSize: 9,
       },
@@ -86,6 +87,12 @@ onMounted(async () => {
       <label class="search-box"><Search :size="18" /><input v-model="filters.name" placeholder="اسم الطبيب" /></label>
       <select v-model="filters.specialization"><option value="">كل الاختصاصات</option><option v-for="item in specializations" :key="item.id" :value="item.id">{{ item.name }}</option></select>
       <select v-model="filters.iraqiProvince"><option value="">كل المحافظات</option><option v-for="province in provinces" :key="province.value" :value="province.value">{{ province.name }}</option></select>
+      <select v-model="filters.sort">
+        <option value="default">الأفضلية</option>
+        <option value="rating">الأعلى تقييماً</option>
+        <option value="reviews">الأكثر تقييمات</option>
+        <option value="booking">الحجز الإلكتروني</option>
+      </select>
       <button class="compact-primary" type="submit">بحث</button>
     </form>
 
