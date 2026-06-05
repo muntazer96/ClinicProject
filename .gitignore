@@ -372,6 +372,8 @@ appsettings.json
 *.jpeg
 *.png
 !Clinic_App/assets/app_logo.png
+!Clinic_App/assets/godev_logo.png
+!Clinic_Admin/src/assets/godev_logo.png
 !Clinic_App/android/app/src/main/res/mipmap*/ic_launcher*.png
 !Clinic_App/ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png
 *.gif

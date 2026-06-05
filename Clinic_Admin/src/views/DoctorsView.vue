@@ -228,7 +228,7 @@ onBeforeUnmount(clearImagePreview)
       <div class="table-toolbar"><span class="records-count"><Stethoscope :size="16" /> {{ totalItems }} طبيب</span></div>
       <div class="table-scroll">
         <table class="data-table">
-          <thead><tr><th>الطبيب</th><th>الاختصاص والمحافظة</th><th>التواصل</th><th>الحساب</th><th>الظهور</th><th>الإجراءات</th></tr></thead>
+          <thead><tr><th>الطبيب</th><th>الاختصاص والمحافظة</th><th>التواصل</th><th>الحساب المرتبط</th><th>الظهور</th><th>الإجراءات</th></tr></thead>
           <tbody>
             <tr v-if="loading"><td colspan="6" class="table-message">جارِ تحميل الأطباء...</td></tr>
             <tr v-else-if="!doctors.length"><td colspan="6" class="table-message">لا توجد سجلات مطابقة.</td></tr>
@@ -236,7 +236,14 @@ onBeforeUnmount(clearImagePreview)
               <td><div class="entity-cell"><span class="small-avatar"><Stethoscope :size="17" /></span><div><strong>{{ doctor.name }}</strong><small>{{ doctor.normalizedName }}</small></div></div></td>
               <td><strong>{{ doctor.specialization.name }}</strong><small class="block-muted">{{ doctor.iraqiProvinceName }}</small></td>
               <td><strong>{{ doctor.phoneNumber }}</strong><small class="block-muted">{{ doctor.location }}</small></td>
-              <td><span class="status-badge" :class="doctor.userId ? 'status-success' : 'status-neutral'">{{ doctor.userId ? 'مربوط' : 'غير مربوط' }}</span></td>
+              <td>
+                <div v-if="doctor.linkedUser" class="linked-account-cell">
+                  <!-- <span class="status-badge status-success">مربوط</span>-->
+                  <strong>{{ doctor.linkedUser.name || doctor.linkedUser.userName }}</strong>
+                  <small>{{ doctor.linkedUser.phoneNumber || doctor.linkedUser.email || doctor.linkedUser.id }}</small>
+                </div>
+                <span v-else class="status-badge status-neutral">غير مربوط</span>
+              </td>
               <td><button class="status-button" type="button" :class="doctor.isPubliclyVisible ? 'visible-status' : ''" @click="toggleVisibility(doctor)"><Eye v-if="doctor.isPubliclyVisible" :size="16" /><EyeOff v-else :size="16" />{{ doctor.isPubliclyVisible ? 'ظاهر' : 'مخفي' }}</button></td>
               <td><div class="row-actions">
                 <RouterLink class="row-link" :to="`/doctors/${doctor.id}`" title="عرض صفحة الطبيب"><FileText :size="17" /></RouterLink>
@@ -288,6 +295,7 @@ onBeforeUnmount(clearImagePreview)
 
 <style scoped>
 .upload-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }.doctor-image-preview { width: 94px; height: 94px; object-fit: cover; border: 1px solid var(--line); border-radius: 14px; }
+.linked-account-cell { display: grid; gap: 4px; min-width: 170px; }.linked-account-cell strong { color: var(--ink); font-size: 13px; }.linked-account-cell small { color: var(--muted); direction: ltr; text-align: right; font-size: 11px; }
 .link-user-search { display: flex; gap: 8px; margin-top: 14px; }.link-user-search .search-box { flex: 1; min-width: 0; }.link-user-empty { margin-top: 12px; padding: 18px; color: var(--muted); text-align: center; border: 1px solid var(--line); border-radius: 9px; background: #fbfdfc; }
 .link-user-results { display: grid; gap: 7px; max-height: 270px; margin-top: 12px; overflow-y: auto; }.link-user-option { display: flex; align-items: center; gap: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }.link-user-option.selected { border-color: #9acfc7; background: var(--primary-soft); }.link-user-option strong, .link-user-option small { display: block; }.link-user-option small { margin-top: 3px; color: var(--muted); font-size: 12px; }
 </style>

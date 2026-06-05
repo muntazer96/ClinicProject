@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { CheckCircle2, Clipboard, Eye, KeyRound, LockKeyhole, LockKeyholeOpen, MailCheck, Pencil, RefreshCw, Search, Trash2, UserPlus, UserRound, UsersRound, XCircle } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
@@ -197,10 +198,10 @@ onMounted(loadUsers)
       </div>
       <div class="table-scroll">
         <table class="data-table">
-          <thead><tr><th>المستخدم</th><th>بيانات التواصل</th><th>الدور</th><th>آخر دخول</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+          <thead><tr><th>المستخدم</th><th>بيانات التواصل</th><th>الدور</th><th>الطبيب المرتبط</th><th>آخر دخول</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
           <tbody>
-            <tr v-if="loading"><td colspan="6" class="table-message">جارِ تحميل المستخدمين...</td></tr>
-            <tr v-else-if="!users.length"><td colspan="6" class="table-message">لا توجد حسابات مطابقة.</td></tr>
+            <tr v-if="loading"><td colspan="7" class="table-message">جارِ تحميل المستخدمين...</td></tr>
+            <tr v-else-if="!users.length"><td colspan="7" class="table-message">لا توجد حسابات مطابقة.</td></tr>
             <tr v-for="user in users" v-else :key="user.id">
               <td><div class="entity-cell"><span class="small-avatar"><UserRound :size="17" /></span><div><strong>{{ user.name || user.userName }}</strong><small>{{ user.userName || user.id }}</small></div></div></td>
               <td>
@@ -216,6 +217,13 @@ onMounted(loadUsers)
                 </div>
               </td>
               <td><span class="soft-badge">{{ roleLabel(user.roleName) }}</span></td>
+              <td>
+                <RouterLink v-if="user.linkedDoctor" class="linked-doctor-cell" :to="`/doctors/${user.linkedDoctor.id}`">
+                  <strong>{{ user.linkedDoctor.name }}</strong>
+                  <small>{{ user.linkedDoctor.specializationName }}</small>
+                </RouterLink>
+                <span v-else class="status-badge status-neutral">غير مرتبط</span>
+              </td>
               <td class="muted-cell">{{ formatDate(user.lastLoginDate) }}</td>
               <td><span class="status-badge" :class="user.isLocked ? 'status-danger' : 'status-success'">{{ user.isLocked ? 'موقوف' : 'فعّال' }}</span></td>
               <td><div class="row-actions">
@@ -279,6 +287,7 @@ onMounted(loadUsers)
         <div><dt>رقم الهاتف</dt><dd class="verified-value">{{ detailsUser.phoneNumber || '-' }} <span :class="detailsUser.phoneNumberConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="detailsUser.phoneNumberConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(detailsUser.phoneNumberConfirmed) }}</span></dd></div>
         <div><dt>البريد الإلكتروني</dt><dd class="verified-value">{{ detailsUser.email || '-' }} <span :class="detailsUser.emailConfirmed ? 'confirm-ok' : 'confirm-wait'"><CheckCircle2 v-if="detailsUser.emailConfirmed" :size="14" /><XCircle v-else :size="14" /> {{ confirmedLabel(detailsUser.emailConfirmed) }}</span></dd></div>
         <div><dt>نوع الحساب</dt><dd>{{ roleLabel(detailsUser.roleName) }}</dd></div>
+        <div><dt>الطبيب المرتبط</dt><dd><RouterLink v-if="detailsUser.linkedDoctor" class="details-link" :to="`/doctors/${detailsUser.linkedDoctor.id}`">{{ detailsUser.linkedDoctor.name }} - {{ detailsUser.linkedDoctor.specializationName }}</RouterLink><span v-else>-</span></dd></div>
         <div><dt>حالة أول دخول</dt><dd>{{ detailsUser.isFirstLogin ? 'لم يكتمل بعد' : 'مكتمل' }}</dd></div>
         <div><dt>آخر تسجيل دخول</dt><dd>{{ formatDate(detailsUser.lastLoginDate) }}</dd></div>
         <div v-if="detailsUser.roleId" class="full-detail"><dt>معرّف الدور</dt><dd><code>{{ detailsUser.roleId }}</code></dd></div>
@@ -303,6 +312,8 @@ onMounted(loadUsers)
 .user-details-grid dt { margin-bottom: 5px; color: var(--muted); font-size: 12px; }.user-details-grid dd { margin: 0; color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
 .identifier-value { display: flex; align-items: center; gap: 7px; }.identifier-value code { direction: ltr; }.identifier-value button { display: grid; place-items: center; width: 29px; height: 29px; color: var(--primary); border: 1px solid var(--line); border-radius: 7px; background: #fff; }
 .contact-stack { display: grid; gap: 7px; min-width: 210px; }.contact-stack span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }.contact-stack b { direction: ltr; font-weight: 700; }
+.linked-doctor-cell { display: grid; gap: 4px; min-width: 160px; color: var(--ink); text-decoration: none; }.linked-doctor-cell strong { font-size: 13px; }.linked-doctor-cell small { color: var(--muted); font-size: 11px; }.linked-doctor-cell:hover strong, .details-link:hover { color: var(--primary); }
+.details-link { color: var(--primary); text-decoration: none; }
 .confirm-ok, .confirm-wait { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 13px; font-size: 11px; font-weight: 700; }
 .confirm-ok { color: #167163; background: #e1f4ef; }.confirm-wait { color: #a46724; background: #fff1db; }
 .verified-value { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }

@@ -27,12 +27,19 @@ export interface UserItem {
   lastLoginDate?: string
   roleId?: string
   roleName?: string
+  linkedDoctor?: {
+    id: number
+    name: string
+    normalizedName: string
+    specializationName: string
+  }
 }
 
 export interface SpecializationItem {
   id: number
   name: string
   normalizedName: string
+  iconName: string
 }
 
 export interface DoctorItem {
@@ -51,6 +58,13 @@ export interface DoctorItem {
   location: string
   isPubliclyVisible: boolean
   userId?: string
+  linkedUser?: {
+    id: string
+    name?: string
+    userName?: string
+    phoneNumber?: string
+    email?: string
+  }
 }
 
 export interface SubscriptionPackage {
@@ -94,6 +108,39 @@ export interface DoctorFeature {
   doctor: DoctorItem
   feature: FeatureItem
   isEnabled: boolean
+}
+
+export interface DoctorOfferItem {
+  id: number
+  doctorId: number
+  doctorName: string
+  clinicId?: number
+  clinicName?: string
+  appliesToAllClinics: boolean
+  title: string
+  description?: string
+  offerType: number
+  offerTypeName: string
+  originalPrice?: number
+  offerPrice?: number
+  discountPercent?: number
+  badgeText?: string
+  terms?: string
+  startsAt: string
+  endsAt: string
+  durationDays: number
+  remainingDays: number
+  isActive: boolean
+  isCurrentlyVisible: boolean
+}
+
+export interface DoctorOfferQuota {
+  doctorId: number
+  canMakeOffers: boolean
+  maxActiveOffers: number
+  activeOffers: number
+  remainingOffers: number
+  packageName?: string
 }
 
 export interface ClinicItem {
@@ -195,6 +242,7 @@ export interface PublicDoctorListItem {
   specializationId: number
   specializationName: string
   specializationNormalizedName: string
+  specializationIconName: string
   description: string
   imageName: string
   canBookOnline: boolean

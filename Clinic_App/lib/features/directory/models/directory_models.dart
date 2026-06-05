@@ -1,11 +1,19 @@
 class Specialization {
-  const Specialization({required this.id, required this.name});
+  const Specialization({
+    required this.id,
+    required this.name,
+    required this.iconName,
+  });
 
   final int id;
   final String name;
+  final String iconName;
 
-  factory Specialization.fromJson(Map<String, dynamic> json) =>
-      Specialization(id: json['id'] as int, name: json['name'] as String);
+  factory Specialization.fromJson(Map<String, dynamic> json) => Specialization(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    iconName: json['iconName'] as String? ?? 'medical-services',
+  );
 }
 
 class Province {
@@ -41,6 +49,7 @@ class DoctorSummary {
     required this.id,
     required this.name,
     required this.specializationName,
+    required this.specializationIconName,
     required this.description,
     required this.imageName,
     required this.canBookOnline,
@@ -56,6 +65,7 @@ class DoctorSummary {
   final int id;
   final String name;
   final String specializationName;
+  final String specializationIconName;
   final String description;
   final String imageName;
   final bool canBookOnline;
@@ -71,6 +81,8 @@ class DoctorSummary {
     id: json['id'] as int,
     name: json['name'] as String? ?? '',
     specializationName: json['specializationName'] as String? ?? '',
+    specializationIconName:
+        json['specializationIconName'] as String? ?? 'medical-services',
     description: json['description'] as String? ?? '',
     imageName: json['imageName'] as String? ?? '',
     canBookOnline: json['canBookOnline'] as bool? ?? false,
@@ -93,6 +105,7 @@ class DoctorProfile extends DoctorSummary {
     required super.id,
     required super.name,
     required super.specializationName,
+    required super.specializationIconName,
     required super.description,
     required super.imageName,
     required super.canBookOnline,
@@ -116,6 +129,8 @@ class DoctorProfile extends DoctorSummary {
       id: json['id'] as int,
       name: json['name'] as String? ?? '',
       specializationName: json['specializationName'] as String? ?? '',
+      specializationIconName:
+          json['specializationIconName'] as String? ?? 'medical-services',
       description: json['description'] as String? ?? '',
       imageName: json['imageName'] as String? ?? '',
       canBookOnline: json['canBookOnline'] as bool? ?? false,

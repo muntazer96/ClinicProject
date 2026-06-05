@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Eye, EyeOff, HeartPulse, LockKeyhole, LogIn, Phone } from '@lucide/vue'
+import godevLogo from '../assets/godev_logo.png'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -81,6 +82,10 @@ async function submit() {
         </button>
 
         <small class="login-note">لوحة التحكم مخصصة لمدير النظام والطبيب المسجل فقط.</small>
+        <div class="developer-credit">
+          <span>برمجة وتطوير</span>
+          <img :src="godevLogo" alt="GoDev" />
+        </div>
       </form>
     </section>
   </main>

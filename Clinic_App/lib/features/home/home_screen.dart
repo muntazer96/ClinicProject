@@ -7,6 +7,7 @@ import '../../widgets/app_scaffold.dart';
 import '../auth/auth_controller.dart';
 import '../directory/directory_service.dart';
 import '../directory/models/directory_models.dart';
+import '../directory/specialization_icons.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -241,8 +242,8 @@ class _SpecializationTile extends StatelessWidget {
               color: AppColors.softBlue,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.medical_services_outlined,
+            child: Icon(
+              specializationIconFor(item.iconName),
               color: AppColors.primary,
             ),
           ),

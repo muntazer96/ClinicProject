@@ -23,7 +23,8 @@ namespace Clinic_Booking.Services.SpecializationServices
                     {
                         d.Id,
                         d.Name,
-                        d.NormalizedName
+                        d.NormalizedName,
+                        d.IconName
                     })
                     .ToListAsync();
 

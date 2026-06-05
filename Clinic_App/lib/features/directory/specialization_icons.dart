@@ -1,0 +1,37 @@
+import 'package:flutter/material.dart';
+
+IconData specializationIconFor(String? iconName) {
+  return switch (iconName) {
+    'internal-medicine' => Icons.medical_information_outlined,
+    'ent' => Icons.hearing_outlined,
+    'cardiology' => Icons.favorite_border_rounded,
+    'ophthalmology' => Icons.visibility_outlined,
+    'dermatology' => Icons.spa_outlined,
+    'neurology' => Icons.psychology_outlined,
+    'general-surgery' => Icons.local_hospital_outlined,
+    'orthopedics' => Icons.accessibility_new_rounded,
+    'gynecology' => Icons.pregnant_woman_rounded,
+    'pediatrics' => Icons.child_care_rounded,
+    'oncology' => Icons.biotech_outlined,
+    'nephrology' => Icons.water_drop_outlined,
+    'gastroenterology' => Icons.restaurant_menu_rounded,
+    'endocrinology' => Icons.science_outlined,
+    'plastic-surgery' => Icons.face_retouching_natural_outlined,
+    'neurosurgery' => Icons.psychology_rounded,
+    'anesthesiology' => Icons.medication_outlined,
+    'family-medicine' => Icons.family_restroom_rounded,
+    'psychiatry' => Icons.self_improvement_rounded,
+    'infectious-disease' => Icons.coronavirus_outlined,
+    'radiology' => Icons.image_search_rounded,
+    'emergency' => Icons.emergency_outlined,
+    'rheumatology' => Icons.accessibility_rounded,
+    'pulmonology' => Icons.air_rounded,
+    'occupational-medicine' => Icons.work_history_outlined,
+    'sports-medicine' => Icons.fitness_center_rounded,
+    'hematology' => Icons.bloodtype_outlined,
+    'physiotherapy' => Icons.accessible_forward_rounded,
+    'nutrition' => Icons.restaurant_rounded,
+    'speech-therapy' => Icons.record_voice_over_outlined,
+    _ => Icons.medical_services_outlined,
+  };
+}

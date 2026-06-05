@@ -6,6 +6,7 @@ import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../directory_service.dart';
 import '../models/directory_models.dart';
+import '../specialization_icons.dart';
 
 class SpecializationsScreen extends StatefulWidget {
   const SpecializationsScreen({super.key});
@@ -94,9 +95,12 @@ class _SpecializationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: ListTile(
-      leading: const CircleAvatar(
+      leading: CircleAvatar(
         backgroundColor: AppColors.softBlue,
-        child: Icon(Icons.medical_services_outlined, color: AppColors.primary),
+        child: Icon(
+          specializationIconFor(item.iconName),
+          color: AppColors.primary,
+        ),
       ),
       title: Text(
         item.name,

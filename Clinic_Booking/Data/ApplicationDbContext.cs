@@ -7,6 +7,7 @@ using Clinic_Booking.Entities.Day;
 using Clinic_Booking.Entities.Doctor;
 using Clinic_Booking.Entities.DoctorAvailability;
 using Clinic_Booking.Entities.DoctorFeature;
+using Clinic_Booking.Entities.DoctorOffer;
 using Clinic_Booking.Entities.DoctorSubscription;
 using Clinic_Booking.Entities.DeviceToken;
 using Clinic_Booking.Entities.Feature;
@@ -58,6 +59,7 @@ namespace Clinic_Booking.Data
         public DbSet<DoctorAvailability> DoctorAvailabilities { get; set; }
         public DbSet<Feature> Features { get; set; }
         public DbSet<DoctorFeature> DoctorFeature { get; set; }
+        public DbSet<DoctorOffer> DoctorOffers { get; set; }
         public DbSet<AppVersionPolicy> AppVersionPolicies { get; set; }
 
 
@@ -75,6 +77,32 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(120);
                 entity.Property(e => e.Message).IsRequired().HasMaxLength(600);
                 entity.Property(e => e.UpdateUrl).HasMaxLength(500);
+            });
+
+            // DoctorOffer
+            modelBuilder.Entity<DoctorOffer>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.Description).HasMaxLength(800);
+                entity.Property(e => e.BadgeText).HasMaxLength(40);
+                entity.Property(e => e.Terms).HasMaxLength(600);
+                entity.Property(e => e.OriginalPrice).HasPrecision(10, 2);
+                entity.Property(e => e.OfferPrice).HasPrecision(10, 2);
+                entity.Property(e => e.DiscountPercent).HasPrecision(5, 2);
+
+                entity.HasIndex(e => new { e.DoctorId, e.IsActive, e.EndsAt });
+                entity.HasIndex(e => new { e.ClinicId, e.IsDeleted });
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Clinic)
+                    .WithMany()
+                    .HasForeignKey(e => e.ClinicId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // User
@@ -133,37 +161,38 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.IconName).IsRequired().HasMaxLength(80);
                 entity.HasData(
-    new Specialization { Id = 1, Name = "أخصائي باطنية", NormalizedName = "Internal Medicine Specialist" },
-    new Specialization { Id = 2, Name = "أخصائي أنف وأذن وحنجرة", NormalizedName = "ENT Specialist (Ear, Nose, and Throat)" },
-    new Specialization { Id = 3, Name = "أخصائي قلب", NormalizedName = "Cardiologist" },
-    new Specialization { Id = 4, Name = "أخصائي عيون", NormalizedName = "Ophthalmologist" },
-    new Specialization { Id = 5, Name = "أخصائي جلدية", NormalizedName = "Dermatologist" },
-    new Specialization { Id = 6, Name = "أخصائي أعصاب", NormalizedName = "Neurologist" },
-    new Specialization { Id = 7, Name = "أخصائي جراحة عامة", NormalizedName = "General Surgeon" },
-    new Specialization { Id = 8, Name = "أخصائي جراحة عظام", NormalizedName = "Orthopedic Surgeon" },
-    new Specialization { Id = 9, Name = "أخصائي نسائية وتوليد", NormalizedName = "Obstetrician-Gynecologist (OB-GYN)" },
-    new Specialization { Id = 10, Name = "أخصائي أطفال", NormalizedName = "Pediatrician" },
-    new Specialization { Id = 11, Name = "أخصائي أورام", NormalizedName = "Oncologist" },
-    new Specialization { Id = 12, Name = "أخصائي كلى", NormalizedName = "Nephrologist" },
-    new Specialization { Id = 13, Name = "أخصائي جهاز هضمي", NormalizedName = "Gastroenterologist" },
-    new Specialization { Id = 14, Name = "أخصائي غدد صماء", NormalizedName = "Endocrinologist" },
-    new Specialization { Id = 15, Name = "أخصائي جراحة تجميل", NormalizedName = "Plastic Surgeon" },
-    new Specialization { Id = 16, Name = "أخصائي جراحة دماغ وأعصاب", NormalizedName = "Neurosurgeon" },
-    new Specialization { Id = 17, Name = "أخصائي تخدير", NormalizedName = "Anesthesiologist" },
-    new Specialization { Id = 18, Name = "أخصائي طب الأسرة", NormalizedName = "Family Medicine Specialist" },
-    new Specialization { Id = 19, Name = "أخصائي الطب النفسي", NormalizedName = "Psychiatrist" },
-    new Specialization { Id = 20, Name = "أخصائي أمراض معدية", NormalizedName = "Infectious Disease Specialist" },
-    new Specialization { Id = 21, Name = "أخصائي أشعة", NormalizedName = "Radiologist" },
-    new Specialization { Id = 22, Name = "أخصائي طب طوارئ", NormalizedName = "Emergency Medicine Specialist" },
-    new Specialization { Id = 23, Name = "أخصائي روماتيزم", NormalizedName = "Rheumatologist" },
-    new Specialization { Id = 24, Name = "أخصائي صدرية", NormalizedName = "Pulmonologist" },
-    new Specialization { Id = 25, Name = "أخصائي طب مهني", NormalizedName = "Occupational Medicine Specialist" },
-    new Specialization { Id = 26, Name = "أخصائي طب رياضي", NormalizedName = "Sports Medicine Specialist" },
-    new Specialization { Id = 27, Name = "أخصائي أمراض الدم", NormalizedName = "Hematologist" },
-    new Specialization { Id = 28, Name = "أخصائي علاج طبيعي", NormalizedName = "Physiotherapist" },
-    new Specialization { Id = 29, Name = "أخصائي تغذية", NormalizedName = "Nutritionist" },
-    new Specialization { Id = 30, Name = "أخصائي نطق وتخاطب", NormalizedName = "Speech Therapist" });
+    new Specialization { Id = 1, Name = "أخصائي باطنية", NormalizedName = "Internal Medicine Specialist", IconName = "internal-medicine" },
+    new Specialization { Id = 2, Name = "أخصائي أنف وأذن وحنجرة", NormalizedName = "ENT Specialist (Ear, Nose, and Throat)", IconName = "ent" },
+    new Specialization { Id = 3, Name = "أخصائي قلب", NormalizedName = "Cardiologist", IconName = "cardiology" },
+    new Specialization { Id = 4, Name = "أخصائي عيون", NormalizedName = "Ophthalmologist", IconName = "ophthalmology" },
+    new Specialization { Id = 5, Name = "أخصائي جلدية", NormalizedName = "Dermatologist", IconName = "dermatology" },
+    new Specialization { Id = 6, Name = "أخصائي أعصاب", NormalizedName = "Neurologist", IconName = "neurology" },
+    new Specialization { Id = 7, Name = "أخصائي جراحة عامة", NormalizedName = "General Surgeon", IconName = "general-surgery" },
+    new Specialization { Id = 8, Name = "أخصائي جراحة عظام", NormalizedName = "Orthopedic Surgeon", IconName = "orthopedics" },
+    new Specialization { Id = 9, Name = "أخصائي نسائية وتوليد", NormalizedName = "Obstetrician-Gynecologist (OB-GYN)", IconName = "gynecology" },
+    new Specialization { Id = 10, Name = "أخصائي أطفال", NormalizedName = "Pediatrician", IconName = "pediatrics" },
+    new Specialization { Id = 11, Name = "أخصائي أورام", NormalizedName = "Oncologist", IconName = "oncology" },
+    new Specialization { Id = 12, Name = "أخصائي كلى", NormalizedName = "Nephrologist", IconName = "nephrology" },
+    new Specialization { Id = 13, Name = "أخصائي جهاز هضمي", NormalizedName = "Gastroenterologist", IconName = "gastroenterology" },
+    new Specialization { Id = 14, Name = "أخصائي غدد صماء", NormalizedName = "Endocrinologist", IconName = "endocrinology" },
+    new Specialization { Id = 15, Name = "أخصائي جراحة تجميل", NormalizedName = "Plastic Surgeon", IconName = "plastic-surgery" },
+    new Specialization { Id = 16, Name = "أخصائي جراحة دماغ وأعصاب", NormalizedName = "Neurosurgeon", IconName = "neurosurgery" },
+    new Specialization { Id = 17, Name = "أخصائي تخدير", NormalizedName = "Anesthesiologist", IconName = "anesthesiology" },
+    new Specialization { Id = 18, Name = "أخصائي طب الأسرة", NormalizedName = "Family Medicine Specialist", IconName = "family-medicine" },
+    new Specialization { Id = 19, Name = "أخصائي الطب النفسي", NormalizedName = "Psychiatrist", IconName = "psychiatry" },
+    new Specialization { Id = 20, Name = "أخصائي أمراض معدية", NormalizedName = "Infectious Disease Specialist", IconName = "infectious-disease" },
+    new Specialization { Id = 21, Name = "أخصائي أشعة", NormalizedName = "Radiologist", IconName = "radiology" },
+    new Specialization { Id = 22, Name = "أخصائي طب طوارئ", NormalizedName = "Emergency Medicine Specialist", IconName = "emergency" },
+    new Specialization { Id = 23, Name = "أخصائي روماتيزم", NormalizedName = "Rheumatologist", IconName = "rheumatology" },
+    new Specialization { Id = 24, Name = "أخصائي صدرية", NormalizedName = "Pulmonologist", IconName = "pulmonology" },
+    new Specialization { Id = 25, Name = "أخصائي طب مهني", NormalizedName = "Occupational Medicine Specialist", IconName = "occupational-medicine" },
+    new Specialization { Id = 26, Name = "أخصائي طب رياضي", NormalizedName = "Sports Medicine Specialist", IconName = "sports-medicine" },
+    new Specialization { Id = 27, Name = "أخصائي أمراض الدم", NormalizedName = "Hematologist", IconName = "hematology" },
+    new Specialization { Id = 28, Name = "أخصائي علاج طبيعي", NormalizedName = "Physiotherapist", IconName = "physiotherapy" },
+    new Specialization { Id = 29, Name = "أخصائي تغذية", NormalizedName = "Nutritionist", IconName = "nutrition" },
+    new Specialization { Id = 30, Name = "أخصائي نطق وتخاطب", NormalizedName = "Speech Therapist", IconName = "speech-therapy" });
             });
 
             // Doctor

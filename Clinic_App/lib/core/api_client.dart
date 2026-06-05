@@ -5,9 +5,9 @@ class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
 
-    defaultValue: 'https://localhost:7136/api',
+    //defaultValue: 'https://localhost:7136/api',
     // defaultValue: 'http://192.168.1.102:8082/api',
-    //defaultValue: 'http://192.168.100.7:8082/api',
+    defaultValue: 'http://192.168.100.7:8082/api',
   );
 
   ApiClient()

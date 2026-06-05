@@ -53,6 +53,7 @@ namespace Clinic_Booking.Services.DoctorServices
                     SpecializationId = d.SpecializationId,
                     SpecializationName = d.Specialization.Name,
                     SpecializationNormalizedName = d.Specialization.NormalizedName,
+                    SpecializationIconName = d.Specialization.IconName,
                     Description = d.Description,
                     ImageName = d.ImageName,
                     CanBookOnline =
@@ -158,6 +159,7 @@ namespace Clinic_Booking.Services.DoctorServices
                     SpecializationId = d.SpecializationId,
                     SpecializationName = d.Specialization.Name,
                     SpecializationNormalizedName = d.Specialization.NormalizedName,
+                    SpecializationIconName = d.Specialization.IconName,
                     Description = d.Description,
                     ImageName = d.ImageName,
                     CanBookOnline =
@@ -421,6 +423,7 @@ namespace Clinic_Booking.Services.DoctorServices
                         Id = d.SpecializationId,
                         Name = d.Specialization.Name,
                         NormalizedName = d.Specialization.NormalizedName,
+                        IconName = d.Specialization.IconName,
                     },
                     Description = d.Description,
                     SubscriptionRank = d.SubscriptionRank,
@@ -433,6 +436,14 @@ namespace Clinic_Booking.Services.DoctorServices
                     PhoneNumber = d.PhoneNumber,
                     IsPubliclyVisible = d.IsPubliclyVisible,
                     UserId = d.UserId,
+                    LinkedUser = d.User == null ? null : new LinkedDoctorUserDto
+                    {
+                        Id = d.User.Id,
+                        Name = d.User.Name,
+                        UserName = d.User.UserName,
+                        PhoneNumber = d.User.PhoneNumber,
+                        Email = d.User.Email,
+                    },
                 })
                 .FirstOrDefaultAsync();
 
@@ -683,6 +694,7 @@ namespace Clinic_Booking.Services.DoctorServices
                             Id = d.SpecializationId,
                             Name = d.Specialization.Name,
                             NormalizedName = d.Specialization.NormalizedName,
+                            IconName = d.Specialization.IconName,
                         },
                         Description = d.Description,
                         SubscriptionRank = d.SubscriptionRank,
@@ -695,6 +707,14 @@ namespace Clinic_Booking.Services.DoctorServices
                         PhoneNumber = d.PhoneNumber,
                         IsPubliclyVisible = d.IsPubliclyVisible,
                         UserId = d.UserId,
+                        LinkedUser = d.User == null ? null : new LinkedDoctorUserDto
+                        {
+                            Id = d.User.Id,
+                            Name = d.User.Name,
+                            UserName = d.User.UserName,
+                            PhoneNumber = d.User.PhoneNumber,
+                            Email = d.User.Email,
+                        },
                     })
                     .ToListAsync();
 

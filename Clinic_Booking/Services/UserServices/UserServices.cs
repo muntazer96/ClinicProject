@@ -650,6 +650,22 @@ namespace Clinic_Booking.Services.UserServices
                 .Take(pageSize)
                 .ToListAsync();
 
+            var userIds = users.Select(user => user.Id).ToList();
+            var linkedDoctors = await _context.Doctors
+                .Where(doctor => doctor.UserId != null && userIds.Contains(doctor.UserId.Value) && !doctor.IsDeleted)
+                .Select(doctor => new
+                {
+                    UserId = doctor.UserId!.Value,
+                    Doctor = new LinkedUserDoctorDto
+                    {
+                        Id = doctor.Id,
+                        Name = doctor.Name,
+                        NormalizedName = doctor.NormalizedName,
+                        SpecializationName = doctor.Specialization.Name,
+                    }
+                })
+                .ToDictionaryAsync(item => item.UserId, item => item.Doctor);
+
             var userDtos = new List<UserGetDto>();
 
             foreach (var user in users)
@@ -674,7 +690,8 @@ namespace Clinic_Booking.Services.UserServices
                     IsDeleted = user.IsDeleted,
                     DeletedAt = user.DeletedAt,
                     RoleName = roleName,
-                    RoleId = role?.Id
+                    RoleId = role?.Id,
+                    LinkedDoctor = linkedDoctors.GetValueOrDefault(user.Id)
                 });
             }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/auth_shell.dart';
+import '../../../widgets/developer_credit.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -96,6 +97,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) => AuthShell(
     title: 'إنشاء حساب جديد',
     subtitle: 'سجّل بياناتك مرة واحدة لتتابع حجوزاتك بسهولة.',
+    footer: const DeveloperCredit(compact: true),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -50,6 +50,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .primary-button:hover { background: var(--primary-dark); }
 .primary-button:disabled { opacity: .7; cursor: wait; }
 .login-note { display: block; margin-top: 21px; color: var(--muted); text-align: center; }
+.developer-credit { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; color: #6d8581; font-size: 11px; font-weight: 800; }
+.developer-credit img { width: 62px; height: auto; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(17, 50, 45, .12)); }
 
 .admin-shell { min-height: 100vh; background: #f6f9f8; }
 .sidebar { position: fixed; inset: 0 0 0 auto; z-index: 10; width: 255px; display: flex; flex-direction: column; color: #d8ede9; background: #123e39; }
@@ -66,7 +68,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sidebar-footer { margin-top: auto; padding: 15px 17px 20px; border-top: 1px solid rgba(255,255,255,.08); }
 .role-pill { display: inline-block; color: #a3d6ce; font-size: 11px; margin-bottom: 11px; }
 .logout-button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 9px 0; color: #d9eeeb; border: 0; background: transparent; }
-.main-area { margin-right: 255px; min-height: 100vh; }
+.main-area { display: flex; flex-direction: column; margin-right: 255px; min-height: 100vh; }
 .topbar { min-height: 83px; display: flex; justify-content: space-between; align-items: center; padding: 14px 29px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.85); }
 .topbar-title span { color: var(--muted); font-size: 12px; }
 .topbar-title h1 { margin: 4px 0 0; color: var(--ink); font-size: 22px; }
@@ -82,7 +84,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .profile-chip strong, .profile-chip small { display: block; }
 .profile-chip strong { color: var(--ink); font-size: 13px; }
 .profile-chip small { color: var(--muted); font-size: 10px; margin-top: 3px; }
-.page-content { padding: 27px; }
+.page-content { flex: 1; padding: 27px; }
+.page-footer { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 27px 18px; color: #829692; font-size: 10px; font-weight: 800; letter-spacing: 0; }
+.page-footer img { width: 46px; height: auto; object-fit: contain; filter: drop-shadow(0 4px 9px rgba(17, 50, 45, .1)); }
 .welcome-card, .panel-card, .placeholder-card, .stat-card { border: 1px solid var(--line); border-radius: 15px; background: var(--surface); box-shadow: var(--shadow); }
 .welcome-card { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 25px; background: linear-gradient(120deg, #fff, #f1faf8); }
 .welcome-card h2 { margin: 6px 0 8px; font-size: 24px; }

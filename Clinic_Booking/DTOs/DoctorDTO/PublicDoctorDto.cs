@@ -10,6 +10,7 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public int SpecializationId { get; set; }
         public string SpecializationName { get; set; }
         public string SpecializationNormalizedName { get; set; }
+        public string SpecializationIconName { get; set; }
         public string Description { get; set; }
         public string ImageName { get; set; }
         public bool CanBookOnline { get; set; }
@@ -30,6 +31,7 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public int SpecializationId { get; set; }
         public string SpecializationName { get; set; }
         public string SpecializationNormalizedName { get; set; }
+        public string SpecializationIconName { get; set; }
         public string Description { get; set; }
         public string ImageName { get; set; }
         public bool CanBookOnline { get; set; }

@@ -12,6 +12,7 @@ import DoctorsView from '../views/DoctorsView.vue'
 import EmailConfirmView from '../views/EmailConfirmView.vue'
 import ExceptionsView from '../views/ExceptionsView.vue'
 import GuestBookingView from '../views/GuestBookingView.vue'
+import OffersView from '../views/OffersView.vue'
 import PasswordResetView from '../views/PasswordResetView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import PublicDirectoryView from '../views/PublicDirectoryView.vue'
@@ -40,6 +41,7 @@ const router = createRouter({
         { path: 'doctors/:doctorId', name: 'doctor-details', component: DoctorDetailsView, meta: { title: 'تفاصيل الطبيب', roles: ['SuperAdmin'] } },
         { path: 'subscriptions', name: 'subscriptions', component: SubscriptionsView, meta: { title: 'الاشتراكات والباقات', roles: ['SuperAdmin'] } },
         { path: 'app-versions', name: 'app-versions', component: AppVersionsView, meta: { title: 'إصدارات التطبيق', roles: ['SuperAdmin'] } },
+        { path: 'offers', name: 'offers', component: OffersView, meta: { title: 'العروض', roles: ['SuperAdmin', 'DoctorUser'] } },
         { path: 'clinics', name: 'clinics', component: ClinicsView, meta: { title: 'عياداتي', roles: ['DoctorUser'] } },
         { path: 'appointments', name: 'appointments', component: AppointmentsView, meta: { title: 'الحجوزات اليومية', roles: ['SuperAdmin', 'DoctorUser'] } },
         { path: 'exceptions', name: 'exceptions', component: ExceptionsView, meta: { title: 'الإجازات والاستثناءات', roles: ['DoctorUser'] } },

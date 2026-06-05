@@ -24,5 +24,15 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public string Location { get; set; }
         public bool IsPubliclyVisible { get; set; }
         public Guid? UserId { get; set; }
+        public LinkedDoctorUserDto? LinkedUser { get; set; }
+    }
+
+    public class LinkedDoctorUserDto
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? UserName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Email { get; set; }
     }
 }

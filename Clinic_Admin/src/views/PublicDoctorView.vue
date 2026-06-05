@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDays, CheckCircle2, Copy, MapPin, Phone, RefreshCw,
 import api from '../services/api'
 import type { ApiResponse, PublicDoctorProfile, QueueAvailabilityItem } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
+import { specializationIcon } from '../utils/specializationIcons'
 
 const route = useRoute()
 const doctor = ref<PublicDoctorProfile>()
@@ -181,7 +182,7 @@ onUnmounted(() => window.clearInterval(resendTimer))
       <section class="doctor-public-hero">
         <div class="doctor-public-photo"><img v-if="imageUrl(doctor.imageName)" :src="imageUrl(doctor.imageName)" :alt="doctor.name" /><Stethoscope v-else :size="44" /></div>
         <div>
-          <span class="section-kicker">{{ doctor.specializationName }}</span>
+          <span class="section-kicker specialty-kicker"><component :is="specializationIcon(doctor.specializationIconName)" :size="16" /> {{ doctor.specializationName }}</span>
           <h1>{{ doctor.name }}</h1>
           <p>{{ doctor.description }}</p>
           <div class="hero-metrics">
@@ -253,7 +254,7 @@ onUnmounted(() => window.clearInterval(resendTimer))
 .public-page { min-height: 100vh; padding: 24px; background: #f6f9f8; }.back-link { width: fit-content; margin: 0 auto 18px; text-decoration: none; }
 .doctor-public-hero { max-width: 1120px; margin: 0 auto 16px; display: flex; align-items: center; gap: 18px; padding: 22px; color: #fff; border-radius: 16px; background: linear-gradient(125deg, var(--primary-dark), #299789); box-shadow: var(--shadow); }
 .doctor-public-photo { display: grid; place-items: center; width: 104px; height: 104px; overflow: hidden; color: var(--primary); border: 4px solid rgba(255,255,255,.82); border-radius: 28px; background: var(--primary-soft); }.doctor-public-photo img { width: 100%; height: 100%; object-fit: cover; }
-.doctor-public-hero h1 { margin: 5px 0; font-size: 30px; }.doctor-public-hero p { margin: 0; color: #d9f1ed; line-height: 1.8; }.doctor-public-hero .section-kicker, .rating-line { color: #d7fffa; }
+.doctor-public-hero h1 { margin: 5px 0; font-size: 30px; }.doctor-public-hero p { margin: 0; color: #d9f1ed; line-height: 1.8; }.doctor-public-hero .section-kicker, .rating-line { color: #d7fffa; }.specialty-kicker { display: inline-flex; align-items: center; gap: 6px; }
 .hero-metrics, .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }.hero-metrics span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; color: #d7fffa; border-radius: 999px; background: rgba(255,255,255,.13); font-size: 12px; font-weight: 800; }.hero-metrics .paused { color: #ffe2ad; }.hero-metrics .available { color: #d7fffa; }
 .hero-action { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; color: #fff; border: 1px solid rgba(255,255,255,.32); border-radius: 9px; background: rgba(255,255,255,.12); text-decoration: none; cursor: pointer; font-weight: 800; }.hero-action.primary { color: var(--primary-dark); border-color: #fff; background: #fff; }
 .public-details-grid { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; }.public-panel { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--shadow); }.public-panel h2 { margin: 0 0 14px; font-size: 21px; }

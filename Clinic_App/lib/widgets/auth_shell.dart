@@ -9,10 +9,12 @@ class AuthShell extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
+    this.footer,
   });
   final String title;
   final String subtitle;
   final Widget child;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +129,10 @@ class AuthShell extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (footer != null) ...[
+                    const SizedBox(height: 22),
+                    footer!,
+                  ],
                 ],
               ),
             ),

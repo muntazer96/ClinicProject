@@ -18,5 +18,14 @@
 
         public string? RoleName { get; set; }
         public Guid? RoleId { get; set; }
+        public LinkedUserDoctorDto? LinkedDoctor { get; set; }
+    }
+
+    public class LinkedUserDoctorDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string NormalizedName { get; set; }
+        public string SpecializationName { get; set; }
     }
 }

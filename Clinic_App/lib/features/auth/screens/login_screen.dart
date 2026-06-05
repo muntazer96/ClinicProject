@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../widgets/auth_shell.dart';
+import '../../../widgets/developer_credit.dart';
 import '../auth_controller.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -64,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return AuthShell(
       title: 'تسجيل الدخول',
       subtitle: 'أدخل رقم الهاتف وكلمة المرور للوصول إلى حجوزاتك.',
+      footer: const DeveloperCredit(compact: true),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

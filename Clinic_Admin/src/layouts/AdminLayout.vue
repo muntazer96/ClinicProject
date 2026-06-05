@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
+  BadgePercent, Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
   House, KeyRound, LogOut, Menu, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
@@ -10,6 +10,7 @@ import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
 import { getErrorMessage } from '../utils/errors'
+import godevLogo from '../assets/godev_logo.png'
 import type { ApiResponse } from '../types/api'
 
 const auth = useAuthStore()
@@ -23,6 +24,7 @@ const savingPassword = ref(false)
 const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
 const links = computed(() => [
+  { label: 'العروض', to: '/offers', icon: BadgePercent, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'الرئيسية', to: '/', icon: House, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'المستخدمون', to: '/users', icon: UsersRound, roles: ['SuperAdmin'] },
   { label: 'الأطباء', to: '/doctors', icon: Stethoscope, roles: ['SuperAdmin'] },
@@ -129,6 +131,10 @@ async function changePassword() {
       <section class="page-content">
         <RouterView />
       </section>
+      <footer class="page-footer developer-page-footer">
+        <span>Powered by</span>
+        <img :src="godevLogo" alt="GoDev" />
+      </footer>
     </main>
 
     <AppModal v-if="changePasswordOpen" title="تعديل كلمة السر" @close="changePasswordOpen = false">

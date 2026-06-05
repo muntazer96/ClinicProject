@@ -110,6 +110,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                                 Id = ds.Doctor.SpecializationId,
                                 Name = ds.Doctor.Specialization.Name,
                                 NormalizedName = ds.Doctor.Specialization.NormalizedName,
+                                IconName = ds.Doctor.Specialization.IconName,
                             },
                             Description = ds.Doctor.Description,
                             SubscriptionRank = ds.Doctor.SubscriptionRank,

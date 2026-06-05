@@ -7,5 +7,6 @@ namespace Clinic_Booking.Entities.Specialization
         public int Id { get; set; } // رقم التخصص (المفتاح الأساسي)
         public string Name { get; set; } // اسم التخصص (مثل "طب الأطفال")
         public string NormalizedName { get; set; }
+        public string IconName { get; set; }
     }
 }

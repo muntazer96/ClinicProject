@@ -7,6 +7,7 @@ import api from '../services/api'
 import { provinces } from '../constants/provinces'
 import type { ApiResponse, PageResult, PublicDoctorListItem, SpecializationItem } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
+import { specializationIcon } from '../utils/specializationIcons'
 
 const doctors = ref<PublicDoctorListItem[]>([])
 const specializations = ref<SpecializationItem[]>([])
@@ -105,7 +106,7 @@ onMounted(async () => {
         <div class="public-doctor-photo"><img v-if="doctorImage(doctor.imageName)" :src="doctorImage(doctor.imageName)" :alt="doctor.name" /><Stethoscope v-else :size="34" /></div>
         <div class="public-doctor-copy">
           <h2>{{ doctor.name }}</h2>
-          <p>{{ doctor.specializationName }}</p>
+          <p class="specialty-line"><component :is="specializationIcon(doctor.specializationIconName)" :size="15" /> {{ doctor.specializationName }}</p>
           <span v-if="doctor.averageRating" class="rating-line"><Star :size="15" /> {{ doctor.averageRating.toFixed(1) }} · {{ doctor.reviewCount }} تقييم</span>
           <span v-if="doctor.clinics[0]" class="clinic-line"><MapPin :size="15" /> {{ doctor.clinics[0].iraqiProvinceName }}، {{ doctor.clinics[0].address }}</span>
         </div>
@@ -125,7 +126,7 @@ onMounted(async () => {
 .public-doctor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 1120px; margin: 0 auto; }
 .public-doctor-card { display: grid; grid-template-columns: 78px 1fr; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: var(--shadow); }
 .public-doctor-photo { display: grid; place-items: center; width: 78px; height: 78px; overflow: hidden; color: var(--primary); border-radius: 20px; background: var(--primary-soft); }.public-doctor-photo img { width: 100%; height: 100%; object-fit: cover; }
-.public-doctor-copy h2 { margin: 0 0 4px; font-size: 19px; }.public-doctor-copy p { margin: 0 0 9px; color: var(--muted); }.rating-line, .clinic-line { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; margin-top: 5px; }
+.public-doctor-copy h2 { margin: 0 0 4px; font-size: 19px; }.public-doctor-copy p { margin: 0 0 9px; color: var(--muted); }.specialty-line { display: flex; align-items: center; gap: 5px; }.specialty-line svg { color: var(--primary); }.rating-line, .clinic-line { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; margin-top: 5px; }
 .public-card-action { grid-column: 1 / -1; text-decoration: none; }
 @media (max-width: 900px) { .public-doctor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .public-page { padding: 16px; }.public-doctor-grid { grid-template-columns: 1fr; }.public-topbar { align-items: flex-start; flex-direction: column; } }
