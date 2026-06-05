@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/app_router.dart';
 import 'core/app_theme.dart';
 import 'features/auth/auth_controller.dart';
+import 'widgets/offline_gate.dart';
 
 class ClinicApp extends StatefulWidget {
   const ClinicApp({super.key});
@@ -22,8 +23,10 @@ class _ClinicAppState extends State<ClinicApp> {
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       locale: const Locale('ar'),
-      builder: (context, child) =>
-          Directionality(textDirection: TextDirection.rtl, child: child!),
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: OfflineGate(child: child ?? const SizedBox.shrink()),
+      ),
       theme: buildAppTheme(),
     );
   }

@@ -357,12 +357,27 @@ class _DoctorCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) {
+    final featured = doctor.isFeatured;
+    final accent = _featuredAccent(doctor);
+    final subscriptionName = doctor.activeSubscriptionName?.trim();
+
+    return Card(
+    color: featured ? const Color(0xFFFFFCF1) : Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+      side: BorderSide(
+        color: featured ? accent.withOpacity(0.82) : AppColors.border,
+        width: featured ? 1.4 : 1,
+      ),
+    ),
     child: InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(13),
+      child: Stack(
+        children: [
+          Padding(
+        padding: EdgeInsets.fromLTRB(13, featured ? 38 : 13, 13, 13),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -418,7 +433,7 @@ class _DoctorCard extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: featured ? accent : AppColors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -429,7 +444,71 @@ class _DoctorCard extends StatelessWidget {
             ),
           ],
         ),
+          ),
+          if (featured)
+            Positioned(
+              top: 10,
+              right: 12,
+              child: _FeaturedBadge(
+                color: accent,
+                text: subscriptionName?.isNotEmpty == true
+                    ? subscriptionName!
+                    : 'Ù…Ù…ÙŠØ²',
+              ),
+            ),
+        ],
       ),
+    ),
+  );
+  }
+
+  Color _featuredAccent(DoctorSummary doctor) {
+    final name = doctor.activeSubscriptionNormalizedName?.toLowerCase() ?? '';
+    if (name.contains('diamond') || name.contains('premium')) {
+      return const Color(0xFF0E7490);
+    }
+    return const Color(0xFFB7791F);
+  }
+}
+
+class _FeaturedBadge extends StatelessWidget {
+  const _FeaturedBadge({required this.color, required this.text});
+
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.24),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.workspace_premium_rounded,
+          size: 15,
+          color: Colors.white,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     ),
   );
 }

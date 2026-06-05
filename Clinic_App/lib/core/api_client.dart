@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
 
-    defaultValue: 'https://localhost:7136/api',
-    //defaultValue: 'http://192.168.1.114:8082/api',
+    // defaultValue: 'https://localhost:7136/api',
+    // defaultValue: 'http://192.168.1.102:8082/api',
+    defaultValue: 'http://192.168.100.7:8082/api',
   );
 
   ApiClient()
@@ -18,7 +20,14 @@ class ApiClient {
       ) {
     dio.interceptors.add(
       InterceptorsWrapper(
+        onResponse: (response, handler) {
+          markServerAvailable();
+          handler.next(response);
+        },
         onError: (error, handler) async {
+          if (_isConnectivityError(error)) {
+            markServerUnavailable();
+          }
           final request = error.requestOptions;
           final alreadyRetried = request.extra['retriedAfterRefresh'] == true;
           if (error.response?.statusCode == 401 && !alreadyRetried) {
@@ -43,9 +52,43 @@ class ApiClient {
   }
 
   final Dio dio;
+  static final ValueNotifier<bool> connectionAvailable = ValueNotifier(true);
   Future<void> Function()? onUnauthorized;
   Future<String?> Function()? getRefreshToken;
   Future<void> Function(String token, String refreshToken)? onTokensRefreshed;
+
+  static void markServerAvailable() {
+    if (!connectionAvailable.value) connectionAvailable.value = true;
+  }
+
+  static void markServerUnavailable() {
+    if (connectionAvailable.value) connectionAvailable.value = false;
+  }
+
+  static Future<bool> checkServerAvailability() async {
+    try {
+      final response = await Dio(
+        BaseOptions(
+          baseUrl: _baseUrl,
+          connectTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+          sendTimeout: const Duration(seconds: 8),
+        ),
+      ).get('/Specialization');
+      final available = (response.statusCode ?? 500) < 500;
+      if (available) {
+        markServerAvailable();
+      } else {
+        markServerUnavailable();
+      }
+      return available;
+    } catch (error) {
+      if (error is DioException && _isConnectivityError(error)) {
+        markServerUnavailable();
+      }
+      return false;
+    }
+  }
 
   static String doctorImageUrl(String imageName) {
     final apiUri = Uri.parse(_baseUrl);
@@ -86,6 +129,14 @@ class ApiClient {
     } catch (_) {
       return null;
     }
+  }
+
+  static bool _isConnectivityError(DioException error) {
+    return error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.unknown;
   }
 
   static String errorMessage(Object error) {

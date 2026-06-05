@@ -180,7 +180,7 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
           const SizedBox(height: 14),
           BookingCard(
             booking: _booking!,
-            onCancel: _booking!.canCancel ? _cancel : null,
+            onCancel: null,
           ),
         ],
       ],

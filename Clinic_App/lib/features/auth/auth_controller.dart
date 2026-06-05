@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/api_client.dart';
+import '../../core/push_notification_service.dart';
 import '../account/profile_service.dart';
 
 class AuthController extends ChangeNotifier {
@@ -36,6 +37,7 @@ class AuthController extends ChangeNotifier {
     api.setToken(_token);
     if (isAuthenticated) {
       await refreshProfile(silent: true);
+      await _registerPushToken();
     }
   }
 
@@ -56,6 +58,7 @@ class AuthController extends ChangeNotifier {
       _phoneNumber = phoneNumber.trim();
       await _storage.write(key: _phoneKey, value: _phoneNumber);
       await refreshProfile(silent: true);
+      await _registerPushToken();
     } finally {
       loading = false;
       notifyListeners();
@@ -74,6 +77,7 @@ class AuthController extends ChangeNotifier {
     await _storage.delete(key: _phoneKey);
     if (currentRefreshToken?.isNotEmpty == true) {
       try {
+        await PushNotificationService(api).unregisterCurrentDevice();
         await api.dio.post(
           '/User/logout',
           data: {'refreshToken': currentRefreshToken},
@@ -112,6 +116,12 @@ class AuthController extends ChangeNotifier {
       if (!silent) loading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _registerPushToken() async {
+    try {
+      await PushNotificationService(api).registerCurrentDevice();
+    } catch (_) {}
   }
 
   void setProfile(UserProfile profile) {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "376580756051",
+    "project_id": "clincnotification",
+    "storage_bucket": "clincnotification.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376580756051:android:d6e027437e1d833ba62ca6",
+        "android_client_info": {
+          "package_name": "com.clinicbooking.clinic_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlw1BVXBfaZIysaVHqBpcnFzVwlMWcurc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

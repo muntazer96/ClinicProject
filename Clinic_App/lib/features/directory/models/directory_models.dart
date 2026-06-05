@@ -46,6 +46,10 @@ class DoctorSummary {
     required this.canBookOnline,
     required this.averageRating,
     required this.reviewCount,
+    required this.isFeatured,
+    required this.activeSubscriptionName,
+    required this.activeSubscriptionNormalizedName,
+    required this.activeSubscriptionWeight,
     required this.clinics,
   });
 
@@ -57,6 +61,10 @@ class DoctorSummary {
   final bool canBookOnline;
   final double? averageRating;
   final int reviewCount;
+  final bool isFeatured;
+  final String? activeSubscriptionName;
+  final String? activeSubscriptionNormalizedName;
+  final double activeSubscriptionWeight;
   final List<ClinicSummary> clinics;
 
   factory DoctorSummary.fromJson(Map<String, dynamic> json) => DoctorSummary(
@@ -68,6 +76,12 @@ class DoctorSummary {
     canBookOnline: json['canBookOnline'] as bool? ?? false,
     averageRating: (json['averageRating'] as num?)?.toDouble(),
     reviewCount: json['reviewCount'] as int? ?? 0,
+    isFeatured: json['isFeatured'] as bool? ?? false,
+    activeSubscriptionName: json['activeSubscriptionName'] as String?,
+    activeSubscriptionNormalizedName:
+        json['activeSubscriptionNormalizedName'] as String?,
+    activeSubscriptionWeight:
+        (json['activeSubscriptionWeight'] as num?)?.toDouble() ?? 0,
     clinics: (json['clinics'] as List? ?? const [])
         .map((item) => ClinicSummary.fromJson(item as Map<String, dynamic>))
         .toList(),
@@ -84,6 +98,10 @@ class DoctorProfile extends DoctorSummary {
     required super.canBookOnline,
     required super.averageRating,
     required super.reviewCount,
+    required super.isFeatured,
+    required super.activeSubscriptionName,
+    required super.activeSubscriptionNormalizedName,
+    required super.activeSubscriptionWeight,
     required super.clinics,
     required this.clinicDetails,
   });
@@ -103,6 +121,12 @@ class DoctorProfile extends DoctorSummary {
       canBookOnline: json['canBookOnline'] as bool? ?? false,
       averageRating: (json['averageRating'] as num?)?.toDouble(),
       reviewCount: json['reviewCount'] as int? ?? 0,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      activeSubscriptionName: json['activeSubscriptionName'] as String?,
+      activeSubscriptionNormalizedName:
+          json['activeSubscriptionNormalizedName'] as String?,
+      activeSubscriptionWeight:
+          (json['activeSubscriptionWeight'] as num?)?.toDouble() ?? 0,
       clinics: clinics,
       clinicDetails: clinics,
     );
