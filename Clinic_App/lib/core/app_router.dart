@@ -22,6 +22,7 @@ import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
 import '../features/directory/screens/specializations_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/offers/offers_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/startup_splash_screen.dart';
 import '../features/reviews/screens/doctor_reviews_screen.dart';
@@ -35,6 +36,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     GoRoute(path: '/splash', builder: (_, __) => const StartupSplashScreen()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
     GoRoute(
       path: '/search',
       builder: (_, state) => SearchScreen(
@@ -128,6 +130,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       path: '/profile/change-password',
       builder: (_, __) => const AppScaffold(
         title: 'تغيير كلمة المرور',
+        showBackButton: true,
+        backRoute: '/profile',
         child: ChangePasswordScreen(),
       ),
     ),

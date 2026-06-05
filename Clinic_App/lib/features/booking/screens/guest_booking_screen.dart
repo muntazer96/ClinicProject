@@ -132,6 +132,8 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
   @override
   Widget build(BuildContext context) => AppScaffold(
     title: 'حجز الزائر',
+    showBackButton: true,
+    backRoute: '/',
     child: ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       children: [

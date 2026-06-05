@@ -51,6 +51,26 @@ class DirectoryService {
       response.data['data'] as Map<String, dynamic>,
     );
   }
+
+  Future<DoctorOfferResult> getOffers({
+    int page = 1,
+    int pageSize = DirectoryService.pageSize,
+  }) async {
+    final response = await _client.dio.get(
+      '/DoctorOffer/public',
+      queryParameters: {'page': page, 'pageSize': pageSize},
+    );
+    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
+    final items = data['items'] as List? ?? const [];
+    return DoctorOfferResult(
+      items: items
+          .map((item) => DoctorOffer.fromJson(item as Map<String, dynamic>))
+          .toList(),
+      totalItems: data['totalItems'] as int? ?? items.length,
+      totalPages: data['totalPages'] as int? ?? 1,
+      currentPage: data['currentPage'] as int? ?? page,
+    );
+  }
 }
 
 class DoctorSearchResult {

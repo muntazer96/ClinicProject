@@ -43,6 +43,17 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             return await GetPagedAsync(filter, page, pageSize, doctor.Id);
         }
 
+        public async Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetPublicAsync(
+            SearchDoctorOfferDto filter,
+            int page = 1,
+            int pageSize = 10)
+        {
+            filter ??= new SearchDoctorOfferDto();
+            filter.IsActive = true;
+            filter.CurrentlyVisible = true;
+            return await GetPagedAsync(filter, page, Math.Min(pageSize, 30), null);
+        }
+
         public async Task<IActionResult> GetQuotaAsync(int doctorId)
         {
             var quota = await BuildQuotaAsync(doctorId);
@@ -131,6 +142,8 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             var query = _context.DoctorOffers
                 .AsNoTracking()
                 .Include(item => item.Doctor)
+                    .ThenInclude(doctor => doctor.DoctorSubscriptions)
+                    .ThenInclude(subscription => subscription.Package)
                 .Include(item => item.Clinic)
                 .Where(item => !item.IsDeleted)
                 .Where(item => forcedDoctorId == null || item.DoctorId == forcedDoctorId)
@@ -156,6 +169,20 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
             var offers = await query
                 .OrderByDescending(item => item.IsActive && item.StartsAt <= now && item.EndsAt >= now)
+                .ThenByDescending(item => item.Doctor.DoctorSubscriptions
+                    .Where(subscription =>
+                        subscription.Status == SubscriptionStatus.Active &&
+                        subscription.StartDate <= now &&
+                        subscription.EndDate >= now)
+                    .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
+                    .Max() ?? 0)
+                .ThenByDescending(item => item.Doctor.DoctorSubscriptions
+                    .Where(subscription =>
+                        subscription.Status == SubscriptionStatus.Active &&
+                        subscription.StartDate <= now &&
+                        subscription.EndDate >= now)
+                    .Select(subscription => (decimal?)subscription.Package.Price)
+                    .Max() ?? 0)
                 .ThenBy(item => item.EndsAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -359,11 +386,27 @@ namespace Clinic_Booking.Services.DoctorOfferServices
         private static DoctorOfferDto ToDto(DoctorOffer item, DateTime now)
         {
             var durationDays = Math.Max(1, (int)Math.Ceiling((item.EndsAt - item.StartsAt).TotalDays));
+            var activeSubscription = item.Doctor.DoctorSubscriptions
+                .Where(subscription =>
+                    subscription.Status == SubscriptionStatus.Active &&
+                    subscription.StartDate <= now &&
+                    subscription.EndDate >= now)
+                .OrderByDescending(subscription => subscription.Package.YearlyPrice)
+                .ThenByDescending(subscription => subscription.Package.Price)
+                .FirstOrDefault();
+
             return new DoctorOfferDto
             {
                 Id = item.Id,
                 DoctorId = item.DoctorId,
                 DoctorName = item.Doctor.Name,
+                IsFeatured = string.Equals(
+                    activeSubscription?.Package.NormalizedName,
+                    "Premium",
+                    StringComparison.OrdinalIgnoreCase),
+                ActiveSubscriptionName = activeSubscription?.Package.Name,
+                ActiveSubscriptionNormalizedName = activeSubscription?.Package.NormalizedName,
+                ActiveSubscriptionWeight = activeSubscription?.Package.YearlyPrice ?? 0,
                 ClinicId = item.ClinicId,
                 ClinicName = item.Clinic?.Name,
                 AppliesToAllClinics = item.ClinicId == null,

@@ -17,6 +17,16 @@ namespace Clinic_Booking.Controllers
             _services = services;
         }
 
+        [HttpGet("public")]
+        [AllowAnonymous]
+        public async Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetPublicOffersAsync(
+            [FromQuery] SearchDoctorOfferDto filter,
+            int page = 1,
+            int pageSize = 10)
+        {
+            return await _services.GetPublicAsync(filter, page, pageSize);
+        }
+
         [HttpGet]
         [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetOffersAsync(

@@ -63,7 +63,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mobile-close, .menu-button { display: none; }
 .side-nav { display: grid; gap: 4px; padding: 18px 12px; }
 .side-nav a { display: flex; align-items: center; gap: 11px; padding: 11px 12px; color: #b9d8d3; text-decoration: none; border-radius: 9px; font-size: 14px; transition: .2s; }
-.side-nav a:hover, .side-nav a.router-link-active { color: #fff; background: rgba(255,255,255,.11); }
+.side-nav a:hover, .side-nav a.nav-active { color: #fff; background: rgba(255,255,255,.11); }
 .nav-arrow { margin-right: auto; opacity: .5; }
 .sidebar-footer { margin-top: auto; padding: 15px 17px 20px; border-top: 1px solid rgba(255,255,255,.08); }
 .role-pill { display: inline-block; color: #a3d6ce; font-size: 11px; margin-bottom: 11px; }

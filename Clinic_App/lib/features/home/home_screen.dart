@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -18,13 +20,30 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _service = DirectoryService();
+  static const _initialOfferPage = 1000;
+  final _offersController = PageController(
+    viewportFraction: .92,
+    initialPage: _initialOfferPage,
+  );
   List<Specialization> _specializations = [];
+  List<DoctorOffer> _offers = [];
   bool _loadingSpecializations = true;
+  bool _loadingOffers = true;
+  int _currentOfferPage = _initialOfferPage;
+  Timer? _offersTimer;
 
   @override
   void initState() {
     super.initState();
     _loadSpecializations();
+    _loadOffers();
+  }
+
+  @override
+  void dispose() {
+    _offersTimer?.cancel();
+    _offersController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSpecializations() async {
@@ -38,6 +57,39 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadOffers() async {
+    try {
+      final result = await _service.getOffers(pageSize: 5);
+      if (!mounted) return;
+      setState(() {
+        _offers = result.items;
+        _currentOfferPage = _initialOfferPage;
+      });
+      if (_offersController.hasClients && result.items.isNotEmpty) {
+        _offersController.jumpToPage(_initialOfferPage);
+      }
+      _startOfferAutoScroll();
+    } catch (_) {
+      // Offers are promotional content, so the home page remains usable.
+    } finally {
+      if (mounted) setState(() => _loadingOffers = false);
+    }
+  }
+
+  void _startOfferAutoScroll() {
+    _offersTimer?.cancel();
+    if (_offers.length < 2) return;
+    _offersTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_offersController.hasClients || _offers.isEmpty) return;
+      final nextPage = _currentOfferPage + 1;
+      _offersController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 520),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
@@ -46,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: RefreshIndicator(
         onRefresh: () async {
           await auth.refreshProfile(silent: true);
-          await _loadSpecializations();
+          await Future.wait([_loadSpecializations(), _loadOffers()]);
         },
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -60,6 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 14),
             _SearchCard(onTap: () => context.go('/search')),
+            const SizedBox(height: 22),
+            _OffersBanner(
+              loading: _loadingOffers,
+              offers: _offers,
+              controller: _offersController,
+              onPageChanged: (index) => _currentOfferPage = index,
+              onTap: () => context.go('/offers'),
+            ),
             const SizedBox(height: 22),
             _SectionTitle(
               title: 'الاختصاصات المتوفرة',
@@ -186,6 +246,240 @@ class _SearchCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _OffersBanner extends StatelessWidget {
+  const _OffersBanner({
+    required this.loading,
+    required this.offers,
+    required this.controller,
+    required this.onPageChanged,
+    required this.onTap,
+  });
+
+  final bool loading;
+  final List<DoctorOffer> offers;
+  final PageController controller;
+  final ValueChanged<int> onPageChanged;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return Container(
+        height: 154,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (offers.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          title: 'العروض الفعالة',
+          action: 'عرض الكل',
+          onAction: onTap,
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 166,
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: PageView.builder(
+              controller: controller,
+              itemCount: offers.length > 1 ? null : offers.length,
+              onPageChanged: onPageChanged,
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: _HomeOfferSlide(
+                  offer: offers[index % offers.length],
+                  onTap: onTap,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeOfferSlide extends StatelessWidget {
+  const _HomeOfferSlide({required this.offer, required this.onTap});
+
+  final DoctorOffer offer;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final featured = offer.isFeatured;
+    const premiumColor = Color(0xFFD49A00);
+    final accent = featured ? premiumColor : AppColors.primary;
+    final iconBackground =
+        featured ? const Color(0xFFFFF4D8) : const Color(0xFFEAF6F8);
+    final borderColor =
+        featured ? const Color(0xFFE4B23C) : AppColors.border;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: featured
+              ? const LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: [Color(0xFFFFF8DE), Color(0xFFFFFFFF)],
+                )
+              : null,
+          color: featured ? null : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: featured ? 1.1 : 1),
+          boxShadow: [
+            BoxShadow(
+              color: (featured ? premiumColor : AppColors.primary)
+                  .withValues(alpha: featured ? .13 : .07),
+              blurRadius: featured ? 22 : 16,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: featured ? const Color(0xFFE8C76D) : AppColors.border,
+                ),
+              ),
+              child: Icon(
+                featured
+                    ? Icons.workspace_premium_rounded
+                    : Icons.local_offer_rounded,
+                color: accent,
+                size: 31,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          offer.priceText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (featured)
+                        const _OfferSlideBadge(
+                          text: 'طبيب مميز',
+                          featured: true,
+                        )
+                      else if (offer.badgeText?.isNotEmpty == true)
+                        _OfferSlideBadge(text: offer.badgeText!),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    offer.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.text,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    offer.doctorName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 16,
+                        color: AppColors.muted,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${offer.remainingDays} يوم متبقي - ${offer.scope}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OfferSlideBadge extends StatelessWidget {
+  const _OfferSlideBadge({required this.text, this.featured = false});
+
+  final String text;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = featured ? const Color(0xFFD49A00) : AppColors.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: .45)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
 }
 
 class _SpecializationPreview extends StatelessWidget {

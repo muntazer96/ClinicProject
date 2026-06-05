@@ -6,9 +6,18 @@ import '../core/app_theme.dart';
 import '../features/auth/auth_controller.dart';
 
 class AppScaffold extends StatelessWidget {
-  const AppScaffold({super.key, required this.child, this.title = 'عيادتي'});
+  const AppScaffold({
+    super.key,
+    required this.child,
+    this.title = 'عيادتي',
+    this.showBackButton = false,
+    this.backRoute = '/',
+  });
+
   final Widget child;
   final String title;
+  final bool showBackButton;
+  final String backRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +38,19 @@ class AppScaffold extends StatelessWidget {
       appBar: AppBar(
         toolbarHeight: 76,
         titleSpacing: 16,
+        leading: showBackButton
+            ? IconButton(
+                tooltip: 'رجوع',
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(backRoute);
+                  }
+                },
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            : null,
         title: Row(
           children: [
             Container(

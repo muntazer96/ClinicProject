@@ -8,6 +8,7 @@ namespace Clinic_Booking.IServices.IDoctorOfferServices
     {
         Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetListAsync(SearchDoctorOfferDto filter, int page = 1, int pageSize = 10);
         Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetMineAsync(SearchDoctorOfferDto filter, int page = 1, int pageSize = 10);
+        Task<ActionResult<PaginationDto.PageResult<DoctorOfferDto>>> GetPublicAsync(SearchDoctorOfferDto filter, int page = 1, int pageSize = 10);
         Task<IActionResult> GetQuotaAsync(int doctorId);
         Task<IActionResult> GetMyQuotaAsync();
         Task<IActionResult> AddAsync(DoctorOfferUpsertDto form);

@@ -24,21 +24,26 @@ const savingPassword = ref(false)
 const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
 const links = computed(() => [
-  { label: 'العروض', to: '/offers', icon: BadgePercent, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'الرئيسية', to: '/', icon: House, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'المستخدمون', to: '/users', icon: UsersRound, roles: ['SuperAdmin'] },
   { label: 'الأطباء', to: '/doctors', icon: Stethoscope, roles: ['SuperAdmin'] },
   { label: 'الاشتراكات', to: '/subscriptions', icon: ClipboardList, roles: ['SuperAdmin'] },
+  { label: 'العروض', to: '/offers', icon: BadgePercent, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'إصدارات التطبيق', to: '/app-versions', icon: Smartphone, roles: ['SuperAdmin'] },
-  { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin'] },
+  { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'عياداتي', to: '/clinics', icon: Building2, roles: ['DoctorUser'] },
-  { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['DoctorUser'] },
   { label: 'الإجازات', to: '/exceptions', icon: Bell, roles: ['DoctorUser'] },
   { label: 'التقييمات', to: '/reviews', icon: MessageSquareText, roles: ['DoctorUser'] },
   { label: 'الملف الشخصي', to: '/profile', icon: UserRound, roles: ['DoctorUser'] },
 ].filter((link) => auth.hasAnyRole(link.roles)))
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'لوحة التحكم')
+const roleLabel = computed(() => auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب')
+
+function isLinkActive(path: string) {
+  if (path === '/') return route.path === '/'
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
 
 function signOut() {
   auth.logout()
@@ -89,13 +94,18 @@ async function changePassword() {
       </div>
 
       <nav class="side-nav" aria-label="القائمة الرئيسية">
-        <RouterLink v-for="link in links" :key="link.to" :to="link.to" @click="sidebarOpen = false">
+        <RouterLink
+          v-for="link in links"
+          :key="link.to"
+          :to="link.to"
+          :class="{ 'nav-active': isLinkActive(link.to) }"
+          @click="sidebarOpen = false"
+        >
           <component :is="link.icon" :size="19" />
           <span>{{ link.label }}</span>
           <ChevronLeft class="nav-arrow" :size="15" />
         </RouterLink>
       </nav>
-
     </aside>
 
     <main class="main-area">
@@ -112,18 +122,24 @@ async function changePassword() {
         <div class="topbar-actions">
           <div v-if="accountMenuOpen" class="account-menu-overlay" @click="accountMenuOpen = false" />
           <div class="account-menu-wrap">
-          <button class="profile-chip profile-button" type="button" aria-haspopup="menu" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
-            <span class="avatar"><UserRound :size="17" /></span>
-            <div>
-              <strong>{{ auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب' }}</strong>
-              <small>{{ auth.primaryRole }}</small>
+            <button
+              class="profile-chip profile-button"
+              type="button"
+              aria-haspopup="menu"
+              :aria-expanded="accountMenuOpen"
+              @click="accountMenuOpen = !accountMenuOpen"
+            >
+              <span class="avatar"><UserRound :size="17" /></span>
+              <div>
+                <strong>{{ roleLabel }}</strong>
+                <small>{{ auth.primaryRole }}</small>
+              </div>
+              <ChevronDown :size="15" />
+            </button>
+            <div v-if="accountMenuOpen" class="account-menu" role="menu">
+              <button type="button" role="menuitem" @click="openChangePassword"><KeyRound :size="17" /> تعديل كلمة السر</button>
+              <button type="button" role="menuitem" @click="signOut"><LogOut :size="17" /> تسجيل الخروج</button>
             </div>
-            <ChevronDown :size="15" />
-          </button>
-          <div v-if="accountMenuOpen" class="account-menu" role="menu">
-            <button type="button" role="menuitem" @click="openChangePassword"><KeyRound :size="17" /> تعديل كلمة السر</button>
-            <button type="button" role="menuitem" @click="signOut"><LogOut :size="17" /> تسجيل الخروج</button>
-          </div>
           </div>
         </div>
       </header>
@@ -144,7 +160,7 @@ async function changePassword() {
         <label><span>تأكيد كلمة السر الجديدة</span><input v-model="passwordForm.confirmPassword" required type="password" minlength="6" autocomplete="new-password" /></label>
         <div class="modal-actions">
           <button class="secondary-button" type="button" @click="changePasswordOpen = false">تراجع</button>
-          <button class="compact-primary" type="submit" :disabled="savingPassword">{{ savingPassword ? 'جارِ الحفظ...' : 'حفظ كلمة السر' }}</button>
+          <button class="compact-primary" type="submit" :disabled="savingPassword">{{ savingPassword ? 'جاري الحفظ...' : 'حفظ كلمة السر' }}</button>
         </div>
       </form>
     </AppModal>

@@ -7,6 +7,10 @@ namespace Clinic_Booking.DTOs.DoctorOfferDTO
         public int Id { get; set; }
         public int DoctorId { get; set; }
         public string DoctorName { get; set; }
+        public bool IsFeatured { get; set; }
+        public string? ActiveSubscriptionName { get; set; }
+        public string? ActiveSubscriptionNormalizedName { get; set; }
+        public decimal ActiveSubscriptionWeight { get; set; }
         public int? ClinicId { get; set; }
         public string? ClinicName { get; set; }
         public bool AppliesToAllClinics { get; set; }

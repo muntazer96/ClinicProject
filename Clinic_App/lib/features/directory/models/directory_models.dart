@@ -238,3 +238,106 @@ String _arabicDayName(String? dayName, String? normalizedName) {
     _ => dayName ?? '',
   };
 }
+
+class DoctorOffer {
+  const DoctorOffer({
+    required this.id,
+    required this.doctorId,
+    required this.doctorName,
+    required this.isFeatured,
+    required this.activeSubscriptionName,
+    required this.activeSubscriptionNormalizedName,
+    required this.activeSubscriptionWeight,
+    required this.clinicName,
+    required this.appliesToAllClinics,
+    required this.title,
+    required this.description,
+    required this.offerType,
+    required this.offerTypeName,
+    required this.originalPrice,
+    required this.offerPrice,
+    required this.discountPercent,
+    required this.badgeText,
+    required this.terms,
+    required this.startsAt,
+    required this.endsAt,
+    required this.remainingDays,
+  });
+
+  final int id;
+  final int doctorId;
+  final String doctorName;
+  final bool isFeatured;
+  final String? activeSubscriptionName;
+  final String? activeSubscriptionNormalizedName;
+  final double activeSubscriptionWeight;
+  final String? clinicName;
+  final bool appliesToAllClinics;
+  final String title;
+  final String? description;
+  final int offerType;
+  final String offerTypeName;
+  final double? originalPrice;
+  final double? offerPrice;
+  final double? discountPercent;
+  final String? badgeText;
+  final String? terms;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final int remainingDays;
+
+  String get scope =>
+      appliesToAllClinics ? 'جميع العيادات' : clinicName ?? 'عيادة محددة';
+
+  String get priceText {
+    if (offerType == 0 && discountPercent != null) {
+      final value = discountPercent! % 1 == 0
+          ? discountPercent!.toInt().toString()
+          : discountPercent!.toStringAsFixed(1);
+      return '$value% خصم';
+    }
+    if (offerType == 3) return 'استشارة مجانية';
+    if (offerPrice != null) return '${offerPrice!.toStringAsFixed(0)} د.ع';
+    return offerTypeName;
+  }
+
+  factory DoctorOffer.fromJson(Map<String, dynamic> json) => DoctorOffer(
+    id: json['id'] as int? ?? 0,
+    doctorId: json['doctorId'] as int? ?? 0,
+    doctorName: json['doctorName'] as String? ?? '',
+    isFeatured: json['isFeatured'] as bool? ?? false,
+    activeSubscriptionName: json['activeSubscriptionName'] as String?,
+    activeSubscriptionNormalizedName:
+        json['activeSubscriptionNormalizedName'] as String?,
+    activeSubscriptionWeight:
+        (json['activeSubscriptionWeight'] as num?)?.toDouble() ?? 0,
+    clinicName: json['clinicName'] as String?,
+    appliesToAllClinics: json['appliesToAllClinics'] as bool? ?? false,
+    title: json['title'] as String? ?? '',
+    description: json['description'] as String?,
+    offerType: json['offerType'] as int? ?? 0,
+    offerTypeName: json['offerTypeName'] as String? ?? '',
+    originalPrice: (json['originalPrice'] as num?)?.toDouble(),
+    offerPrice: (json['offerPrice'] as num?)?.toDouble(),
+    discountPercent: (json['discountPercent'] as num?)?.toDouble(),
+    badgeText: json['badgeText'] as String?,
+    terms: json['terms'] as String?,
+    startsAt: DateTime.tryParse(json['startsAt'] as String? ?? '') ?? DateTime.now(),
+    endsAt: DateTime.tryParse(json['endsAt'] as String? ?? '') ?? DateTime.now(),
+    remainingDays: json['remainingDays'] as int? ?? 0,
+  );
+}
+
+class DoctorOfferResult {
+  const DoctorOfferResult({
+    required this.items,
+    required this.totalItems,
+    required this.totalPages,
+    required this.currentPage,
+  });
+
+  final List<DoctorOffer> items;
+  final int totalItems;
+  final int totalPages;
+  final int currentPage;
+}
