@@ -1,5 +1,6 @@
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace Clinic_Booking.Services.BookingSmsServices
 {
@@ -18,7 +19,7 @@ namespace Clinic_Booking.Services.BookingSmsServices
 
         public async Task SendBookingOtpAsync(string phoneNumber, string code)
         {
-            var message = $"رمز التحقق الخاص بحجزك هو: {code}";
+            var message = $"مرحباً،\n\nرمز تأكيد الحجز الخاص بك هو:\n\n🔢 {code}\n\nيرجى إدخال هذا الرمز لإكمال تأكيد الموعد.\n\n⏳ الرمز صالح لمدة 10 دقائق.\n\nشكراً لاستخدامك تطبيق عياداتي.\n";
             var sent = await _whatsAppMessageServices.SendMessageAsync(phoneNumber, message);
             if (sent)
             {

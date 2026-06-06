@@ -18,6 +18,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
+using Clinic_Booking.IServices.IWhatsAppMessageServices;
 
 namespace Clinic_Booking.Services.UserServices
 {
@@ -32,6 +33,7 @@ namespace Clinic_Booking.Services.UserServices
         private readonly IEmailServices _emailServices;
         private readonly IBookingSmsServices _bookingSmsServices;
         private readonly ILogger<UserServices> _logger;
+        private readonly IWhatsAppMessageServices _whatsAppMessageServices;
 
 
 
@@ -43,7 +45,8 @@ namespace Clinic_Booking.Services.UserServices
             IConfiguration configuration,
             IEmailServices emailServices,
             IBookingSmsServices bookingSmsServices,
-            ILogger<UserServices> logger)
+            ILogger<UserServices> logger,
+            IWhatsAppMessageServices whatsAppMessageServices)
         {
             _load = load;
             _userManager = userManager;
@@ -994,6 +997,21 @@ namespace Clinic_Booking.Services.UserServices
             Console.WriteLine(otpCode);
             Console.WriteLine("//////////////////////////");
 
+            //var message = $@"
+            //مرحباً 👋
+
+            //رمز التحقق الخاص بك هو:
+
+            //🔐 {otpCode}
+
+            //يرجى إدخال هذا الرمز لإكمال تأكيد رقم الهاتف.
+
+            //⏳ الرمز صالح لمدة 5 دقائق.
+
+            //إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
+            //";
+
+            //            _whatsAppMessageServices.SendMessageAsync(user.PhoneNumber, message).Wait();
             var codeSalt = GenerateOtpSalt();
             _context.UserPhoneOtpRequests.Add(new UserPhoneOtpRequest
             {
