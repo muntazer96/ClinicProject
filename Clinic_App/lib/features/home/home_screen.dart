@@ -118,7 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
               offers: _offers,
               controller: _offersController,
               onPageChanged: (index) => _currentOfferPage = index,
-              onTap: () => context.go('/offers'),
+              onViewAll: () => context.go('/offers'),
+              onOfferTap: (offer) => context.push('/doctors/${offer.doctorId}'),
             ),
             const SizedBox(height: 22),
             _SectionTitle(
@@ -254,14 +255,16 @@ class _OffersBanner extends StatelessWidget {
     required this.offers,
     required this.controller,
     required this.onPageChanged,
-    required this.onTap,
+    required this.onViewAll,
+    required this.onOfferTap,
   });
 
   final bool loading;
   final List<DoctorOffer> offers;
   final PageController controller;
   final ValueChanged<int> onPageChanged;
-  final VoidCallback onTap;
+  final VoidCallback onViewAll;
+  final ValueChanged<DoctorOffer> onOfferTap;
 
   @override
   Widget build(BuildContext context) {
@@ -285,11 +288,11 @@ class _OffersBanner extends StatelessWidget {
         _SectionTitle(
           title: 'العروض الفعالة',
           action: 'عرض الكل',
-          onAction: onTap,
+          onAction: onViewAll,
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 166,
+          height: 210,
           child: Directionality(
             textDirection: TextDirection.rtl,
             child: PageView.builder(
@@ -300,7 +303,7 @@ class _OffersBanner extends StatelessWidget {
                 padding: const EdgeInsetsDirectional.only(end: 8),
                 child: _HomeOfferSlide(
                   offer: offers[index % offers.length],
-                  onTap: onTap,
+                  onTap: () => onOfferTap(offers[index % offers.length]),
                 ),
               ),
             ),
@@ -320,129 +323,110 @@ class _HomeOfferSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final featured = offer.isFeatured;
-    const premiumColor = Color(0xFFD49A00);
-    final accent = featured ? premiumColor : AppColors.primary;
-    final iconBackground =
-        featured ? const Color(0xFFFFF4D8) : const Color(0xFFEAF6F8);
-    final borderColor =
-        featured ? const Color(0xFFE4B23C) : AppColors.border;
+    final palette = featured ? _OfferPalette.premium : _OfferPalette.standard;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: featured
-              ? const LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                  colors: [Color(0xFFFFF8DE), Color(0xFFFFFFFF)],
-                )
-              : null,
-          color: featured ? null : Colors.white,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: borderColor, width: featured ? 1.1 : 1),
+          border: Border.all(color: palette.border, width: 1.1),
           boxShadow: [
             BoxShadow(
-              color: (featured ? premiumColor : AppColors.primary)
-                  .withValues(alpha: featured ? .13 : .07),
-              blurRadius: featured ? 22 : 16,
-              offset: const Offset(0, 10),
+              color: palette.shadow,
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: featured ? const Color(0xFFE8C76D) : AppColors.border,
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _OfferBannerPainter(
+                  accent: palette.accent,
+                  featured: featured,
                 ),
               ),
-              child: Icon(
-                featured
-                    ? Icons.workspace_premium_rounded
-                    : Icons.local_offer_rounded,
-                color: accent,
-                size: 31,
-              ),
             ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          offer.priceText,
+                  _OfferArtTile(featured: featured, palette: palette),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: _OfferRibbon(
+                                text: featured
+                                    ? 'طبيب مميز'
+                                    : offer.badgeText ?? 'عرض محدود',
+                                featured: featured,
+                                palette: palette,
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: _OfferMetaPill(
+                                text: 'ينتهي ${offer.remainingDays} أيام',
+                                palette: palette,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        _OfferPriceText(
+                          text: offer.priceText,
+                          featured: featured,
+                          palette: palette,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          offer.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 18,
+                          style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 14,
+                            height: 1.35,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ),
-                      if (featured)
-                        const _OfferSlideBadge(
-                          text: 'طبيب مميز',
-                          featured: true,
-                        )
-                      else if (offer.badgeText?.isNotEmpty == true)
-                        _OfferSlideBadge(text: offer.badgeText!),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    offer.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.text,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    offer.doctorName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.schedule_rounded,
-                        size: 16,
-                        color: AppColors.muted,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          '${offer.remainingDays} يوم متبقي - ${offer.scope}',
+                        const SizedBox(height: 4),
+                        Text(
+                          offer.doctorName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: palette.darkAccent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          offer.scope,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: AppColors.muted,
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        _OfferActionButton(palette: palette),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -454,32 +438,296 @@ class _HomeOfferSlide extends StatelessWidget {
   }
 }
 
-class _OfferSlideBadge extends StatelessWidget {
-  const _OfferSlideBadge({required this.text, this.featured = false});
+class _OfferPalette {
+  const _OfferPalette({
+    required this.accent,
+    required this.darkAccent,
+    required this.surface,
+    required this.border,
+    required this.shadow,
+  });
+
+  static const premium = _OfferPalette(
+    accent: Color(0xFFD79A00),
+    darkAccent: Color(0xFFB98200),
+    surface: Color(0xFFFFFBED),
+    border: Color(0xFFE8B33A),
+    shadow: Color(0x33D79A00),
+  );
+
+  static const standard = _OfferPalette(
+    accent: Color(0xFF0F8B83),
+    darkAccent: Color(0xFF08746E),
+    surface: Colors.white,
+    border: Color(0xFF38A9A2),
+    shadow: Color(0x260F8B83),
+  );
+
+  final Color accent;
+  final Color darkAccent;
+  final Color surface;
+  final Color border;
+  final Color shadow;
+}
+
+class _OfferRibbon extends StatelessWidget {
+  const _OfferRibbon({
+    required this.text,
+    required this.featured,
+    required this.palette,
+  });
 
   final String text;
   final bool featured;
+  final _OfferPalette palette;
 
   @override
-  Widget build(BuildContext context) {
-    final color = featured ? const Color(0xFFD49A00) : AppColors.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: .45)),
-      ),
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(maxWidth: 128),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .86),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: palette.border),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          featured ? Icons.workspace_premium_rounded : Icons.local_offer_rounded,
+          size: 16,
+          color: palette.accent,
+        ),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: palette.darkAccent,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _OfferMetaPill extends StatelessWidget {
+  const _OfferMetaPill({required this.text, required this.palette});
+
+  final String text;
+  final _OfferPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(maxWidth: 120),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .74),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: palette.border.withValues(alpha: .38)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.schedule_rounded, size: 15, color: palette.accent),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: palette.darkAccent,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _OfferPriceText extends StatelessWidget {
+  const _OfferPriceText({
+    required this.text,
+    required this.featured,
+    required this.palette,
+  });
+
+  final String text;
+  final bool featured;
+  final _OfferPalette palette;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
       child: Text(
         text,
+        maxLines: 1,
         style: TextStyle(
-          color: color,
-          fontSize: 11,
+          color: palette.accent,
+          fontSize: featured ? 31 : 26,
+          height: 1.05,
           fontWeight: FontWeight.w900,
         ),
       ),
-    );
+    ),
+  );
+}
+
+class _OfferActionButton extends StatelessWidget {
+  const _OfferActionButton({required this.palette});
+
+  final _OfferPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 34,
+    constraints: const BoxConstraints(maxWidth: 122),
+    decoration: BoxDecoration(
+      color: palette.accent,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: palette.shadow,
+          blurRadius: 10,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.arrow_back_rounded,
+            color: palette.accent,
+            size: 17,
+          ),
+        ),
+        const SizedBox(width: 7),
+        const Text(
+          'احجز الآن',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _OfferArtTile extends StatelessWidget {
+  const _OfferArtTile({required this.featured, required this.palette});
+
+  final bool featured;
+  final _OfferPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 74,
+    height: 74,
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .72),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.white),
+      boxShadow: [
+        BoxShadow(
+          color: palette.shadow,
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(
+          featured ? Icons.workspace_premium_rounded : Icons.sell_rounded,
+          color: palette.accent,
+          size: featured ? 46 : 44,
+        ),
+        if (!featured)
+          const Text(
+            '%',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _OfferBannerPainter extends CustomPainter {
+  const _OfferBannerPainter({required this.accent, required this.featured});
+
+  final Color accent;
+  final bool featured;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final softPaint = Paint()
+      ..color = accent.withValues(alpha: featured ? .12 : .08)
+      ..style = PaintingStyle.fill;
+    final lightPaint = Paint()
+      ..color = accent.withValues(alpha: featured ? .07 : .05)
+      ..style = PaintingStyle.fill;
+
+    final wave = Path()
+      ..moveTo(size.width * .1, size.height)
+      ..quadraticBezierTo(
+        size.width * .34,
+        size.height * .58,
+        size.width * .55,
+        size.height * .82,
+      )
+      ..quadraticBezierTo(
+        size.width * .75,
+        size.height * 1.04,
+        size.width,
+        size.height * .2,
+      )
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(wave, softPaint);
+
+    final stripe = Path()
+      ..moveTo(size.width * .78, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height * .14)
+      ..quadraticBezierTo(
+        size.width * .88,
+        size.height * .35,
+        size.width * .78,
+        size.height * .78,
+      )
+      ..close();
+    canvas.drawPath(stripe, lightPaint);
   }
+
+  @override
+  bool shouldRepaint(covariant _OfferBannerPainter oldDelegate) =>
+      oldDelegate.accent != accent || oldDelegate.featured != featured;
 }
 
 class _SpecializationPreview extends StatelessWidget {

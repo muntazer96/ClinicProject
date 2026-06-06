@@ -379,3 +379,6 @@ appsettings.json
 *.gif
 *.tiff
 /Clinic_Booking/wwwroot
+.dotnet_appdata/
+.dotnet_home/
+.tmp_publish_check/

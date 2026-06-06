@@ -184,6 +184,8 @@ export interface AppointmentItem {
   queueNumber: number
   status: number
   isPhoneConfirmed: boolean
+  isGuestBooking?: boolean
+  bookingSource?: string
   cancellationReason?: string
   clinicId: number
   clinicName: string

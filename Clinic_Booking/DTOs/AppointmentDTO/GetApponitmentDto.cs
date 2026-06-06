@@ -13,6 +13,8 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
         public int QueueNumber { get; set; }
         public string? GuestName { get; set; }
         public string? GuestPhoneNumber { get; set; }
+        public bool IsGuestBooking { get; set; }
+        public string BookingSource { get; set; } = string.Empty;
         public bool IsPhoneConfirmed { get; set; }
         public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending; // حالة الحجز (بانتظار، مؤكد، ملغي...)
 

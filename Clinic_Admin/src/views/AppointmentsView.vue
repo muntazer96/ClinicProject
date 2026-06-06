@@ -23,6 +23,8 @@ interface AppointmentRow {
   doctorName?: string
   paymentStatus?: number
   paymentAmount?: number
+  isGuestBooking: boolean
+  bookingSource: string
 }
 
 const auth = useAuthStore()
@@ -103,6 +105,17 @@ function paymentMeta(status?: number) {
   ][status ?? 0] ?? { label: 'غير معروف', className: 'status-neutral' }
 }
 
+function bookingSourceMeta(appointment: AppointmentRow) {
+  if (appointment.isGuestBooking) return { label: 'زائر', className: 'status-warning' }
+  return { label: 'حساب مسجل', className: 'status-success' }
+}
+
+function isGuestBooking(item: any) {
+  if (typeof item.isGuestBooking === 'boolean') return item.isGuestBooking
+  if (typeof item.bookingSource === 'string') return item.bookingSource.toLowerCase() === 'guest'
+  return !item.user && !item.userId
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'medium' }).format(new Date(value))
 }
@@ -117,6 +130,8 @@ function mapDoctorAppointment(item: AppointmentItem): AppointmentRow {
     queueNumber: item.queueNumber,
     status: normalizeStatus(item.status),
     isPhoneConfirmed: item.isPhoneConfirmed,
+    isGuestBooking: isGuestBooking(item),
+    bookingSource: item.bookingSource ?? (isGuestBooking(item) ? 'Guest' : 'Registered'),
     clinicId: item.clinicId,
     clinicName: item.clinicName,
   }
@@ -132,6 +147,8 @@ function mapAdminAppointment(item: any): AppointmentRow {
     queueNumber: item.queueNumber,
     status: normalizeStatus(item.status),
     isPhoneConfirmed: item.isPhoneConfirmed,
+    isGuestBooking: isGuestBooking(item),
+    bookingSource: item.bookingSource ?? (isGuestBooking(item) ? 'Guest' : 'Registered'),
     clinicId: item.clinic?.id ?? item.clinicId,
     clinicName: item.clinic?.name ?? item.clinicName ?? '-',
     doctorName: item.doctor?.name ?? item.doctorName,
@@ -354,6 +371,7 @@ onMounted(async () => {
             <tr>
               <th>الدور</th>
               <th>المراجع</th>
+              <th>نوع الحجز</th>
               <th v-if="isAdmin">الطبيب</th>
               <th>العيادة</th>
               <th>التاريخ</th>
@@ -364,11 +382,12 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading"><td class="table-message" :colspan="isAdmin ? 8 : 7">جارِ تحميل الحجوزات...</td></tr>
-            <tr v-else-if="!appointments.length"><td class="table-message" :colspan="isAdmin ? 8 : 7">لا توجد حجوزات مطابقة للفلاتر المحددة.</td></tr>
+            <tr v-if="loading"><td class="table-message" :colspan="isAdmin ? 9 : 8">جارِ تحميل الحجوزات...</td></tr>
+            <tr v-else-if="!appointments.length"><td class="table-message" :colspan="isAdmin ? 9 : 8">لا توجد حجوزات مطابقة للفلاتر المحددة.</td></tr>
             <tr v-for="appointment in visibleAppointments" v-else :key="appointment.id">
               <td><strong>#{{ appointment.queueNumber }}</strong><small class="block-muted">{{ appointment.code }}</small></td>
               <td><strong>{{ appointment.patientName || 'مراجع' }}</strong><small class="block-muted">{{ appointment.patientPhoneNumber || '-' }}</small></td>
+              <td><span class="status-badge" :class="bookingSourceMeta(appointment).className">{{ bookingSourceMeta(appointment).label }}</span></td>
               <td v-if="isAdmin">{{ appointment.doctorName || '-' }}</td>
               <td>{{ appointment.clinicName }}</td>
               <td>{{ formatDate(appointment.appointmentDate) }}</td>
