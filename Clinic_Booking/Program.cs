@@ -22,7 +22,9 @@ using Clinic_Booking.IServices.IReviewServices;
 using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.Services.AnalyticsServices;
+using Clinic_Booking.Services.AppointmentReminderServices;
 using Clinic_Booking.Services.AppointmentServices;
 using Clinic_Booking.Services.AppVersionServices;
 using Clinic_Booking.Services.BookingSmsServices;
@@ -43,6 +45,7 @@ using Clinic_Booking.Services.SpecializationServices;
 using Clinic_Booking.Services.SubscriptionPackagesServices;
 using Clinic_Booking.Services.SubscriptionExpirationServices;
 using Clinic_Booking.Services.UserServices;
+using Clinic_Booking.Services.WhatsAppMessageServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -74,11 +77,17 @@ builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
 builder.Services.AddScoped<IReviewServices, ReviewServices>();
 builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServices>();
+builder.Services.AddHttpClient<IWhatsAppMessageServices, WhatsAppMessageServices>();
 builder.Services.AddHostedService<SubscriptionExpirationService>();
+builder.Services.AddHostedService<AppointmentReminderService>();
 builder.Services.Configure<BookingOtpOptions>(
     builder.Configuration.GetSection(BookingOtpOptions.SectionName));
 builder.Services.Configure<PushNotificationOptions>(
     builder.Configuration.GetSection(PushNotificationOptions.SectionName));
+builder.Services.Configure<WhatsAppMessageOptions>(
+    builder.Configuration.GetSection(WhatsAppMessageOptions.SectionName));
+builder.Services.Configure<AppointmentReminderOptions>(
+    builder.Configuration.GetSection(AppointmentReminderOptions.SectionName));
 
 
 builder.Services.AddTransient<IEmailServices, EmailServices>();

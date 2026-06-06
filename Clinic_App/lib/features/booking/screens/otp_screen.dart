@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -37,8 +38,11 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final _code = TextEditingController();
+  static const _otpLength = 6;
+
   late final BookingService _service;
+  late final List<TextEditingController> _controllers;
+  late final List<FocusNode> _focusNodes;
   bool _loading = false;
   bool _resending = false;
   int _resendSeconds = 60;
@@ -48,30 +52,66 @@ class _OtpScreenState extends State<OtpScreen> {
   void initState() {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
-    _code.addListener(_onCodeChanged);
+    _controllers = List.generate(_otpLength, (_) => TextEditingController());
+    _focusNodes = List.generate(_otpLength, (_) => FocusNode());
     _startCooldown();
   }
 
   @override
   void dispose() {
-    _code.removeListener(_onCodeChanged);
-    _code.dispose();
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
     _timer?.cancel();
     super.dispose();
   }
 
-  void _onCodeChanged() {
+  String get _code => _controllers.map((controller) => controller.text).join();
+
+  void _onDigitChanged(int index, String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 1) {
+      _fillCode(digits);
+      return;
+    }
+    if (digits != value) {
+      _controllers[index].text = digits;
+      _controllers[index].selection = TextSelection.collapsed(
+        offset: digits.length,
+      );
+    }
+    if (digits.isNotEmpty && index < _otpLength - 1) {
+      _focusNodes[index + 1].requestFocus();
+    }
     if (mounted) setState(() {});
+    if (_code.length == _otpLength) _confirm();
+  }
+
+  void _fillCode(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    for (var i = 0; i < _otpLength; i++) {
+      _controllers[i].text = i < digits.length ? digits[i] : '';
+    }
+    final nextIndex = digits.length >= _otpLength
+        ? _otpLength - 1
+        : digits.length;
+    _focusNodes[nextIndex.clamp(0, _otpLength - 1).toInt()].requestFocus();
+    if (mounted) setState(() {});
+    if (_code.length == _otpLength) _confirm();
   }
 
   Future<void> _confirm() async {
-    if (_code.text.trim().isEmpty) return;
+    final code = _code.trim();
+    if (_loading || code.length != _otpLength) return;
     setState(() => _loading = true);
     try {
       await _service.confirmOtp(
         phoneNumber: widget.args.phoneNumber,
         bookingCode: widget.args.result.code,
-        otpCode: _code.text,
+        otpCode: code,
       );
       if (!mounted) return;
       if (context.read<AuthController>().isAuthenticated) {
@@ -109,6 +149,10 @@ class _OtpScreenState extends State<OtpScreen> {
         bookingCode: widget.args.result.code,
       );
       if (mounted) {
+        for (final controller in _controllers) {
+          controller.clear();
+        }
+        _focusNodes.first.requestFocus();
         _startCooldown();
         showAppSnackBar(
           context,
@@ -178,17 +222,44 @@ class _OtpScreenState extends State<OtpScreen> {
           style: TextStyle(color: AppColors.muted, fontSize: 12),
         ),
         const SizedBox(height: 20),
-        TextField(
-          controller: _code,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          maxLength: 8,
-          decoration: const InputDecoration(labelText: 'رمز OTP'),
-          onSubmitted: (_) => _confirm(),
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Row(
+            children: List.generate(
+              _otpLength,
+              (index) => Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: index == 0 ? 0 : 6),
+                  child: TextField(
+                    controller: _controllers[index],
+                    focusNode: _focusNodes[index],
+                    autofocus: index == 0,
+                    enabled: !_loading,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(_otpLength),
+                    ],
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: const InputDecoration(counterText: ''),
+                    onChanged: (value) => _onDigitChanged(index, value),
+                    onTap: () =>
+                        _controllers[index].selection = TextSelection.collapsed(
+                          offset: _controllers[index].text.length,
+                        ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 10),
         FilledButton(
-          onPressed: _loading || _code.text.trim().isEmpty ? null : _confirm,
+          onPressed: _loading || _code.length != _otpLength ? null : _confirm,
           child: Text(_loading ? 'جاري التحقق...' : 'تأكيد الرمز'),
         ),
         TextButton(

@@ -2,8 +2,8 @@
 import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  BadgePercent, Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
-  House, KeyRound, LogOut, Menu, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
+  BadgePercent, BarChart3, Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
+  House, KeyRound, LogOut, Menu, MessageCircle, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import api from '../services/api'
@@ -25,9 +25,11 @@ const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword
 
 const links = computed(() => [
   { label: 'الرئيسية', to: '/', icon: House, roles: ['SuperAdmin', 'DoctorUser'] },
+  { label: 'الإحصائيات', to: '/analytics', icon: BarChart3, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'المستخدمون', to: '/users', icon: UsersRound, roles: ['SuperAdmin'] },
   { label: 'الأطباء', to: '/doctors', icon: Stethoscope, roles: ['SuperAdmin'] },
   { label: 'الاشتراكات', to: '/subscriptions', icon: ClipboardList, roles: ['SuperAdmin'] },
+  { label: 'WhatsApp OTP', to: '/whatsapp', icon: MessageCircle, roles: ['SuperAdmin'] },
   { label: 'العروض', to: '/offers', icon: BadgePercent, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'إصدارات التطبيق', to: '/app-versions', icon: Smartphone, roles: ['SuperAdmin'] },
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin', 'DoctorUser'] },
