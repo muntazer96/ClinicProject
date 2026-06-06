@@ -1,5 +1,6 @@
 ﻿using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.AppVersion;
+using Clinic_Booking.Entities.Analytics;
 using Clinic_Booking.Entities.Clinic;
 using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Entities.BookingOtpRequest;
@@ -61,11 +62,28 @@ namespace Clinic_Booking.Data
         public DbSet<DoctorFeature> DoctorFeature { get; set; }
         public DbSet<DoctorOffer> DoctorOffers { get; set; }
         public DbSet<AppVersionPolicy> AppVersionPolicies { get; set; }
+        public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<AnalyticsEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EventType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.Source).HasMaxLength(80);
+                entity.Property(e => e.Platform).HasMaxLength(40);
+                entity.Property(e => e.Page).HasMaxLength(120);
+                entity.Property(e => e.Province).HasMaxLength(80);
+                entity.Property(e => e.SearchText).HasMaxLength(300);
+                entity.Property(e => e.SessionId).HasMaxLength(120);
+                entity.HasIndex(e => new { e.EventType, e.OccurredAt });
+                entity.HasIndex(e => new { e.DoctorId, e.EventType, e.OccurredAt });
+                entity.HasIndex(e => new { e.UserId, e.OccurredAt });
+                entity.HasIndex(e => new { e.SessionId, e.OccurredAt });
+            });
 
             modelBuilder.Entity<AppVersionPolicy>(entity =>
             {

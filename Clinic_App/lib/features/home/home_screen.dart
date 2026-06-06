@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/analytics_service.dart';
 import '../../core/app_theme.dart';
 import '../../widgets/app_scaffold.dart';
 import '../auth/auth_controller.dart';
@@ -20,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _service = DirectoryService();
+  late final AnalyticsService _analytics;
   static const _initialOfferPage = 1000;
   final _offersController = PageController(
     viewportFraction: .92,
@@ -35,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _analytics = AnalyticsService(context.read<AuthController>().api);
+    _analytics.trackLater(eventType: 'page_viewed', page: 'home');
     _loadSpecializations();
     _loadOffers();
   }
@@ -68,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_offersController.hasClients && result.items.isNotEmpty) {
         _offersController.jumpToPage(_initialOfferPage);
       }
+      _trackOfferViewed(_initialOfferPage);
       _startOfferAutoScroll();
     } catch (_) {
       // Offers are promotional content, so the home page remains usable.
@@ -117,9 +122,28 @@ class _HomeScreenState extends State<HomeScreen> {
               loading: _loadingOffers,
               offers: _offers,
               controller: _offersController,
-              onPageChanged: (index) => _currentOfferPage = index,
-              onViewAll: () => context.go('/offers'),
-              onOfferTap: (offer) => context.push('/doctors/${offer.doctorId}'),
+              onPageChanged: (index) {
+                _currentOfferPage = index;
+                _trackOfferViewed(index);
+              },
+              onViewAll: () {
+                _analytics.trackLater(
+                  eventType: 'page_viewed',
+                  source: 'home_offers_view_all',
+                  page: 'offers',
+                );
+                context.go('/offers');
+              },
+              onOfferTap: (offer) {
+                _analytics.trackLater(
+                  eventType: 'offer_clicked',
+                  doctorId: offer.doctorId,
+                  offerId: offer.id,
+                  source: 'home_banner',
+                  page: 'home',
+                );
+                context.push('/doctors/${offer.doctorId}?source=offer&offerId=${offer.id}');
+              },
             ),
             const SizedBox(height: 22),
             _SectionTitle(
@@ -139,6 +163,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _trackOfferViewed(int pageIndex) {
+    if (_offers.isEmpty) return;
+    final offer = _offers[pageIndex % _offers.length];
+    _analytics.trackOnce(
+      key: 'home-offer-${offer.id}',
+      eventType: 'offer_viewed',
+      doctorId: offer.doctorId,
+      offerId: offer.id,
+      source: 'home_banner',
+      page: 'home',
     );
   }
 }

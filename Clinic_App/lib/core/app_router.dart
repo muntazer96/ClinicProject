@@ -53,6 +53,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       path: '/doctors/:doctorId',
       builder: (_, state) => DoctorDetailsScreen(
         doctorId: int.parse(state.pathParameters['doctorId']!),
+        source: state.uri.queryParameters['source'],
+        offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
       ),
     ),
     GoRoute(
@@ -69,6 +71,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
         clinicId: int.parse(state.pathParameters['clinicId']!),
         doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
         clinicName: state.uri.queryParameters['clinicName'] ?? 'العيادة',
+        source: state.uri.queryParameters['source'] ?? 'profile',
+        offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
       ),
     ),
     GoRoute(

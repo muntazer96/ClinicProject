@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../../core/analytics_service.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
+import '../../auth/auth_controller.dart';
 import '../directory_service.dart';
 import '../models/directory_models.dart';
 import '../widgets/doctor_avatar.dart';
@@ -21,6 +24,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final _service = DirectoryService();
   final _name = TextEditingController();
   final _scrollController = ScrollController();
+  late final AnalyticsService _analytics;
   List<Specialization> _specializations = [];
   List<DoctorSummary> _doctors = [];
   int? _province;
@@ -38,6 +42,8 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    _analytics = AnalyticsService(context.read<AuthController>().api);
+    _analytics.trackLater(eventType: 'page_viewed', page: 'search');
     _specialization = widget.initialSpecialization;
     _scrollController.addListener(_onScroll);
     _loadInitialData();
@@ -109,6 +115,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _totalItems = result.totalItems;
         _doctors = reset ? result.items : [..._doctors, ...result.items];
       });
+      _trackSearchResult(result.items, reset: reset);
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = ApiClient.errorMessage(error));
@@ -135,6 +142,41 @@ class _SearchScreenState extends State<SearchScreen> {
   void _changeSort(String? value) {
     setState(() => _sort = value ?? 'default');
     _search();
+  }
+
+  void _trackSearchResult(List<DoctorSummary> items, {required bool reset}) {
+    final searchText = _name.text.trim();
+    final provinceName = _selectedProvinceName();
+    if (reset) {
+      _analytics.trackLater(
+        eventType: 'doctor_search_performed',
+        specializationId: _specialization,
+        province: provinceName,
+        searchText: searchText,
+        page: 'search',
+      );
+    }
+    for (final doctor in items) {
+      _analytics.trackOnce(
+        key: 'search-${doctor.id}-$_page-${searchText}_${_province}_${_specialization}_$_sort',
+        eventType: 'doctor_shown_in_search',
+        doctorId: doctor.id,
+        specializationId: _specialization,
+        province: doctor.clinics.isNotEmpty ? doctor.clinics.first.provinceName : provinceName,
+        searchText: searchText,
+        source: 'search',
+        page: 'search',
+      );
+    }
+  }
+
+  String? _selectedProvinceName() {
+    final selected = _province;
+    if (selected == null) return null;
+    return provinces
+        .where((province) => province.id == selected)
+        .map((province) => province.name)
+        .firstOrNull;
   }
 
   @override
@@ -197,7 +239,7 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: _DoctorCard(
                 doctor: doctor,
-                onTap: () => context.push('/doctors/${doctor.id}'),
+                onTap: () => context.push('/doctors/${doctor.id}?source=search'),
               ),
             ),
           ),

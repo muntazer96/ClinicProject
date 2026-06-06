@@ -2,6 +2,7 @@
 using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.Configuration;
+using Clinic_Booking.IServices.IAnalyticsServices;
 using Clinic_Booking.IServices.IAppVersionServices;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IBookingSmsServices;
@@ -21,6 +22,7 @@ using Clinic_Booking.IServices.IReviewServices;
 using Clinic_Booking.IServices.ISpecializationServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
+using Clinic_Booking.Services.AnalyticsServices;
 using Clinic_Booking.Services.AppointmentServices;
 using Clinic_Booking.Services.AppVersionServices;
 using Clinic_Booking.Services.BookingSmsServices;
@@ -54,6 +56,7 @@ ConfigurationManager configuration = builder.Configuration;
 
 // Add services to the container.
 builder.Services.AddScoped<IUserServices, UserServices>();
+builder.Services.AddScoped<IAnalyticsServices, AnalyticsServices>();
 builder.Services.AddScoped<ILoadServices, LoadServices>();
 builder.Services.AddScoped<ISubscriptionPackagesServices, SubscriptionPackagesServices>();
 builder.Services.AddScoped<IDayServices, DayServices>();

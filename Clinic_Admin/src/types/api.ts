@@ -335,3 +335,72 @@ export interface AppVersionCheck {
   message: string
   updateUrl?: string
 }
+
+export interface AnalyticsMetric {
+  key: string
+  label: string
+  value: number
+  note?: string
+}
+
+export interface AnalyticsLabelValue {
+  label: string
+  value: number
+}
+
+export interface AnalyticsTrendPoint {
+  label: string
+  date: string
+  value: number
+}
+
+export interface AnalyticsEventItem {
+  eventType: string
+  label: string
+  occurredAt: string
+  source?: string
+  page?: string
+  doctorId?: number
+  offerId?: number
+}
+
+export interface OfferAnalytics {
+  views: number
+  clicks: number
+  bookingsFromOffers: number
+}
+
+export interface SubscriptionAnalytics {
+  activeSubscribers: number
+  premiumSubscribers: number
+  basicSubscribers: number
+  expiredSubscriptions: number
+  expiringSoon: number
+}
+
+export interface ConversionAnalytics {
+  searchToProfileRate: number
+  profileToBookingRate: number
+}
+
+export interface AnalyticsSummary {
+  metrics: AnalyticsMetric[]
+  appointmentStatus: AnalyticsLabelValue[]
+  appointmentSources: AnalyticsLabelValue[]
+  topDoctorsByViews: AnalyticsLabelValue[]
+  topDoctorsByBookings: AnalyticsLabelValue[]
+  topSpecializationsBySearch: AnalyticsLabelValue[]
+  topSpecializationsByBookings: AnalyticsLabelValue[]
+  topProvinces: AnalyticsLabelValue[]
+  topSearchTerms: AnalyticsLabelValue[]
+  topClinicsByBookings: AnalyticsLabelValue[]
+  topBookingDays: AnalyticsLabelValue[]
+  peakBookingHours: AnalyticsLabelValue[]
+  topPages: AnalyticsLabelValue[]
+  recentEvents: AnalyticsEventItem[]
+  userGrowth: AnalyticsTrendPoint[]
+  appointmentTrend: AnalyticsTrendPoint[]
+  offers: OfferAnalytics
+  subscriptions: SubscriptionAnalytics
+  conversions: ConversionAnalytics
+}

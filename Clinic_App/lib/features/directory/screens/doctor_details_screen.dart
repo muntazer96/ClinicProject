@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/analytics_service.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
 import '../../../core/external_links.dart';
@@ -14,8 +15,15 @@ import '../models/directory_models.dart';
 import '../widgets/doctor_avatar.dart';
 
 class DoctorDetailsScreen extends StatefulWidget {
-  const DoctorDetailsScreen({super.key, required this.doctorId});
+  const DoctorDetailsScreen({
+    super.key,
+    required this.doctorId,
+    this.source,
+    this.offerId,
+  });
   final int doctorId;
+  final String? source;
+  final int? offerId;
 
   @override
   State<DoctorDetailsScreen> createState() => _DoctorDetailsScreenState();
@@ -24,6 +32,7 @@ class DoctorDetailsScreen extends StatefulWidget {
 class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   final _service = DirectoryService();
   late final ReviewService _reviewService;
+  late final AnalyticsService _analytics;
   DoctorProfile? _doctor;
   DoctorReviews? _reviews;
   String? _error;
@@ -31,7 +40,16 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _reviewService = ReviewService(context.read<AuthController>().api);
+    final api = context.read<AuthController>().api;
+    _reviewService = ReviewService(api);
+    _analytics = AnalyticsService(api);
+    _analytics.trackLater(
+      eventType: 'doctor_profile_viewed',
+      doctorId: widget.doctorId,
+      offerId: widget.offerId,
+      source: widget.source ?? 'direct',
+      page: 'doctor_profile',
+    );
     _load();
   }
 
@@ -102,6 +120,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                       doctorId: _doctor!.id,
                       doctorName: _doctor!.name,
                       canBookOnline: _doctor!.canBookOnline,
+                      source: widget.source ?? 'profile',
+                      offerId: widget.offerId,
+                      analytics: _analytics,
                     ),
                   ),
                 ),
@@ -539,11 +560,17 @@ class _ClinicCard extends StatelessWidget {
     required this.doctorId,
     required this.doctorName,
     required this.canBookOnline,
+    required this.source,
+    required this.analytics,
+    this.offerId,
   });
   final ClinicDetails clinic;
   final int doctorId;
   final String doctorName;
   final bool canBookOnline;
+  final String source;
+  final int? offerId;
+  final AnalyticsService analytics;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -617,11 +644,24 @@ class _ClinicCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () => context.push(
-                  '/book/$doctorId/${clinic.id}'
-                  '?doctorName=${Uri.encodeComponent(doctorName)}'
-                  '&clinicName=${Uri.encodeComponent(clinic.name)}',
-                ),
+                onPressed: () {
+                  analytics.trackLater(
+                    eventType: 'doctor_booking_clicked',
+                    doctorId: doctorId,
+                    clinicId: clinic.id,
+                    offerId: offerId,
+                    source: source,
+                    page: 'doctor_profile',
+                    province: clinic.provinceName,
+                  );
+                  context.push(
+                    '/book/$doctorId/${clinic.id}'
+                    '?doctorName=${Uri.encodeComponent(doctorName)}'
+                    '&clinicName=${Uri.encodeComponent(clinic.name)}'
+                    '&source=${Uri.encodeComponent(source)}'
+                    '${offerId != null ? '&offerId=$offerId' : ''}',
+                  );
+                },
                 icon: const Icon(Icons.calendar_month_rounded),
                 label: const Text('احجز دورك الآن'),
               ),

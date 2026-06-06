@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/analytics_service.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
@@ -21,12 +22,16 @@ class BookingScreen extends StatefulWidget {
     required this.clinicId,
     required this.doctorName,
     required this.clinicName,
+    this.source = 'profile',
+    this.offerId,
   });
 
   final int doctorId;
   final int clinicId;
   final String doctorName;
   final String clinicName;
+  final String source;
+  final int? offerId;
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
@@ -34,6 +39,7 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   late final BookingService _service;
+  late final AnalyticsService _analytics;
   final _name = TextEditingController();
   final _phone = TextEditingController();
   final _notes = TextEditingController();
@@ -46,7 +52,17 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
-    _service = BookingService(context.read<AuthController>().api);
+    final api = context.read<AuthController>().api;
+    _service = BookingService(api);
+    _analytics = AnalyticsService(api);
+    _analytics.trackLater(
+      eventType: 'page_viewed',
+      doctorId: widget.doctorId,
+      clinicId: widget.clinicId,
+      offerId: widget.offerId,
+      source: widget.source,
+      page: 'booking',
+    );
     _loadAvailability();
   }
 
@@ -130,6 +146,15 @@ class _BookingScreenState extends State<BookingScreen> {
         guestName: auth.isAuthenticated ? null : _name.text,
         guestPhoneNumber: auth.isAuthenticated ? null : _phone.text,
         notes: _notes.text,
+      );
+      _analytics.trackLater(
+        eventType: 'appointment_created',
+        doctorId: widget.doctorId,
+        clinicId: widget.clinicId,
+        appointmentId: result.appointmentId,
+        offerId: widget.offerId,
+        source: widget.source,
+        page: 'booking',
       );
       if (!mounted) return;
       final phoneNumber = auth.isAuthenticated

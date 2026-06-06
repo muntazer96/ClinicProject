@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../../core/analytics_service.dart';
 import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
 import '../../widgets/app_scaffold.dart';
 import '../directory/directory_service.dart';
 import '../directory/models/directory_models.dart';
+import '../auth/auth_controller.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -17,6 +20,7 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen> {
   final _service = DirectoryService();
   final _scrollController = ScrollController();
+  late final AnalyticsService _analytics;
   final List<DoctorOffer> _offers = [];
   int _page = 1;
   int _totalPages = 1;
@@ -30,6 +34,8 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   void initState() {
     super.initState();
+    _analytics = AnalyticsService(context.read<AuthController>().api);
+    _analytics.trackLater(eventType: 'page_viewed', page: 'offers');
     _scrollController.addListener(_onScroll);
     _loadOffers();
   }
@@ -80,6 +86,7 @@ class _OffersScreenState extends State<OffersScreen> {
           _offers.addAll(result.items);
         }
       });
+      _trackOfferViews(result.items);
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = ApiClient.errorMessage(error));
@@ -90,6 +97,19 @@ class _OffersScreenState extends State<OffersScreen> {
           _loadingMore = false;
         });
       }
+    }
+  }
+
+  void _trackOfferViews(List<DoctorOffer> items) {
+    for (final offer in items) {
+      _analytics.trackOnce(
+        key: 'offers-list-${offer.id}',
+        eventType: 'offer_viewed',
+        doctorId: offer.doctorId,
+        offerId: offer.id,
+        source: 'offers_page',
+        page: 'offers',
+      );
     }
   }
 
@@ -140,7 +160,16 @@ class _OffersScreenState extends State<OffersScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: OfferCard(
                   offer: offer,
-                  onTap: () => context.push('/doctors/${offer.doctorId}'),
+                  onTap: () {
+                    _analytics.trackLater(
+                      eventType: 'offer_clicked',
+                      doctorId: offer.doctorId,
+                      offerId: offer.id,
+                      source: 'offers_page',
+                      page: 'offers',
+                    );
+                    context.push('/doctors/${offer.doctorId}?source=offer&offerId=${offer.id}');
+                  },
                 ),
               ),
             ),
