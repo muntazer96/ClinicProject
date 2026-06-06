@@ -993,9 +993,12 @@ namespace Clinic_Booking.Services.UserServices
 
             var otpCode = GenerateNumericOtp(6);
 
-            Console.WriteLine("//////////////////////////");
-            Console.WriteLine(otpCode);
-            Console.WriteLine("//////////////////////////");
+            //Console.WriteLine("??///////////////////////////////");
+            //_logger.LogInformation("??///////////////////////////////");
+            //Console.WriteLine(otpCode);
+            //_logger.LogInformation(otpCode);
+            //Console.WriteLine("///////////////////////////////////////");
+            //_logger.LogInformation("///////////////////////////////////////");
 
             //var message = $@"
             //مرحباً 👋
