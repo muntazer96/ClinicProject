@@ -154,6 +154,8 @@ export interface ClinicItem {
   longitude?: number
   mapUrl?: string
   phoneNumber?: string
+  consultationPrice?: number
+  showConsultationPrice: boolean
   isVisible: boolean
 }
 

@@ -87,7 +87,12 @@ namespace Clinic_Booking.Services.ClinicServices
                 return Unauthorized();
             }
 
-            var validation = Validate(form.Name, form.Address, form.Latitude, form.Longitude);
+            var validation = Validate(
+                form.Name,
+                form.Address,
+                form.Latitude,
+                form.Longitude,
+                form.ConsultationPrice);
             if (validation != null)
             {
                 return validation;
@@ -136,6 +141,8 @@ namespace Clinic_Booking.Services.ClinicServices
                 Longitude = form.Longitude,
                 MapUrl = form.MapUrl?.Trim(),
                 PhoneNumber = form.PhoneNumber?.Trim(),
+                ConsultationPrice = form.ConsultationPrice,
+                ShowConsultationPrice = form.ShowConsultationPrice,
                 IsVisible = form.IsVisible,
                 CreatorId = _load.GetCurrentUserId()
             };
@@ -154,7 +161,12 @@ namespace Clinic_Booking.Services.ClinicServices
                 return Unauthorized();
             }
 
-            var validation = Validate(form.Name, form.Address, form.Latitude, form.Longitude);
+            var validation = Validate(
+                form.Name,
+                form.Address,
+                form.Latitude,
+                form.Longitude,
+                form.ConsultationPrice);
             if (validation != null)
             {
                 return validation;
@@ -185,6 +197,8 @@ namespace Clinic_Booking.Services.ClinicServices
             clinic.Longitude = form.Longitude;
             clinic.MapUrl = form.MapUrl?.Trim();
             clinic.PhoneNumber = form.PhoneNumber?.Trim();
+            clinic.ConsultationPrice = form.ConsultationPrice;
+            clinic.ShowConsultationPrice = form.ShowConsultationPrice;
             clinic.IsVisible = form.IsVisible;
             clinic.ModifierId = _load.GetCurrentUserId();
             clinic.ModifiedAt = DateTime.UtcNow;
@@ -246,6 +260,8 @@ namespace Clinic_Booking.Services.ClinicServices
                     Longitude = c.Longitude,
                     MapUrl = c.MapUrl,
                     PhoneNumber = c.PhoneNumber,
+                    ConsultationPrice = c.ConsultationPrice,
+                    ShowConsultationPrice = c.ShowConsultationPrice,
                     IsVisible = c.IsVisible
                 });
         }
@@ -254,7 +270,8 @@ namespace Clinic_Booking.Services.ClinicServices
             string name,
             string address,
             decimal? latitude,
-            decimal? longitude)
+            decimal? longitude,
+            decimal? consultationPrice)
         {
             if (string.IsNullOrWhiteSpace(name) || name.Length > 200)
             {
@@ -274,6 +291,11 @@ namespace Clinic_Booking.Services.ClinicServices
             if ((latitude == null) != (longitude == null))
             {
                 return BadRequest("يجب إدخال خط العرض وخط الطول معاً.");
+            }
+
+            if (consultationPrice is < 0)
+            {
+                return BadRequest("سعر المراجعة يجب أن يكون صفراً أو أكثر.");
             }
 
             return null;

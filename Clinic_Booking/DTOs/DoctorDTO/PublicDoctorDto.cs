@@ -51,6 +51,8 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public IraqiProvince IraqiProvince { get; set; }
         public string IraqiProvinceName { get; set; }
         public string Address { get; set; }
+        public decimal? ConsultationPrice { get; set; }
+        public bool ShowConsultationPrice { get; set; }
     }
 
     public class PublicDoctorClinicDto : PublicDoctorClinicSummaryDto

@@ -588,6 +588,15 @@ class _ClinicCard extends StatelessWidget {
             icon: Icons.location_on_outlined,
             text: '${clinic.provinceName} - ${clinic.address}',
           ),
+          if (clinic.showConsultationPrice &&
+              clinic.consultationPrice != null) ...[
+            const SizedBox(height: 7),
+            _InfoRow(
+              icon: Icons.payments_outlined,
+              text:
+                  'سعر المراجعة ${clinic.consultationPrice!.toStringAsFixed(0)} د.ع',
+            ),
+          ],
           if (clinic.phoneNumber?.isNotEmpty == true ||
               clinic.mapUrl?.isNotEmpty == true) ...[
             const SizedBox(height: 8),

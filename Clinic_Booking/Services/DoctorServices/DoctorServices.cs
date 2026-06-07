@@ -131,7 +131,9 @@ namespace Clinic_Booking.Services.DoctorServices
                             Name = clinic.Name,
                             IraqiProvince = clinic.IraqiProvince,
                             IraqiProvinceName = clinic.IraqiProvince.GetDisplayName(),
-                            Address = clinic.Address
+                            Address = clinic.Address,
+                            ConsultationPrice = clinic.ShowConsultationPrice ? clinic.ConsultationPrice : null,
+                            ShowConsultationPrice = clinic.ShowConsultationPrice && clinic.ConsultationPrice != null
                         })
                         .ToList()
                 })
@@ -238,6 +240,8 @@ namespace Clinic_Booking.Services.DoctorServices
                             IraqiProvince = clinic.IraqiProvince,
                             IraqiProvinceName = clinic.IraqiProvince.GetDisplayName(),
                             Address = clinic.Address,
+                            ConsultationPrice = clinic.ShowConsultationPrice ? clinic.ConsultationPrice : null,
+                            ShowConsultationPrice = clinic.ShowConsultationPrice && clinic.ConsultationPrice != null,
                             Latitude = clinic.Latitude,
                             Longitude = clinic.Longitude,
                             MapUrl = clinic.MapUrl,

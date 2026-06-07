@@ -262,6 +262,7 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Latitude).HasPrecision(9, 6);
                 entity.Property(e => e.Longitude).HasPrecision(9, 6);
+                entity.Property(e => e.ConsultationPrice).HasPrecision(10, 2);
                 entity.HasIndex(e => new { e.IraqiProvince, e.IsVisible, e.IsDeleted });
 
                 entity.HasOne(c => c.Doctor)

@@ -154,18 +154,24 @@ class ClinicSummary {
     required this.name,
     required this.provinceName,
     required this.address,
+    required this.consultationPrice,
+    required this.showConsultationPrice,
   });
 
   final int id;
   final String name;
   final String provinceName;
   final String address;
+  final double? consultationPrice;
+  final bool showConsultationPrice;
 
   factory ClinicSummary.fromJson(Map<String, dynamic> json) => ClinicSummary(
     id: json['id'] as int,
     name: json['name'] as String? ?? '',
     provinceName: json['iraqiProvinceName'] as String? ?? '',
     address: json['address'] as String? ?? '',
+    consultationPrice: (json['consultationPrice'] as num?)?.toDouble(),
+    showConsultationPrice: json['showConsultationPrice'] as bool? ?? false,
   );
 }
 
@@ -175,6 +181,8 @@ class ClinicDetails extends ClinicSummary {
     required super.name,
     required super.provinceName,
     required super.address,
+    required super.consultationPrice,
+    required super.showConsultationPrice,
     required this.mapUrl,
     required this.phoneNumber,
     required this.availabilities,
@@ -189,6 +197,8 @@ class ClinicDetails extends ClinicSummary {
     name: json['name'] as String? ?? '',
     provinceName: json['iraqiProvinceName'] as String? ?? '',
     address: json['address'] as String? ?? '',
+    consultationPrice: (json['consultationPrice'] as num?)?.toDouble(),
+    showConsultationPrice: json['showConsultationPrice'] as bool? ?? false,
     mapUrl: json['mapUrl'] as String?,
     phoneNumber: json['phoneNumber'] as String?,
     availabilities: (json['availabilities'] as List? ?? const [])

@@ -14,6 +14,8 @@ namespace Clinic_Booking.Entities.Clinic
         public decimal? Longitude { get; set; }
         public string? MapUrl { get; set; }
         public string? PhoneNumber { get; set; }
+        public decimal? ConsultationPrice { get; set; }
+        public bool ShowConsultationPrice { get; set; } = false;
         public bool IsVisible { get; set; } = true;
         public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }
         public ICollection<Appointment.Appointment> Appointments { get; set; }

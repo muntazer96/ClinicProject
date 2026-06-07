@@ -14,6 +14,8 @@ namespace Clinic_Booking.DTOs.ClinicDTO
         public decimal? Longitude { get; set; }
         public string? MapUrl { get; set; }
         public string? PhoneNumber { get; set; }
+        public decimal? ConsultationPrice { get; set; }
+        public bool ShowConsultationPrice { get; set; }
         public bool IsVisible { get; set; }
     }
 }

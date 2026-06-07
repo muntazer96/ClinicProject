@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Building2, CalendarDays, ExternalLink, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2 } from '@lucide/vue'
+import { BadgeDollarSign, Building2, CalendarDays, ExternalLink, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
 import { provinces } from '../constants/provinces'
@@ -29,7 +29,7 @@ const scheduleDays = ref<ScheduleDay[]>([])
 const deleteClinic = ref<ClinicItem>()
 const form = reactive({
   id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '',
-  mapUrl: '', phoneNumber: '', isVisible: true,
+  mapUrl: '', phoneNumber: '', consultationPrice: '', showConsultationPrice: false, isVisible: true,
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(clinics.value.length / pageSize)))
 const paginatedClinics = computed(() => clinics.value.slice((page.value - 1) * pageSize, page.value * pageSize))
@@ -72,8 +72,14 @@ function openEditor(clinic?: ClinicItem) {
   Object.assign(form, clinic ? {
     id: clinic.id, name: clinic.name, iraqiProvince: String(clinic.iraqiProvince), address: clinic.address,
     latitude: clinic.latitude?.toString() ?? '', longitude: clinic.longitude?.toString() ?? '',
-    mapUrl: clinic.mapUrl ?? '', phoneNumber: clinic.phoneNumber ?? '', isVisible: clinic.isVisible,
-  } : { id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '', mapUrl: '', phoneNumber: '', isVisible: true })
+    mapUrl: clinic.mapUrl ?? '', phoneNumber: clinic.phoneNumber ?? '',
+    consultationPrice: clinic.consultationPrice == null ? '' : String(clinic.consultationPrice),
+    showConsultationPrice: clinic.showConsultationPrice,
+    isVisible: clinic.isVisible,
+  } : {
+    id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '',
+    mapUrl: '', phoneNumber: '', consultationPrice: '', showConsultationPrice: false, isVisible: true,
+  })
   editorOpen.value = true
 }
 
@@ -91,6 +97,8 @@ async function saveClinic() {
       longitude: nullableNumber(form.longitude),
       mapUrl: form.mapUrl || null,
       phoneNumber: form.phoneNumber || null,
+      consultationPrice: nullableNumber(form.consultationPrice),
+      showConsultationPrice: form.showConsultationPrice,
     }
     const response = form.id
       ? await api.put<ApiResponse<object>>('/Clinic/my', body)
@@ -198,6 +206,11 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
         <div class="clinic-details">
           <span><MapPin :size="16" /><b>{{ clinic.iraqiProvinceName }}</b>، {{ clinic.address }}</span>
           <span v-if="clinic.phoneNumber"><Phone :size="16" />{{ clinic.phoneNumber }}</span>
+          <span v-if="clinic.consultationPrice != null">
+            <BadgeDollarSign :size="16" />
+            سعر المراجعة {{ clinic.consultationPrice.toLocaleString('ar-IQ') }} د.ع
+            <small>{{ clinic.showConsultationPrice ? 'ظاهر للمرضى' : 'مخفي للمرضى' }}</small>
+          </span>
           <span v-if="clinic.latitude != null && clinic.longitude != null"><MapPin :size="16" />{{ clinic.latitude }}, {{ clinic.longitude }}</span>
         </div>
         <div class="clinic-card-actions">
@@ -217,6 +230,8 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
         <label class="full-field"><span>العنوان الكامل</span><input v-model="form.address" required maxlength="500" /></label>
         <label><span>رقم الهاتف</span><input v-model="form.phoneNumber" /></label>
         <label><span>رابط الخارطة</span><input v-model="form.mapUrl" type="url" placeholder="https://maps.google.com/..." /></label>
+        <label><span>سعر المراجعة</span><input v-model="form.consultationPrice" type="number" min="0" step="0.01" placeholder="اختياري" /></label>
+        <label class="checkbox-field"><input v-model="form.showConsultationPrice" type="checkbox" /><span>إظهار سعر المراجعة للمرضى</span></label>
         <label><span>Latitude</span><input v-model="form.latitude" type="number" min="-90" max="90" step="any" /></label>
         <label><span>Longitude</span><input v-model="form.longitude" type="number" min="-180" max="180" step="any" /></label>
         <label class="checkbox-field full-field"><input v-model="form.isVisible" type="checkbox" /><span>إظهار العيادة للمرضى</span></label>

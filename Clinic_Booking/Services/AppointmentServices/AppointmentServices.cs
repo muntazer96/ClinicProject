@@ -115,6 +115,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                         Longitude = a.Clinic.Longitude,
                         MapUrl = a.Clinic.MapUrl,
                         PhoneNumber = a.Clinic.PhoneNumber,
+                        ConsultationPrice = a.Clinic.ConsultationPrice,
+                        ShowConsultationPrice = a.Clinic.ShowConsultationPrice,
                         IsVisible = a.Clinic.IsVisible
                     },
                     AppointmentDate = a.AppointmentDate,
