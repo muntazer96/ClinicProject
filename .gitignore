@@ -386,3 +386,4 @@ appsettings.json
 .dotnet_appdata/
 .dotnet_home/
 .tmp_publish_check/
+/WhatsApp_Bridge
