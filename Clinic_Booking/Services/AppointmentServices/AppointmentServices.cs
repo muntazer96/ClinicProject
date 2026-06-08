@@ -575,16 +575,17 @@ namespace Clinic_Booking.Services.AppointmentServices
                     .FirstOrDefaultAsync()
                 : null;
 
-            //if (userId.HasValue && bookingUser is { PhoneNumberConfirmed: false } or { EmailConfirmed: false })
-            //{
-            //    return new BadRequestObjectResult(new ResponseDto<object>
-            //    {
-            //        Status = "Error",
-            //        Code = 400,
-            //        Message = "يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.",
-            //        Data = null
-            //    });
-            //}
+            if (userId.HasValue &&
+            bookingUser is { PhoneNumberConfirmed: false, EmailConfirmed: false })
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.",
+                    Data = null
+                });
+            }
 
             var bookingPhoneNumber = userId.HasValue
                 ? bookingUser?.PhoneNumber
@@ -664,9 +665,16 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var guestPhoneNumber = form.GuestPhoneNumber?.Trim();
+
             var hasDuplicate = userId.HasValue
-                ? await activeAppointments.AnyAsync(a => a.UserId == userId)
-                : await activeAppointments.AnyAsync(a => a.GuestPhoneNumber == guestPhoneNumber);
+                ? await _context.Appointments.AnyAsync(a =>
+                    a.UserId == userId &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    !a.IsDeleted)
+                : await _context.Appointments.AnyAsync(a =>
+                    a.GuestPhoneNumber == guestPhoneNumber &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    !a.IsDeleted);
 
             if (hasDuplicate)
             {
@@ -674,7 +682,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "يوجد حجز مسبق في هذه العيادة لنفس اليوم.",
+                    Message = userId.HasValue
+                        ? "لديك حجز فعال مسبقاً، لا يمكنك إنشاء أكثر من حجز."
+                        : "يوجد حجز فعال مسبقاً لهذا الرقم، لا يمكن إنشاء أكثر من حجز.",
                     Data = null
                 });
             }
