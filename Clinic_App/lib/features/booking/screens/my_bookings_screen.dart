@@ -17,6 +17,7 @@ import 'review_booking_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
+
   @override
   State<MyBookingsScreen> createState() => _MyBookingsScreenState();
 }
@@ -24,6 +25,7 @@ class MyBookingsScreen extends StatefulWidget {
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   late final BookingService _service;
   late final ReviewService _reviewService;
+
   List<BookingDetails> _bookings = [];
   bool _loading = true;
   String _filter = 'active';
@@ -32,6 +34,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   List<BookingDetails> get _filteredBookings {
     final sorted = [..._bookings]
       ..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+
     return switch (_filter) {
       'active' => sorted.where((booking) => booking.canCancel).toList(),
       'completed' => sorted.where((booking) => booking.status == 3).toList(),
@@ -40,24 +43,20 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     };
   }
 
-  int get _activeCount =>
-      _bookings.where((booking) => booking.canCancel).length;
-  int get _completedCount =>
-      _bookings.where((booking) => booking.status == 3).length;
-  int get _cancelledCount =>
-      _bookings.where((booking) => booking.status == 2).length;
+  int get _activeCount => _bookings.where((b) => b.canCancel).length;
+  int get _completedCount => _bookings.where((b) => b.status == 3).length;
+  int get _cancelledCount => _bookings.where((b) => b.status == 2).length;
+
   BookingDetails? get _nextBooking {
-    final today = DateTime.now();
-    final startOfToday = DateTime(today.year, today.month, today.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     final upcoming =
         _bookings
-            .where(
-              (booking) =>
-                  booking.canCancel &&
-                  !booking.appointmentDate.isBefore(startOfToday),
-            )
+            .where((b) => b.canCancel && !b.appointmentDate.isBefore(today))
             .toList()
           ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+
     return upcoming.isEmpty ? null : upcoming.first;
   }
 
@@ -69,43 +68,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     _load();
   }
 
-  Future<void> _review(BookingDetails booking) async {
-    final submission = await context.push<ReviewSubmission>(
-      '/booking/review',
-      extra: booking,
-    );
-    if (submission == null) return;
-    try {
-      await _reviewService.addReview(
-        doctorId: booking.doctorId,
-        appointmentId: booking.id,
-        rating: submission.rating,
-        comment: submission.comment,
-      );
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          'شكراً لك، تم إرسال تقييمك.',
-          type: AppSnackBarType.success,
-        );
-      }
-      await _load();
-    } catch (error) {
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          ApiClient.errorMessage(error),
-          type: AppSnackBarType.error,
-        );
-      }
-    }
-  }
-
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       final bookings = await _service.getMyBookings();
       if (mounted) setState(() => _bookings = bookings);
@@ -120,6 +88,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     try {
       await _service.cancelMyBooking(booking.id);
       await _load();
+
       if (mounted) {
         showAppSnackBar(
           context,
@@ -138,36 +107,54 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
+  Future<void> _review(BookingDetails booking) async {
+    final submission = await context.push<ReviewSubmission>(
+      '/booking/review',
+      extra: booking,
+    );
+
+    if (submission == null) return;
+
+    try {
+      await _reviewService.addReview(
+        doctorId: booking.doctorId,
+        appointmentId: booking.id,
+        rating: submission.rating,
+        comment: submission.comment,
+      );
+
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          'شكراً لك، تم إرسال تقييمك.',
+          type: AppSnackBarType.success,
+        );
+      }
+
+      await _load();
+    } catch (error) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          ApiClient.errorMessage(error),
+          type: AppSnackBarType.error,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredBookings;
+
     return AppScaffold(
       title: 'حجوزاتي',
       child: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 26),
           children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'حجوزاتي',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-                  ),
-                ),
-                IconButton(
-                  onPressed: _loading ? null : _load,
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'تحديث',
-                ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'راجع أدوارك الحالية والسابقة أو ألغِ الحجز قبل موعده.',
-              style: TextStyle(color: AppColors.muted),
-            ),
+            _PageHeader(loading: _loading, onRefresh: _load),
             const SizedBox(height: 14),
             _BookingSummary(
               active: _activeCount,
@@ -178,7 +165,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               const SizedBox(height: 12),
               _NextBookingBanner(booking: _nextBooking!),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             _BookingFilterBar(
               value: _filter,
               onChanged: (value) => setState(() => _filter = value),
@@ -186,7 +173,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             const SizedBox(height: 14),
             if (_loading)
               const Padding(
-                padding: EdgeInsets.all(34),
+                padding: EdgeInsets.all(38),
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_error != null)
@@ -198,7 +185,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             else
               ...filtered.map(
                 (booking) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 14),
                   child: BookingCard(
                     booking: booking,
                     onCancel: booking.canCancel ? () => _cancel(booking) : null,
@@ -211,6 +198,40 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       ),
     );
   }
+}
+
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({required this.loading, required this.onRefresh});
+
+  final bool loading;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'حجوزاتي',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'تابع حجوزاتك الحالية والسابقة بسهولة.',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ],
+        ),
+      ),
+      IconButton.filledTonal(
+        onPressed: loading ? null : onRefresh,
+        icon: const Icon(Icons.refresh_rounded),
+        tooltip: 'تحديث',
+      ),
+    ],
+  );
 }
 
 class _BookingSummary extends StatelessWidget {
@@ -231,6 +252,7 @@ class _BookingSummary extends StatelessWidget {
         child: _SummaryTile(
           label: 'نشطة',
           value: active,
+          icon: Icons.event_available_rounded,
           color: AppColors.primary,
         ),
       ),
@@ -239,6 +261,7 @@ class _BookingSummary extends StatelessWidget {
         child: _SummaryTile(
           label: 'مكتملة',
           value: completed,
+          icon: Icons.verified_rounded,
           color: AppColors.success,
         ),
       ),
@@ -247,6 +270,7 @@ class _BookingSummary extends StatelessWidget {
         child: _SummaryTile(
           label: 'ملغية',
           value: cancelled,
+          icon: Icons.cancel_rounded,
           color: AppColors.danger,
         ),
       ),
@@ -258,11 +282,13 @@ class _SummaryTile extends StatelessWidget {
   const _SummaryTile({
     required this.label,
     required this.value,
+    required this.icon,
     required this.color,
   });
 
   final String label;
   final int value;
+  final IconData icon;
   final Color color;
 
   @override
@@ -270,20 +296,35 @@ class _SummaryTile extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(18),
       border: Border.all(color: AppColors.border),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(.035),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
     ),
     child: Column(
       children: [
+        Icon(icon, color: color, size: 23),
+        const SizedBox(height: 6),
         Text(
           '$value',
           style: TextStyle(
             color: color,
-            fontSize: 20,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
         ),
-        Text(label, style: const TextStyle(color: AppColors.muted)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     ),
   );
@@ -291,6 +332,7 @@ class _SummaryTile extends StatelessWidget {
 
 class _NextBookingBanner extends StatelessWidget {
   const _NextBookingBanner({required this.booking});
+
   final BookingDetails booking;
 
   @override
@@ -298,13 +340,24 @@ class _NextBookingBanner extends StatelessWidget {
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: AppColors.softBlue,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(20),
       border: Border.all(color: AppColors.border),
     ),
     child: Row(
       children: [
-        const Icon(Icons.event_available_rounded, color: AppColors.primary),
-        const SizedBox(width: 10),
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            Icons.notifications_active_rounded,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,11 +366,12 @@ class _NextBookingBanner extends StatelessWidget {
                 'أقرب حجز قادم',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               Text(
                 '${booking.doctorName} - ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)} - الدور #${booking.queueNumber}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.muted),
               ),
             ],
           ),
@@ -356,14 +410,27 @@ class _FilterChip extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsetsDirectional.only(end: 8),
-    child: ChoiceChip(
-      selected: value == id,
-      label: Text(label),
-      onSelected: (_) => onChanged(id),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final selected = value == id;
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: ChoiceChip(
+        selected: selected,
+        label: Text(label),
+        onSelected: (_) => onChanged(id),
+        selectedColor: AppColors.primary,
+        backgroundColor: Colors.white,
+        side: BorderSide(
+          color: selected ? AppColors.primary : AppColors.border,
+        ),
+        labelStyle: TextStyle(
+          color: selected ? Colors.white : AppColors.muted,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
 }
 
 class BookingCard extends StatelessWidget {
@@ -373,13 +440,16 @@ class BookingCard extends StatelessWidget {
     this.onCancel,
     this.onReview,
   });
+
   final BookingDetails booking;
   final VoidCallback? onCancel;
   final VoidCallback? onReview;
 
   Future<void> _copyCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: booking.code));
+
     if (!context.mounted) return;
+
     showAppSnackBar(
       context,
       'تم نسخ كود الحجز.',
@@ -388,125 +458,351 @@ class BookingCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  booking.doctorName,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              _StatusChip(booking: booking),
-            ],
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          Text(
-            booking.clinicName,
-            style: const TextStyle(color: AppColors.primary),
-          ),
-          const Divider(height: 20),
-          _InfoRow(
-            icon: Icons.event_outlined,
-            text:
-                'التاريخ: ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)}',
-          ),
-          _InfoRow(
-            icon: Icons.confirmation_number_outlined,
-            text: 'رقم الدور: #${booking.queueNumber}',
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: _InfoRow(
-                  icon: Icons.key_rounded,
-                  text: 'كود الحجز: ${booking.code}',
-                ),
-              ),
-              IconButton(
-                onPressed: booking.code.isEmpty
-                    ? null
-                    : () => _copyCode(context),
-                icon: const Icon(Icons.copy_rounded),
-                tooltip: 'نسخ الكود',
-              ),
-            ],
-          ),
-          if (booking.clinicAddress.isNotEmpty)
-            _InfoRow(
-              icon: Icons.place_outlined,
-              text: 'العنوان: ${booking.clinicAddress}',
-            ),
-          if (booking.clinicPhoneNumber?.isNotEmpty == true ||
-              booking.mapUrl?.isNotEmpty == true) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (booking.clinicPhoneNumber?.isNotEmpty == true)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          openPhone(context, booking.clinicPhoneNumber!),
-                      icon: const Icon(Icons.phone_outlined),
-                      label: const Text('اتصال'),
-                    ),
-                  ),
-                if (booking.clinicPhoneNumber?.isNotEmpty == true &&
-                    booking.mapUrl?.isNotEmpty == true)
-                  const SizedBox(width: 8),
-                if (booking.mapUrl?.isNotEmpty == true)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => openMap(context, booking.mapUrl!),
-                      icon: const Icon(Icons.map_outlined),
-                      label: const Text('الموقع'),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          if (booking.cancellationReason?.isNotEmpty == true)
-            _InfoRow(
-              icon: Icons.info_outline,
-              text: 'سبب الإلغاء: ${booking.cancellationReason}',
-            ),
-          if (onCancel != null || onReview != null) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                if (onCancel != null)
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showLongPressHint(context),
-                      onLongPress: onCancel,
-                      icon: const Icon(Icons.close),
-                      label: const Text('اضغط مطولاً للإلغاء'),
-                    ),
-                  ),
-                if (onCancel != null && onReview != null)
-                  const SizedBox(width: 8),
-                if (onReview != null)
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onReview,
-                      icon: const Icon(Icons.star_outline),
-                      label: const Text('تقييم الطبيب'),
-                    ),
-                  ),
-              ],
-            ),
-          ],
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          children: [
+            _BookingCardHeader(booking: booking),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _BookingInfoTile(
+                          icon: Icons.calendar_month_rounded,
+                          title: 'التاريخ',
+                          value: DateFormat(
+                            'yyyy/MM/dd',
+                          ).format(booking.appointmentDate),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _BookingInfoTile(
+                          icon: Icons.confirmation_number_rounded,
+                          title: 'رقم الدور',
+                          value: '#${booking.queueNumber}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _BookingInfoTile(
+                    icon: Icons.key_rounded,
+                    title: 'كود الحجز',
+                    value: booking.code.isEmpty ? 'لا يوجد كود' : booking.code,
+                    trailing: booking.code.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () => _copyCode(context),
+                            icon: const Icon(Icons.copy_rounded, size: 19),
+                            tooltip: 'نسخ الكود',
+                          ),
+                  ),
+                  if (booking.clinicAddress.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _BookingInfoTile(
+                      icon: Icons.place_outlined,
+                      title: 'العنوان',
+                      value: booking.clinicAddress,
+                    ),
+                  ],
+                  if (booking.cancellationReason?.isNotEmpty == true) ...[
+                    const SizedBox(height: 8),
+                    _CancelReasonBox(reason: booking.cancellationReason!),
+                  ],
+                  if (booking.clinicPhoneNumber?.isNotEmpty == true ||
+                      booking.mapUrl?.isNotEmpty == true) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (booking.clinicPhoneNumber?.isNotEmpty == true)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => openPhone(
+                                context,
+                                booking.clinicPhoneNumber!,
+                              ),
+                              icon: const Icon(Icons.phone_outlined),
+                              label: const Text('اتصال'),
+                            ),
+                          ),
+                        if (booking.clinicPhoneNumber?.isNotEmpty == true &&
+                            booking.mapUrl?.isNotEmpty == true)
+                          const SizedBox(width: 8),
+                        if (booking.mapUrl?.isNotEmpty == true)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  openMap(context, booking.mapUrl!),
+                              icon: const Icon(Icons.map_outlined),
+                              label: const Text('الموقع'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (onCancel != null || onReview != null) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        if (onReview != null)
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: onReview,
+                              icon: const Icon(Icons.star_outline_rounded),
+                              label: const Text('تقييم الطبيب'),
+                            ),
+                          ),
+                        if (onReview != null && onCancel != null)
+                          const SizedBox(width: 8),
+                        if (onCancel != null)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _showLongPressHint(context),
+                              onLongPress: onCancel,
+                              icon: const Icon(Icons.close_rounded),
+                              label: const Text('إلغاء'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.danger,
+                                side: const BorderSide(color: AppColors.danger),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (onCancel != null) ...[
+                      const SizedBox(height: 6),
+                      const Text(
+                        'لإلغاء الحجز اضغط مطولاً على زر إلغاء.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BookingCardHeader extends StatelessWidget {
+  const _BookingCardHeader({required this.booking});
+
+  final BookingDetails booking;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [AppColors.primary, AppColors.primary.withOpacity(.82)],
+      ),
+    ),
+    child: Row(
+      children: [
+        _StatusChip(booking: booking),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                booking.doctorName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                booking.clinicName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(.85),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(.16),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withOpacity(.25)),
+          ),
+          child: const Icon(
+            Icons.medical_services_outlined,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ],
     ),
   );
+}
+
+class _BookingInfoTile extends StatelessWidget {
+  const _BookingInfoTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF6FAF9),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    ),
+  );
+}
+
+class _CancelReasonBox extends StatelessWidget {
+  const _CancelReasonBox({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFECEC),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.info_outline, color: AppColors.danger, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'سبب الإلغاء: $reason',
+            style: const TextStyle(
+              color: AppColors.danger,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.booking});
+
+  final BookingDetails booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(booking.status);
+    final background = _statusBackground(booking.status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        booking.statusLabel,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+Color _statusColor(int status) {
+  return switch (status) {
+    1 => AppColors.primary,
+    2 => AppColors.danger,
+    3 => AppColors.success,
+    _ => const Color(0xFFB16A2B),
+  };
+}
+
+Color _statusBackground(int status) {
+  return switch (status) {
+    1 => const Color(0xFFE4F5F1),
+    2 => const Color(0xFFFFECEC),
+    3 => const Color(0xFFE4F4F0),
+    _ => const Color(0xFFFFF0DF),
+  };
 }
 
 void _showLongPressHint(BuildContext context) {
@@ -517,70 +813,42 @@ void _showLongPressHint(BuildContext context) {
   );
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text)),
-      ],
-    ),
-  );
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.booking});
-  final BookingDetails booking;
-
-  @override
-  Widget build(BuildContext context) {
-    final (background, foreground) = switch (booking.status) {
-      1 => (AppColors.softBlue, AppColors.primary),
-      2 => (const Color(0xFFFFECEC), AppColors.danger),
-      3 => (const Color(0xFFE4F4F0), AppColors.success),
-      _ => (const Color(0xFFFFF0DF), const Color(0xFFB16A2B)),
-    };
-    return Chip(
-      backgroundColor: background,
-      side: BorderSide.none,
-      label: Text(
-        booking.statusLabel,
-        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
 class BookingMessage extends StatelessWidget {
   const BookingMessage({super.key, required this.text, this.action});
+
   final String text;
   final VoidCallback? action;
+
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.calendar_month_outlined,
-            size: 42,
-            color: AppColors.muted,
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      children: [
+        const Icon(
+          Icons.calendar_month_outlined,
+          size: 44,
+          color: AppColors.muted,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        if (action != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: action,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('إعادة المحاولة'),
           ),
-          const SizedBox(height: 9),
-          Text(text, textAlign: TextAlign.center),
-          if (action != null)
-            TextButton(onPressed: action, child: const Text('إعادة المحاولة')),
         ],
-      ),
+      ],
     ),
   );
 }

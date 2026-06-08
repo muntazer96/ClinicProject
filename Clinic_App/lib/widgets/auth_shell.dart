@@ -11,6 +11,7 @@ class AuthShell extends StatelessWidget {
     required this.child,
     this.footer,
   });
+
   final String title;
   final String subtitle;
   final Widget child;
@@ -36,105 +37,126 @@ class AuthShell extends StatelessWidget {
                 ),
               ),
             ),
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: .14),
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () =>
-                            context.canPop() ? context.pop() : context.go('/'),
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                      const Spacer(),
-                      const Text(
-                        'عيادتي',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: .15),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: const Icon(
-                          Icons.local_hospital_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 25),
-                  const Text(
-                    'رعايتك تبدأ بخطوة بسيطة',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  const Text(
-                    'سجّل حسابك وتابع حجوزاتك بسهولة ووضوح.',
-                    style: TextStyle(color: Color(0xFFD6F2EE), height: 1.5),
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x180B514A),
-                          blurRadius: 28,
-                          offset: Offset(0, 12),
-                        ),
-                      ],
-                    ),
+
+            Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: AppColors.text,
-                            fontSize: 25,
+                        Row(
+                          children: [
+                            IconButton(
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: .14,
+                                ),
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () => context.canPop()
+                                  ? context.pop()
+                                  : context.go('/'),
+                              icon: const Icon(Icons.arrow_back),
+                            ),
+                            const Spacer(),
+                            const Text(
+                              'عيادتي',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: .15),
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                              child: const Icon(
+                                Icons.local_hospital_outlined,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        const Text(
+                          'رعايتك تبدأ بخطوة بسيطة',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
+
                         const SizedBox(height: 7),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            color: Color(0xFF758C89),
-                            height: 1.6,
+
+                        const Text(
+                          'سجّل حسابك وتابع حجوزاتك بسهولة ووضوح.',
+                          style: TextStyle(
+                            color: Color(0xFFD6F2EE),
+                            height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        child,
+
+                        const SizedBox(height: 24),
+
+                        Container(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x180B514A),
+                                blurRadius: 28,
+                                offset: Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                subtitle,
+                                style: const TextStyle(
+                                  color: Color(0xFF758C89),
+                                  height: 1.6,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              child,
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  if (footer != null) ...[
-                    const SizedBox(height: 22),
-                    footer!,
-                  ],
-                ],
-              ),
+                ),
+
+                if (footer != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                    child: footer!,
+                  ),
+              ],
             ),
           ],
         ),

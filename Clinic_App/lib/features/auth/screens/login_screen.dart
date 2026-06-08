@@ -89,10 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
               labelText: 'كلمة المرور',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                tooltip:
-                    showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
-                onPressed: () =>
-                    setState(() => showPassword = !showPassword),
+                tooltip: showPassword
+                    ? 'إخفاء كلمة المرور'
+                    : 'إظهار كلمة المرور',
+                onPressed: () => setState(() => showPassword = !showPassword),
                 icon: Icon(
                   showPassword
                       ? Icons.visibility_off_outlined

@@ -9,43 +9,65 @@ import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final name = TextEditingController(),
-      phone = TextEditingController(),
-      email = TextEditingController(),
-      password = TextEditingController(),
-      confirm = TextEditingController();
+  final firstName = TextEditingController();
+  final secondName = TextEditingController();
+  final phone = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final confirm = TextEditingController();
+
   bool loading = false;
   bool showPassword = false;
   bool showConfirm = false;
   String? error;
 
   bool get canSubmit =>
-      name.text.trim().isNotEmpty &&
+      firstName.text.trim().isNotEmpty &&
+      secondName.text.trim().isNotEmpty &&
       phone.text.trim().isNotEmpty &&
       email.text.trim().isNotEmpty &&
       password.text.isNotEmpty &&
       confirm.text.isNotEmpty &&
       !loading;
 
+  String get fullName => '${firstName.text.trim()} ${secondName.text.trim()}';
+
   @override
   void initState() {
     super.initState();
-    for (final controller in [name, phone, email, password, confirm]) {
+
+    for (final controller in [
+      firstName,
+      secondName,
+      phone,
+      email,
+      password,
+      confirm,
+    ]) {
       controller.addListener(_refresh);
     }
   }
 
   @override
   void dispose() {
-    for (final controller in [name, phone, email, password, confirm]) {
+    for (final controller in [
+      firstName,
+      secondName,
+      phone,
+      email,
+      password,
+      confirm,
+    ]) {
       controller.removeListener(_refresh);
       controller.dispose();
     }
+
     super.dispose();
   }
 
@@ -55,32 +77,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> submit() async {
     if (!canSubmit) return;
+
     if (!email.text.contains('@')) {
       setState(() => error = 'أدخل بريد إلكتروني صحيح.');
       return;
     }
+
     if (password.text.length < 6) {
       setState(() => error = 'كلمة المرور يجب أن لا تقل عن ستة أحرف.');
       return;
     }
+
     if (password.text != confirm.text) {
       setState(() => error = 'كلمتا المرور غير متطابقتين.');
       return;
     }
+
     setState(() {
       loading = true;
       error = null;
     });
+
     try {
       await ApiClient().dio.post(
         '/User/signup',
         data: {
-          'name': name.text.trim(),
+          'name': fullName,
           'phoneNumber': phone.text.trim(),
           'email': email.text.trim(),
           'password': password.text,
         },
       );
+
       if (mounted) {
         context.go(
           '/email-confirm?identifier=${Uri.encodeComponent(email.text.trim())}',
@@ -102,15 +130,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (error != null) ErrorText(error!),
+
         TextField(
-          controller: name,
+          controller: firstName,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
-            labelText: 'الاسم الكامل',
+            labelText: 'الاسم الأول',
             prefixIcon: Icon(Icons.person_outline),
           ),
         ),
+
         const SizedBox(height: 10),
+
+        TextField(
+          controller: secondName,
+          textInputAction: TextInputAction.next,
+          decoration: const InputDecoration(
+            labelText: 'الاسم الثاني',
+            prefixIcon: Icon(Icons.badge_outlined),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
         TextField(
           controller: phone,
           keyboardType: TextInputType.phone,
@@ -120,7 +162,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             prefixIcon: Icon(Icons.phone_outlined),
           ),
         ),
+
         const SizedBox(height: 10),
+
         TextField(
           controller: email,
           keyboardType: TextInputType.emailAddress,
@@ -130,7 +174,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             prefixIcon: Icon(Icons.email_outlined),
           ),
         ),
+
         const SizedBox(height: 10),
+
         TextField(
           controller: password,
           obscureText: !showPassword,
@@ -139,9 +185,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             labelText: 'كلمة المرور',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              tooltip:
-                  showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
-              onPressed: () => setState(() => showPassword = !showPassword),
+              tooltip: showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+              onPressed: () {
+                setState(() => showPassword = !showPassword);
+              },
               icon: Icon(
                 showPassword
                     ? Icons.visibility_off_outlined
@@ -150,9 +197,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+
         const SizedBox(height: 8),
+
         PasswordStrength(password.text),
+
         const SizedBox(height: 10),
+
         TextField(
           controller: confirm,
           obscureText: !showConfirm,
@@ -162,9 +213,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             labelText: 'تأكيد كلمة المرور',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              tooltip:
-                  showConfirm ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
-              onPressed: () => setState(() => showConfirm = !showConfirm),
+              tooltip: showConfirm ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور',
+              onPressed: () {
+                setState(() => showConfirm = !showConfirm);
+              },
               icon: Icon(
                 showConfirm
                     ? Icons.visibility_off_outlined
@@ -173,11 +225,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
+
         const SizedBox(height: 14),
+
         FilledButton(
           onPressed: canSubmit ? submit : null,
           child: Text(loading ? 'جارِ الإنشاء...' : 'إنشاء الحساب'),
         ),
+
         TextButton(
           onPressed: () => context.go('/login'),
           child: const Text('لديك حساب؟ سجّل دخولك'),
@@ -194,22 +249,26 @@ class PasswordStrength extends StatelessWidget {
 
   int get _score {
     var score = 0;
+
     if (password.length >= 6) score++;
     if (password.length >= 10) score++;
     if (RegExp(r'[A-Z]').hasMatch(password)) score++;
     if (RegExp(r'[0-9]').hasMatch(password)) score++;
     if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) score++;
+
     return score.clamp(0, 5);
   }
 
   @override
   Widget build(BuildContext context) {
     final score = _score;
+
     final color = score <= 2
         ? Colors.red.shade700
         : score <= 4
         ? AppColors.warning
         : AppColors.primary;
+
     final label = password.isEmpty
         ? 'أدخل كلمة مرور لا تقل عن ستة أحرف.'
         : score <= 2

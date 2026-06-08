@@ -40,21 +40,30 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   late final BookingService _service;
   late final AnalyticsService _analytics;
-  final _name = TextEditingController();
+
+  final _firstName = TextEditingController();
+  final _secondName = TextEditingController();
   final _phone = TextEditingController();
   final _notes = TextEditingController();
+
   List<QueueAvailability> _days = [];
   QueueAvailability? _selected;
+
   bool _loading = true;
   bool _saving = false;
   String? _error;
 
+  String get _guestName =>
+      '${_firstName.text.trim()} ${_secondName.text.trim()}';
+
   @override
   void initState() {
     super.initState();
+
     final api = context.read<AuthController>().api;
     _service = BookingService(api);
     _analytics = AnalyticsService(api);
+
     _analytics.trackLater(
       eventType: 'page_viewed',
       doctorId: widget.doctorId,
@@ -63,12 +72,14 @@ class _BookingScreenState extends State<BookingScreen> {
       source: widget.source,
       page: 'booking',
     );
+
     _loadAvailability();
   }
 
   @override
   void dispose() {
-    _name.dispose();
+    _firstName.dispose();
+    _secondName.dispose();
     _phone.dispose();
     _notes.dispose();
     super.dispose();
@@ -79,15 +90,20 @@ class _BookingScreenState extends State<BookingScreen> {
       _loading = true;
       _error = null;
     });
+
     try {
       final days = await _service.getAvailability(widget.clinicId);
+
       if (!mounted) return;
+
       setState(() {
         _days = days;
         _selected = days.where((day) => day.isAvailable).firstOrNull;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+      if (mounted) {
+        setState(() => _error = ApiClient.errorMessage(error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -95,35 +111,43 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _submit() async {
     final auth = context.read<AuthController>();
+
     if (_selected == null) return;
-    // if (auth.isAuthenticated &&
-    //     (auth.profile?.phoneConfirmed != true ||
-    //         auth.profile?.emailConfirmed != true)) {
-    //   setState(
-    //     () => _error = 'يجب تأكيد رقم الهاتف والبريد الإلكتروني قبل الحجز.',
-    //   );
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         content: const Text('أكمل تأكيد الحساب من الملف الشخصي.'),
-    //         action: SnackBarAction(
-    //           label: 'الملف الشخصي',
-    //           onPressed: () => context.go('/profile'),
-    //         ),
-    //       ),
-    //     );
-    //   }
-    //   return;
-    // }
+
+    if (auth.isAuthenticated &&
+        auth.profile?.phoneConfirmed != true &&
+        auth.profile?.emailConfirmed != true) {
+      setState(
+        () => _error = 'يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('أكمل تأكيد الحساب من الملف الشخصي.'),
+            action: SnackBarAction(
+              label: 'الملف الشخصي',
+              onPressed: () => context.go('/profile'),
+            ),
+          ),
+        );
+      }
+
+      return;
+    }
+
     if (!auth.isAuthenticated &&
-        (_name.text.trim().isEmpty || _phone.text.trim().isEmpty)) {
+        (_firstName.text.trim().isEmpty ||
+            _secondName.text.trim().isEmpty ||
+            _phone.text.trim().isEmpty)) {
       showAppSnackBar(
         context,
-        'أدخل اسم المراجع ورقم الهاتف لإكمال الحجز.',
+        'أدخل الاسم الأول والاسم الثاني ورقم الهاتف لإكمال الحجز.',
         type: AppSnackBarType.warning,
       );
       return;
     }
+
     if (auth.isAuthenticated && auth.phoneNumber == null) {
       showAppSnackBar(
         context,
@@ -132,21 +156,25 @@ class _BookingScreenState extends State<BookingScreen> {
       );
       return;
     }
+
     final accepted = await _confirmBookingSummary(auth.isAuthenticated);
     if (accepted != true) return;
+
     setState(() {
       _saving = true;
       _error = null;
     });
+
     try {
       final result = await _service.createBooking(
         doctorId: widget.doctorId,
         clinicId: widget.clinicId,
         date: _selected!.date,
-        guestName: auth.isAuthenticated ? null : _name.text,
-        guestPhoneNumber: auth.isAuthenticated ? null : _phone.text,
-        notes: _notes.text,
+        guestName: auth.isAuthenticated ? null : _guestName,
+        guestPhoneNumber: auth.isAuthenticated ? null : _phone.text.trim(),
+        notes: _notes.text.trim(),
       );
+
       _analytics.trackLater(
         eventType: 'appointment_created',
         doctorId: widget.doctorId,
@@ -156,10 +184,13 @@ class _BookingScreenState extends State<BookingScreen> {
         source: widget.source,
         page: 'booking',
       );
+
       if (!mounted) return;
+
       final phoneNumber = auth.isAuthenticated
           ? auth.phoneNumber
           : _phone.text.trim();
+
       if (result.requiresOtp) {
         context.go(
           '/booking/otp',
@@ -200,6 +231,7 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<bool?> _confirmBookingSummary(bool authenticated) {
     final selected = _selected;
     if (selected == null) return Future.value(false);
+
     return context.push<bool>(
       '/booking/confirm',
       extra: BookingConfirmArgs(
@@ -207,7 +239,7 @@ class _BookingScreenState extends State<BookingScreen> {
         clinicName: widget.clinicName,
         dayName: selected.dayName,
         date: selected.date,
-        guestName: authenticated ? null : _name.text.trim(),
+        guestName: authenticated ? null : _guestName,
         guestPhone: authenticated ? null : _phone.text.trim(),
         notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       ),
@@ -217,6 +249,7 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     final authenticated = context.watch<AuthController>().isAuthenticated;
+
     return AppScaffold(
       title: 'حجز دور',
       child: ListView(
@@ -226,12 +259,16 @@ class _BookingScreenState extends State<BookingScreen> {
             doctorName: widget.doctorName,
             clinicName: widget.clinicName,
           ),
+
           const SizedBox(height: 22),
+
           const Text(
             'اختر اليوم المناسب',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
+
           const SizedBox(height: 10),
+
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else if (_days.isEmpty)
@@ -245,6 +282,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, index) {
                   final day = _days[index];
+
                   return _DayCard(
                     day: day,
                     selected: _selected == day,
@@ -255,28 +293,55 @@ class _BookingScreenState extends State<BookingScreen> {
                 },
               ),
             ),
+
           if (_selected != null) ...[
             const SizedBox(height: 10),
             _SelectedDaySummary(day: _selected!),
           ],
+
           const SizedBox(height: 16),
+
           if (!authenticated) ...[
             const _Notice(
-              text:
-                  'يمكنك الحجز كزائر. احتفظ بكود الحجز لمراجعته أو إلغائه لاحقاً.',
+              text: 'يمكنك الحجز كزائر. احتفظ بكود الحجز لمراجعته لاحقاً.',
             ),
+
             const SizedBox(height: 10),
+
             TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'اسم المراجع'),
+              controller: _firstName,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'الاسم الأول',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
             ),
+
             const SizedBox(height: 10),
+
+            TextField(
+              controller: _secondName,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'الاسم الثاني',
+                prefixIcon: Icon(Icons.badge_outlined),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
             TextField(
               controller: _phone,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'رقم الهاتف'),
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'رقم الهاتف',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
             ),
+
             const SizedBox(height: 8),
+
             TextButton(
               onPressed: () => context.push(
                 '/login?redirect=${Uri.encodeComponent(GoRouterState.of(context).uri.toString())}',
@@ -284,6 +349,7 @@ class _BookingScreenState extends State<BookingScreen> {
               child: const Text('لديك حساب؟ سجل الدخول قبل الحجز'),
             ),
           ],
+
           TextField(
             controller: _notes,
             maxLength: 1000,
@@ -292,11 +358,14 @@ class _BookingScreenState extends State<BookingScreen> {
               labelText: 'ملاحظات اختيارية للمراجعة',
             ),
           ),
+
           if (_error != null) ...[
             const SizedBox(height: 8),
             _Notice(text: _error!, error: true),
           ],
+
           const SizedBox(height: 12),
+
           FilledButton.icon(
             onPressed: _selected == null || _saving ? null : _submit,
             icon: const Icon(Icons.check_circle_outline),
@@ -379,6 +448,7 @@ class _DayCard extends StatelessWidget {
 
 class _SelectedDaySummary extends StatelessWidget {
   const _SelectedDaySummary({required this.day});
+
   final QueueAvailability day;
 
   @override
@@ -406,6 +476,7 @@ class _SelectedDaySummary extends StatelessWidget {
 
 class _Notice extends StatelessWidget {
   const _Notice({required this.text, this.error = false});
+
   final String text;
   final bool error;
 
