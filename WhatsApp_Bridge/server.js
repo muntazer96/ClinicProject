@@ -69,11 +69,11 @@ client.on('auth_failure', (message) => {
 });
 
 client.on('disconnected', (reason) => {
-  ready = false;
-  phone = null;
-  lastMessage = `Disconnected: ${reason}`;
-  console.warn(lastMessage);
-  client.initialize();
+  ready = false
+  phone = null
+  qrDataUrl = null
+  lastMessage = `Disconnected: ${reason}`
+  console.warn(lastMessage)
 });
 
 app.get('/status', requireToken, (req, res) => {
@@ -106,8 +106,37 @@ app.post('/send-message', requireToken, async (req, res) => {
   res.json({ sent: true, phone: phoneNumber });
 });
 
+app.post('/logout', requireToken, async (req, res) => {
+  try {
+    await client.logout()
+
+    ready = false
+    phone = null
+    qrDataUrl = null
+    lastMessage = 'Logged out. Waiting for new QR...'
+
+    setTimeout(() => {
+      client.initialize()
+    }, 1000)
+
+    res.json({ success: true, message: lastMessage })
+  } catch (error) {
+    ready = false
+    phone = null
+    qrDataUrl = null
+    lastMessage = error instanceof Error ? error.message : 'Logout failed'
+
+    res.status(500).json({
+      success: false,
+      message: lastMessage,
+    })
+  }
+});
+
 app.listen(port, () => {
   console.log(`WhatsApp bridge listening on http://127.0.0.1:${port}`);
 });
+
+
 
 client.initialize();

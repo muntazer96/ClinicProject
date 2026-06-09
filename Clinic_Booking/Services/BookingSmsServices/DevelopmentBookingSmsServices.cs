@@ -19,14 +19,20 @@ namespace Clinic_Booking.Services.BookingSmsServices
 
         public async Task SendBookingOtpAsync(string phoneNumber, string code)
         {
-            Console.WriteLine("///////////////////////////////");
-            _logger.LogInformation("///////////////////////////////");
-            Console.WriteLine(code);
-            _logger.LogInformation(code);
-            Console.WriteLine("///////////////////////////////////////");
-            _logger.LogInformation("///////////////////////////////////////");
+            var message = $@"
+            مرحباً 👋
 
-            var message = $"مرحباً،\n\nرمز تأكيد الحجز الخاص بك هو:\n\n🔢 {code}\n\nيرجى إدخال هذا الرمز لإكمال تأكيد الموعد.\n\n⏳ الرمز صالح لمدة 10 دقائق.\n\nشكراً لاستخدامك تطبيق عياداتي.\n";
+            رمز التحقق الخاص بك هو:
+
+            🔐 {code}
+
+            يرجى إدخال هذا الرمز لإكمال تأكيد رقم الهاتف.
+
+            ⏳ الرمز صالح لمدة 2 دقيقة.
+
+            إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
+            ";
+
             var sent = await _whatsAppMessageServices.SendMessageAsync(phoneNumber, message);
             if (sent)
             {

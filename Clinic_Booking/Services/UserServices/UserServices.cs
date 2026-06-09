@@ -1104,28 +1104,6 @@ namespace Clinic_Booking.Services.UserServices
 
             var otpCode = GenerateNumericOtp(6);
 
-            //Console.WriteLine("??///////////////////////////////");
-            //_logger.LogInformation("??///////////////////////////////");
-            //Console.WriteLine(otpCode);
-            //_logger.LogInformation(otpCode);
-            //Console.WriteLine("///////////////////////////////////////");
-            //_logger.LogInformation("///////////////////////////////////////");
-
-            //var message = $@"
-            //مرحباً 👋
-
-            //رمز التحقق الخاص بك هو:
-
-            //🔐 {otpCode}
-
-            //يرجى إدخال هذا الرمز لإكمال تأكيد رقم الهاتف.
-
-            //⏳ الرمز صالح لمدة 5 دقائق.
-
-            //إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
-            //";
-
-            //            _whatsAppMessageServices.SendMessageAsync(user.PhoneNumber, message).Wait();
             var codeSalt = GenerateOtpSalt();
             _context.UserPhoneOtpRequests.Add(new UserPhoneOtpRequest
             {
