@@ -23,6 +23,89 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             _context = context;
             _load = load;
         }
+
+        public async Task<IActionResult> GetCurrentForDoctorAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يجب تسجيل الدخول أولاً.",
+                    Data = null
+                });
+            }
+
+            var doctorId = await _context.Doctors
+                .Where(doctor => doctor.UserId == userId && !doctor.IsDeleted)
+                .Select(doctor => (int?)doctor.Id)
+                .FirstOrDefaultAsync();
+
+            if (!doctorId.HasValue)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "لا يوجد ملف طبيب مرتبط بهذا الحساب.",
+                    Data = null
+                });
+            }
+
+            var now = DateTime.UtcNow;
+            var subscription = await _context.DoctorSubscriptions
+                .Include(item => item.Package)
+                .Where(item =>
+                    item.DoctorId == doctorId.Value &&
+                    item.Status == SubscriptionStatus.Active &&
+                    item.StartDate <= now &&
+                    item.EndDate >= now)
+                .OrderByDescending(item => item.StartDate)
+                .FirstOrDefaultAsync();
+
+            if (subscription == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Not Found",
+                    Code = 404,
+                    Message = "لا يوجد اشتراك نشط حالياً.",
+                    Data = null
+                });
+            }
+
+            var features = await _context.DoctorFeature
+                .Include(item => item.Feature)
+                .Where(item => item.DoctorId == doctorId.Value && !item.IsDeleted && !item.Feature.IsDeleted)
+                .OrderBy(item => item.Feature.Id)
+                .Select(item => new CurrentDoctorSubscriptionFeatureDto
+                {
+                    Id = item.Id,
+                    Name = item.Feature.Name,
+                    NormalizedName = item.Feature.NormalizedName,
+                    Description = item.Feature.Description,
+                    IsEnabled = item.IsEnabled
+                })
+                .ToListAsync();
+
+            return new OkObjectResult(new ResponseDto<CurrentDoctorSubscriptionDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم جلب الاشتراك الحالي بنجاح.",
+                Data = new CurrentDoctorSubscriptionDto
+                {
+                    PackageName = subscription.Package.Name,
+                    StartDate = subscription.StartDate,
+                    EndDate = subscription.EndDate,
+                    Status = subscription.Status.ToString(),
+                    Features = features
+                }
+            });
+        }
+
         public async Task<ActionResult<PaginationDto.PageResult<GetDoctorSubscriptionDto>>> GetListAsync(SearchDoctorSubscriptionDto form,int page = 1, int pageSize = 10)
         {
             try

@@ -53,7 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
         phone.text.trim(),
         password.text,
       );
-      if (mounted) context.go(widget.redirect ?? '/');
+      if (mounted) {
+        final auth = context.read<AuthController>();
+        context.go(widget.redirect ?? (auth.isDoctor ? '/doctor' : '/'));
+      }
     } catch (e) {
       if (mounted) setState(() => error = ApiClient.errorMessage(e));
     }

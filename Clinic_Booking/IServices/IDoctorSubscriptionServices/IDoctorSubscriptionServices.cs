@@ -12,5 +12,6 @@ namespace Clinic_Booking.IServices.IDoctorSubscriptionServices
         Task<IActionResult> ActivateSubscriptionAsync(int id);
         Task<IActionResult> RenewSubscriptionAsync(int id, RenewDoctorSubscriptionDto form);
         Task<IActionResult> UpgradeSubscriptionAsync(int id, UpgradeDoctorSubscriptionDto form);
+        Task<IActionResult> GetCurrentForDoctorAsync();
     }
 }

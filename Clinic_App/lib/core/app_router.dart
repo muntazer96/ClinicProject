@@ -21,6 +21,23 @@ import '../features/booking/screens/success_screen.dart';
 import '../features/directory/screens/doctor_details_screen.dart';
 import '../features/directory/screens/search_screen.dart';
 import '../features/directory/screens/specializations_screen.dart';
+import '../features/doctor/models/doctor_models.dart';
+import '../features/doctor/pages/doctor_appointments_screen.dart';
+import '../features/doctor/pages/doctor_clinic_form_page.dart';
+import '../features/doctor/pages/doctor_clinics_screen.dart';
+import '../features/doctor/pages/doctor_features_page.dart';
+import '../features/doctor/pages/doctor_home_screen.dart';
+import '../features/doctor/pages/doctor_manual_appointment_page.dart';
+import '../features/doctor/pages/doctor_notifications_screen.dart';
+import '../features/doctor/pages/doctor_offer_form_page.dart';
+import '../features/doctor/pages/doctor_offers_screen.dart';
+import '../features/doctor/pages/doctor_profile_edit_page.dart';
+import '../features/doctor/pages/doctor_profile_screen.dart';
+import '../features/doctor/pages/doctor_reviews_screen.dart';
+import '../features/doctor/pages/doctor_schedule_day_form_page.dart';
+import '../features/doctor/pages/doctor_schedule_exception_form_page.dart';
+import '../features/doctor/pages/doctor_schedule_screen.dart';
+import '../features/doctor/pages/doctor_subscription_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/offers/offers_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
@@ -36,6 +53,89 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     GoRoute(path: '/splash', builder: (_, __) => const StartupSplashScreen()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
     GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/doctor', builder: (_, __) => const DoctorHomeScreen()),
+    GoRoute(
+      path: '/doctor/appointments',
+      builder: (_, __) => const DoctorAppointmentsScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/appointments/manual',
+      builder: (_, __) => const DoctorManualAppointmentPage(),
+    ),
+    GoRoute(
+      path: '/doctor/schedule',
+      builder: (_, __) => const DoctorScheduleScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/schedule/day',
+      builder: (_, state) => state.extra is DoctorAvailability
+          ? DoctorScheduleDayFormPage(day: state.extra! as DoctorAvailability)
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
+      path: '/doctor/schedule/exception',
+      builder: (_, state) => state.extra is DoctorClinic
+          ? DoctorScheduleExceptionFormPage(
+              clinic: state.extra! as DoctorClinic,
+            )
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
+      path: '/doctor/profile',
+      builder: (_, __) => const DoctorProfileScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/profile/edit',
+      builder: (_, state) => state.extra is DoctorProfile
+          ? DoctorProfileEditPage(profile: state.extra! as DoctorProfile)
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
+      path: '/doctor/features',
+      builder: (_, state) => state.extra is DoctorProfile
+          ? DoctorFeaturesPage(profile: state.extra! as DoctorProfile)
+          : const _MissingBookingData(),
+    ),
+    GoRoute(
+      path: '/doctor/clinics',
+      builder: (_, __) => const DoctorClinicsScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/clinics/form',
+      builder: (_, state) => DoctorClinicFormPage(
+        clinic: state.extra is DoctorClinic ? state.extra! as DoctorClinic : null,
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/clinics/:clinicId/schedule',
+      builder: (_, state) => DoctorScheduleScreen(
+        clinic: state.extra is DoctorClinic ? state.extra! as DoctorClinic : null,
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/offers',
+      builder: (_, __) => const DoctorOffersScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/offers/form',
+      builder: (_, state) => DoctorOfferFormPage(
+        offer: state.extra is DoctorOfferManage
+            ? state.extra! as DoctorOfferManage
+            : null,
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/reviews',
+      builder: (_, __) => const DoctorManageReviewsScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/subscription',
+      builder: (_, __) => const DoctorSubscriptionScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/notifications',
+      builder: (_, __) => const DoctorNotificationsScreen(),
+    ),
     GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
     GoRoute(
       path: '/search',
@@ -170,8 +270,18 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/profile/edit-name',
       '/profile/confirm-phone',
     };
-    if (protectedPages.contains(state.uri.path) && !auth.isAuthenticated) {
+    final doctorPage =
+        state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');
+    if ((protectedPages.contains(state.uri.path) || doctorPage) &&
+        !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+    }
+    if (doctorPage && !auth.isDoctor) return '/';
+    if (auth.isDoctor &&
+        (state.uri.path == '/' ||
+            protectedPages.contains(state.uri.path) ||
+            authPages.contains(state.uri.path))) {
+      return '/doctor';
     }
     if (auth.isAuthenticated && authPages.contains(state.uri.path)) return '/';
     return null;

@@ -36,8 +36,8 @@ ThemeData buildAppTheme() {
     base.textTheme,
   ).apply(bodyColor: AppColors.text, displayColor: AppColors.text);
 
-  final rounded8 = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(8),
+  final rounded10 = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(10),
   );
 
   return base.copyWith(
@@ -61,7 +61,7 @@ ThemeData buildAppTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         side: const BorderSide(color: AppColors.border),
       ),
     ),
@@ -71,7 +71,7 @@ ThemeData buildAppTheme() {
         foregroundColor: Colors.white,
         minimumSize: const Size(0, 52),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
-        shape: rounded8,
+        shape: rounded10,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -80,7 +80,7 @@ ThemeData buildAppTheme() {
         minimumSize: const Size(0, 48),
         side: const BorderSide(color: AppColors.border),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
-        shape: rounded8,
+        shape: rounded10,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -97,19 +97,19 @@ ThemeData buildAppTheme() {
       prefixIconColor: AppColors.primary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: AppColors.danger),
       ),
     ),
@@ -122,12 +122,12 @@ ThemeData buildAppTheme() {
         fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
-      shape: rounded8,
+      shape: rounded10,
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 72,
       backgroundColor: Colors.white,
-      indicatorColor: AppColors.softBlue,
+      indicatorColor: AppColors.surfaceMuted,
       labelTextStyle: WidgetStatePropertyAll(
         GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.w800),
       ),
@@ -139,13 +139,13 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.text,
       contentTextStyle: GoogleFonts.cairo(color: Colors.white),
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
       ),
     ),
   );

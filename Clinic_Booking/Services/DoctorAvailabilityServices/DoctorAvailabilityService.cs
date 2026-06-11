@@ -283,38 +283,44 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                     });
                 }
 
-                // اجلب التوفر الحالي
+                var days = await _context.Days
+                    .Where(d => !d.IsDeleted)
+                    .OrderBy(d => d.Id)
+                    .ToListAsync();
+
                 var availabilities = await _context.DoctorAvailabilities
-        .Where(a => a.ClinicId == clinicId)
-        .Include(a => a.Day)
-        .Select(availability => new GetDoctorDayAvailabilityDto
-        {
-            Id=availability.Id,
-            ClinicId = availability.ClinicId,
-            DayId = availability.DayId,
-            DayName = availability.Day.Name,
-            DayNormailzedName = availability.Day.NormalizedName,
-            IsAvailable = availability.IsAvailable,
-            StartTime = availability.StartTime,
-            EndTime = availability.EndTime,
-            MaxAppointments = availability.MaxAppointments
-        })
-        .ToListAsync();
-                if(availabilities.Count == 0)
+                    .Where(a => a.ClinicId == clinicId && !a.IsDeleted)
+                    .ToListAsync();
+
+                var availabilityByDay = availabilities
+                    .GroupBy(a => a.DayId)
+                    .ToDictionary(group => group.Key, group => group.First());
+
+                var result = days.Select(day =>
                 {
-                    return new NotFoundObjectResult(new ResponseDto<string>
+                    availabilityByDay.TryGetValue(day.Id, out var availability);
+
+                    return new GetDoctorDayAvailabilityDto
                     {
-                        Status = "Success",
-                        Code = 403,
-                        Message = "لا يتوفر جدول اسبوعي للعيادة.",
-                    });
-                }
+                        Id = availability?.Id,
+                        ClinicId = clinicId,
+                        DayId = day.Id,
+                        DayOfWeek = day.Id - 1,
+                        DayName = day.Name,
+                        DayNormailzedName = day.NormalizedName,
+                        IsAvailable = availability?.IsAvailable ?? false,
+                        StartTime = availability?.StartTime,
+                        EndTime = availability?.EndTime,
+                        MaxAppointments = availability?.MaxAppointments
+                    };
+                }).ToList();
+
                 return new OkObjectResult(new ResponseDto<List<GetDoctorDayAvailabilityDto>>
                 {
                     Status = "Success",
                     Code = 200,
-                    Message = "تم جلب حالة التوفر الأسبوعي بنجاح.",
-                    Data = availabilities
+                    Message = "تم جلب أوقات الدوام بنجاح.",
+                    Data = result
                 });
             }
             catch (Exception ex)
@@ -396,37 +402,77 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 });
             }
 
-            var availability = await _context.DoctorAvailabilities
-                .Where(a => a.ClinicId == dto.ClinicId && a.DayId == dto.DayId)
+            var day = await _context.Days
+                .Where(d => d.Id == dto.DayId && !d.IsDeleted)
                 .FirstOrDefaultAsync();
 
-            if (availability == null)
+            if (day == null)
             {
-                return new NotFoundObjectResult(new ResponseDto<object>
+                return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
-                    Code = 404,
-                    Message = "لم يتم العثور على توفر لهذا اليوم. الرجاء إضافته أولاً.",
+                    Code = 400,
+                    Message = "اليوم المحدد غير صحيح.",
                     Data = null
                 });
             }
 
-            // التحديث
+            var availability = await _context.DoctorAvailabilities
+                .Where(a =>
+                    a.ClinicId == dto.ClinicId &&
+                    a.Clinic.DoctorId == clinic.DoctorId &&
+                    a.DayId == dto.DayId &&
+                    !a.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            var isNewAvailability = false;
+
+            if (availability == null)
+            {
+                isNewAvailability = true;
+                availability = new DoctorAvailability
+                {
+                    ClinicId = dto.ClinicId,
+                    DayId = dto.DayId,
+                    CreatorId = _load.GetCurrentUserId(),
+                };
+
+                _context.DoctorAvailabilities.Add(availability);
+            }
+
             availability.StartTime = dto.StartTime;
             availability.EndTime = dto.EndTime;
             availability.MaxAppointments = dto.MaxAppointments;
             availability.IsAvailable = dto.IsAvailable;
-            availability.ModifierId = _load.GetCurrentUserId();
-            availability.ModifiedAt = DateTime.UtcNow;
+
+            if (!isNewAvailability)
+            {
+                availability.ModifierId = _load.GetCurrentUserId();
+                availability.ModifiedAt = DateTime.UtcNow;
+            }
 
             await _context.SaveChangesAsync();
 
-            return new OkObjectResult(new ResponseDto<object>
+            var result = new GetDoctorDayAvailabilityDto
+            {
+                Id = availability.Id,
+                ClinicId = availability.ClinicId,
+                DayId = availability.DayId,
+                DayOfWeek = availability.DayId - 1,
+                DayName = day.Name,
+                DayNormailzedName = day.NormalizedName,
+                IsAvailable = availability.IsAvailable,
+                StartTime = availability.StartTime,
+                EndTime = availability.EndTime,
+                MaxAppointments = availability.MaxAppointments
+            };
+
+            return new OkObjectResult(new ResponseDto<GetDoctorDayAvailabilityDto>
             {
                 Status = "Success",
                 Code = 200,
-                Message = "تم تحديث معلومات اليوم بنجاح.",
-                Data = null
+                Message = isNewAvailability ? "تم إضافة معلومات اليوم بنجاح." : "تم تحديث معلومات اليوم بنجاح.",
+                Data = result
             });
         }
 

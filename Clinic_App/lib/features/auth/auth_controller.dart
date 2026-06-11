@@ -24,6 +24,7 @@ class AuthController extends ChangeNotifier {
   bool loading = false;
 
   bool get isAuthenticated => _token?.isNotEmpty == true;
+  bool get isDoctor => _profile?.roleName == 'DoctorUser';
   String? get phoneNumber => _phoneNumber;
   UserProfile? get profile => _profile;
   String get displayName => _profile?.name.isNotEmpty == true

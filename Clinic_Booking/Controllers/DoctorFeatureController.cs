@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
-    [Authorize(Roles = AppRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.DoctorUser}")]
     public class DoctorFeatureController : BaseApiController
     {
         private readonly IDoctorFeatureServices _services;

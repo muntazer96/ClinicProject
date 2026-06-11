@@ -36,12 +36,20 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                 }
                 var now = DateTime.UtcNow;
 
+                var currentUserId = _load.GetCurrentUserId();
+                var currentDoctorId = await _context.Doctors
+                    .Where(doctor => doctor.UserId == currentUserId && !doctor.IsDeleted)
+                    .Select(doctor => (int?)doctor.Id)
+                    .FirstOrDefaultAsync();
+
                 var query = _context.DoctorFeature
                     .Include(ds => ds.Doctor).ThenInclude(i => i.Specialization)
                     .Include(ds => ds.Feature)
                     .Where(d=>!d.IsDeleted)
                     .Where(d=> form.Id == null || d.Id == form.Id)
-                    .Where(d=> form.DoctorId == null || d.DoctorId == form.DoctorId)
+                    .Where(d=> currentDoctorId != null
+                        ? d.DoctorId == currentDoctorId
+                        : form.DoctorId == null || d.DoctorId == form.DoctorId)
 
                     ;
 
@@ -154,6 +162,26 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                     Message = "الميزة غير موجودة!",
                     Data = null
                 });
+            }
+
+            var currentUserId = _load.GetCurrentUserId();
+            var currentDoctorId = await _context.Doctors
+                .Where(doctor => doctor.UserId == currentUserId && !doctor.IsDeleted)
+                .Select(doctor => (int?)doctor.Id)
+                .FirstOrDefaultAsync();
+
+            if (currentDoctorId.HasValue && doctorFeature.DoctorId != currentDoctorId.Value)
+            {
+                return new ObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 403,
+                    Message = "لا تملك صلاحية تعديل هذه الميزة.",
+                    Data = null
+                })
+                {
+                    StatusCode = 403
+                };
             }
 
             // Only check on enabling
