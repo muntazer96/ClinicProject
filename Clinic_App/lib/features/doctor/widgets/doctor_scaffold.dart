@@ -38,22 +38,18 @@ class DoctorScaffold extends StatelessWidget {
         leading: Padding(
           padding: const EdgeInsetsDirectional.only(start: 14),
           child: showBackButton
-              ? _RoundIconButton(
-                  tooltip: 'رجوع',
-                  icon: Icons.arrow_back_rounded,
-                  onPressed: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go(backRoute);
-                    }
-                  },
-                )
-              : _RoundIconButton(
-                  tooltip: 'الإشعارات',
-                  icon: Icons.notifications_none_rounded,
-                  onPressed: () => context.go('/doctor/notifications'),
-                ),
+    ? _RoundIconButton(
+        tooltip: 'رجوع',
+        icon: Icons.arrow_back_rounded,
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(backRoute);
+          }
+        },
+      )
+    : const SizedBox(width: 40),
         ),
         title: Text(
           title,
@@ -65,13 +61,7 @@ class DoctorScaffold extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 14),
-            child: showBackButton
-                ? _RoundIconButton(
-                    tooltip: 'الإشعارات',
-                    icon: Icons.notifications_none_rounded,
-                    onPressed: () => context.go('/doctor/notifications'),
-                  )
-                : Container(
+            child:  Container(
                     width: 34,
                     height: 34,
                     padding: const EdgeInsets.all(6),
