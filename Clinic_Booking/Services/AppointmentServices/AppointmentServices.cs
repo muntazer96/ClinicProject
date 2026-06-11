@@ -670,10 +670,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ? await _context.Appointments.AnyAsync(a =>
                     a.UserId == userId &&
                     a.Status != AppointmentStatus.Cancelled &&
+                    a.AppointmentDate == appointmentDate &&
                     !a.IsDeleted)
                 : await _context.Appointments.AnyAsync(a =>
                     a.GuestPhoneNumber == guestPhoneNumber &&
                     a.Status != AppointmentStatus.Cancelled &&
+                    a.AppointmentDate == appointmentDate &&
                     !a.IsDeleted);
 
             if (hasDuplicate)
@@ -745,7 +747,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 "حجز جديد",
                 requiresOtp
                     ? "تم إنشاء حجز جديد وينتظر تأكيد رقم الهاتف."
-                    : "تم إنشاء حجز جديد.",
+                    : "تم استلام حجز جديد بتأريخ "+appointmentDate +".",
                 appointment);
 
             if (!requiresOtp)
