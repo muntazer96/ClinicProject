@@ -36,9 +36,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
     try {
       final profile = await _service.getProfile();
       _profile = profile;
+
       try {
         _subscription = await _service.getCurrentSubscription();
-        _features = _subscription?.features ?? await _service.getDoctorFeatures(profile.id);
+        _features =
+            _subscription?.features ?? await _service.getDoctorFeatures(profile.id);
       } catch (_) {
         _subscription = null;
         _features = const [];
@@ -50,100 +52,138 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-    length: 2,
-    child: DoctorScaffold(
-      title: 'الملف الشخصي',
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'حسابي'),
-              Tab(text: 'بيانات الطبيب'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                const ProfileScreen(),
-                _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-                          children: [
-                            _DoctorProfileCard(profile: _profile),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              onPressed: () async {
-                                await context.push(
-                                  '/doctor/profile/edit',
-                                  extra: _profile,
-                                );
-                                await _load();
-                              },
-                              icon: const Icon(Icons.edit_outlined),
-                              label: const Text('تعديل بيانات الطبيب'),
-                            ),
-                            const SizedBox(height: 12),
-                            _SubscriptionCard(
-                              subscription: _subscription,
-                            ),
-                            const SizedBox(height: 12),
-                            DoctorSectionCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Expanded(
-                                        child: Text(
-                                          'المميزات المتاحة',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => context.push(
-                                          '/doctor/features',
-                                          extra: _profile,
-                                        ),
-                                        child: const Text('إدارة'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  if (_features.isEmpty)
-                                    const Text(
-                                      'لا توجد بيانات مميزات متاحة من صلاحيات الـ API الحالية.',
-                                      style: TextStyle(color: AppColors.muted),
-                                    )
-                                  else
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: _features
-                                          .where((item) => item.isEnabled)
-                                          .map(
-                                            (item) => Chip(label: Text(item.name)),
-                                          )
-                                          .toList(),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-              ],
-            ),
-          ),
-        ],
+        length: 2,
+        child: DoctorScaffold(
+          title: 'الملف الشخصي',
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F7F6),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TabBar(
+                  indicator: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: AppColors.primaryDark,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  tabs: const [
+  Tab(
+    child: Text(
+      'حسابي',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+        fontFamily: 'Cairo',
       ),
     ),
-  );
+  ),
+  Tab(
+    child: Text(
+      'بيانات الطبيب',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w800,
+        fontFamily: 'Cairo',
+      ),
+    ),
+  ),
+],
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    const ProfileScreen(),
+                    _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                              children: [
+                                _DoctorProfileCard(profile: _profile),
+
+                                const SizedBox(height: 14),
+
+                                SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      await context.push(
+                                        '/doctor/profile/edit',
+                                        extra: _profile,
+                                      );
+                                      await _load();
+                                    },
+                                    icon: const Icon(Icons.edit_outlined),
+                                    label: const Text(
+                                      'تعديل بيانات الطبيب',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                _QuickTile(
+                                  icon: Icons.star_rounded,
+                                  title: 'التقييمات',
+                                  subtitle: 'عرض تقييمات المرضى والردود',
+                                  color: AppColors.warning,
+                                  onTap: () => context.push('/doctor/reviews'),
+                                ),
+
+                                const SizedBox(height: 14),
+
+                                _SubscriptionCard(subscription: _subscription),
+
+                                const SizedBox(height: 14),
+
+                                _FeaturesCard(
+                                  features: _features,
+                                  onManage: () => context.push(
+                                    '/doctor/features',
+                                    extra: _profile,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _DoctorProfileCard extends StatelessWidget {
@@ -152,45 +192,211 @@ class _DoctorProfileCard extends StatelessWidget {
   final DoctorProfile? profile;
 
   @override
-  Widget build(BuildContext context) => DoctorSectionCard(
-    child: Row(
-      children: [
-        CircleAvatar(
-          radius: 34,
-          backgroundColor: AppColors.softBlue,
-          backgroundImage:
-              profile?.imageUrl == null ? null : NetworkImage(profile!.imageUrl!),
-          child: profile?.imageUrl == null
-              ? const Icon(Icons.medical_services_rounded)
-              : null,
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F7F73), Color(0xFF0D625C)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(.22),
+              shape: BoxShape.circle,
+            ),
+            child: CircleAvatar(
+              radius: 39,
+              backgroundColor: Colors.white.withOpacity(.18),
+              backgroundImage: profile?.imageUrl == null
+                  ? null
+                  : NetworkImage(profile!.imageUrl!),
+              child: profile?.imageUrl == null
+                  ? const Icon(
+                      Icons.medical_services_rounded,
+                      color: Colors.white,
+                      size: 34,
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile?.name ?? '-',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                _WhitePill(
+                  icon: Icons.workspace_premium_rounded,
+                  text: profile?.specialization ?? '-',
+                ),
+                if (profile?.description?.isNotEmpty == true) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    profile!.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(.84),
+                      fontSize: 12.5,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhitePill extends StatelessWidget {
+  const _WhitePill({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 15),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFDDE9E7)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(.025),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
             children: [
-              Text(
-                profile?.name ?? '-',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(.12),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(icon, color: color, size: 27),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                profile?.specialization ?? '-',
-                style: const TextStyle(color: AppColors.muted),
-              ),
-              Text(
-                profile?.description ?? '',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.muted,
               ),
             ],
           ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _SubscriptionCard extends StatelessWidget {
@@ -199,35 +405,270 @@ class _SubscriptionCard extends StatelessWidget {
   final DoctorSubscriptionInfo? subscription;
 
   @override
-  Widget build(BuildContext context) => DoctorSectionCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'الاشتراك الحالي',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 8),
-        if (subscription == null)
-          const Text(
-            'لا توجد بيانات اشتراك متاحة لهذا الحساب.',
-            style: TextStyle(color: AppColors.muted),
-          )
-        else ...[
-          Text(subscription!.packageName),
-          Text(
-            'التفعيل: ${_format(subscription!.startDate)}',
-            style: const TextStyle(color: AppColors.muted),
-          ),
-          Text(
-            'الانتهاء: ${_format(subscription!.endDate)}',
-            style: const TextStyle(color: AppColors.muted),
+  Widget build(BuildContext context) {
+    final hasSub = subscription != null;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE9E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.025),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
-      ],
-    ),
-  );
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFD6A20B),
+                size: 22,
+              ),
+              const SizedBox(width: 7),
+              const Expanded(
+                child: Text(
+                  'الاشتراك الحالي',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+              ),
+              _SmallBadge(
+                text: hasSub ? 'فعال' : 'غير متاح',
+                color: hasSub ? AppColors.primary : AppColors.muted,
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          if (!hasSub)
+            const Text(
+              'لا توجد بيانات اشتراك متاحة لهذا الحساب.',
+              style: TextStyle(color: AppColors.muted),
+            )
+          else ...[
+            Text(
+              subscription!.packageName,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _DateInfoBox(
+                    title: 'التفعيل',
+                    date: _format(subscription!.startDate),
+                    icon: Icons.play_circle_outline_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _DateInfoBox(
+                    title: 'الانتهاء',
+                    date: _format(subscription!.endDate),
+                    icon: Icons.event_busy_rounded,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   String _format(DateTime? value) =>
       value == null ? '-' : DateFormat('yyyy/MM/dd').format(value);
+}
+
+class _DateInfoBox extends StatelessWidget {
+  const _DateInfoBox({
+    required this.title,
+    required this.date,
+    required this.icon,
+  });
+
+  final String title;
+  final String date;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE3ECEA)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 18),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  date,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturesCard extends StatelessWidget {
+  const _FeaturesCard({
+    required this.features,
+    required this.onManage,
+  });
+
+  final List<DoctorFeatureItem> features;
+  final VoidCallback onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabledFeatures = features.where((item) => item.isEnabled).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE9E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.025),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+                size: 21,
+              ),
+              const SizedBox(width: 7),
+              const Expanded(
+                child: Text(
+                  'المميزات المتاحة',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+              ),
+              TextButton(
+                onPressed: onManage,
+                child: const Text('إدارة'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (enabledFeatures.isEmpty)
+            const Text(
+              'لا توجد بيانات مميزات متاحة من صلاحيات الـ API الحالية.',
+              style: TextStyle(color: AppColors.muted),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: enabledFeatures
+                  .map(
+                    (item) => _FeaturePill(text: item.name),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  const _FeaturePill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7F5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.primary.withOpacity(.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_rounded, size: 15, color: AppColors.primary),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(
+              color: AppColors.primaryDark,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallBadge extends StatelessWidget {
+  const _SmallBadge({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(.18)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: 11.5,
+        ),
+      ),
+    );
+  }
 }

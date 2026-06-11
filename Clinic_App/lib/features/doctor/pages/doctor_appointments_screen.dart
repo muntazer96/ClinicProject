@@ -15,7 +15,8 @@ class DoctorAppointmentsScreen extends StatefulWidget {
   const DoctorAppointmentsScreen({super.key});
 
   @override
-  State<DoctorAppointmentsScreen> createState() => _DoctorAppointmentsScreenState();
+  State<DoctorAppointmentsScreen> createState() =>
+      _DoctorAppointmentsScreenState();
 }
 
 class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
@@ -70,77 +71,96 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-    title: 'إدارة الحجوزات',
-    child: Stack(
-      children: [
-        Column(
+        title: 'إدارة الحجوزات',
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: OutlinedButton.icon(
-                onPressed: _pickDateRange,
-                icon: const Icon(Icons.calendar_month_rounded),
-                label: Text(
-                  _fromDate == null
-                      ? 'فلترة حسب التاريخ'
-                      : '${DateFormat('yyyy/MM/dd').format(_fromDate!)} - ${DateFormat('yyyy/MM/dd').format(_toDate ?? _fromDate!)}',
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 56,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _StatusChip('الكل', null, _status, _setStatus),
-                  _StatusChip('قيد الانتظار', 0, _status, _setStatus),
-                  _StatusChip('مؤكد', 1, _status, _setStatus),
-                  _StatusChip('ملغي', 2, _status, _setStatus),
-                  _StatusChip('مكتمل', 3, _status, _setStatus),
-                ],
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _load,
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _items.isEmpty
-                    ? const DoctorEmptyState(
-                        icon: Icons.event_busy_rounded,
-                        message: 'لا توجد حجوزات بهذه الحالة.',
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 86),
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) => _AppointmentCard(
-                          item: _items[index],
-                          onToggle: _toggle,
-                          onComplete: _complete,
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _pickDateRange,
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      label: Text(
+                        _fromDate == null
+                            ? 'فلترة حسب التاريخ'
+                            : '${DateFormat('yyyy/MM/dd').format(_fromDate!)} - ${DateFormat('yyyy/MM/dd').format(_toDate ?? _fromDate!)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: Color(0xFFDDE9E7)),
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+
+                Padding(
+  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+  child: Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    alignment: WrapAlignment.center,
+    children: [
+      _StatusChip('الكل', null, _status, _setStatus),
+      _StatusChip('قيد الانتظار', 0, _status, _setStatus),
+      _StatusChip('مؤكد', 1, _status, _setStatus),
+      _StatusChip('ملغي', 2, _status, _setStatus),
+      _StatusChip('مكتمل', 3, _status, _setStatus),
+    ],
+  ),
+),
+
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _items.isEmpty
+                            ? const DoctorEmptyState(
+                                icon: Icons.event_busy_rounded,
+                                message: 'لا توجد حجوزات بهذه الحالة.',
+                              )
+                            : ListView.builder(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                                itemCount: _items.length,
+                                itemBuilder: (context, index) =>
+                                    _AppointmentCard(
+                                  item: _items[index],
+                                  onToggle: _toggle,
+                                  onComplete: _complete,
+                                ),
+                              ),
+                  ),
+                ),
+              ],
+            ),
+
+            PositionedDirectional(
+              start: 18,
+              bottom: 16,
+              child: FloatingActionButton.small(
+                heroTag: 'doctor-add-appointment',
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                onPressed: () async {
+                  await context.push('/doctor/appointments/manual');
+                  await _load();
+                },
+                child: const Icon(Icons.add_rounded),
               ),
             ),
           ],
         ),
-        PositionedDirectional(
-          start: 18,
-          bottom: 16,
-          child: FloatingActionButton.small(
-            heroTag: 'doctor-add-appointment',
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            onPressed: () async {
-              await context.push('/doctor/appointments/manual');
-              await _load();
-            },
-            child: const Icon(Icons.add_rounded),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   void _setStatus(int? value) {
     setState(() => _status = value);
@@ -156,11 +176,14 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
           ? null
           : DateTimeRange(start: _fromDate!, end: _toDate ?? _fromDate!),
     );
+
     if (range == null) return;
+
     setState(() {
       _fromDate = range.start;
       _toDate = range.end;
     });
+
     await _load();
   }
 }
@@ -181,66 +204,372 @@ class _AppointmentCard extends StatelessWidget {
     final statusColor = item.status == 2
         ? AppColors.danger
         : item.status == 3
-        ? AppColors.success
-        : item.status == 1
-        ? AppColors.primary
-        : AppColors.primaryDark;
+            ? AppColors.success
+            : item.status == 1
+                ? AppColors.primary
+                : const Color(0xFFB7791F);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DoctorSectionCard(
+    final isGuest = item.isGuestBooking;
+    final sourceColor = isGuest ? const Color(0xFFD6A20B) : AppColors.primary;
+    final sourceBg =
+        isGuest ? const Color(0xFFFFF7DF) : const Color(0xFFEAF7F5);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isGuest ? const Color(0xFFE8CF83) : const Color(0xFFDDE9E7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.035),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: sourceBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    isGuest
+                        ? Icons.person_add_alt_1_rounded
+                        : Icons.verified_user_rounded,
+                    color: sourceColor,
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.patientName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              item.patientPhoneNumber,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
                 DoctorStatusPill(label: item.statusLabel, color: statusColor),
-                const Spacer(),
-                Text(
-                  item.patientName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SmallSourceBadge(
+                  text: isGuest ? 'حجز زائر' : 'مستخدم مسجل',
+                  icon: isGuest
+                      ? Icons.person_outline_rounded
+                      : Icons.account_circle_outlined,
+                  color: sourceColor,
+                  bg: sourceBg,
+                ),
+                if (item.isPhoneConfirmed)
+                  const _SmallSourceBadge(
+                    text: 'الهاتف مؤكد',
+                    icon: Icons.verified_rounded,
+                    color: AppColors.success,
+                    bg: Color(0xFFEAF8EF),
+                  ),
+                if (item.hasReview)
+                  const _SmallSourceBadge(
+                    text: 'قيّم الطبيب',
+                    icon: Icons.star_rounded,
+                    color: Color(0xFFD6A20B),
+                    bg: Color(0xFFFFF7DF),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.calendar_month_rounded,
+                    title: 'التاريخ',
+                    value: DateFormat('yyyy/MM/dd')
+                        .format(item.appointmentDate),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.confirmation_number_rounded,
+                    title: 'رقم الدور',
+                    value: '#${item.queueNumber}',
+                  ),
                 ),
               ],
             ),
+
             const SizedBox(height: 8),
-            DoctorInfoRow(
+
+            _InfoLine(
               icon: Icons.local_hospital_rounded,
               text: item.clinicName,
             ),
-            DoctorInfoRow(
-              icon: Icons.calendar_month_rounded,
-              text:
-                  '${DateFormat('yyyy/MM/dd').format(item.appointmentDate)} - رقم الدور ${item.queueNumber}',
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (item.canToggle)
-                  Expanded(
-                    child: DoctorActionButton(
-                      label: item.status == 0 ? 'قبول / تأكيد' : 'رفض / إلغاء',
-                      icon: item.status == 0
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.cancel_outlined,
-                      danger: item.status != 0,
-                      onPressed: () => onToggle(item),
+
+            if (item.clinicAddress.isNotEmpty)
+              _InfoLine(
+                icon: Icons.location_on_outlined,
+                text: item.clinicAddress,
+              ),
+
+            if (item.code.isNotEmpty)
+              _InfoLine(
+                icon: Icons.qr_code_rounded,
+                text: 'كود الحجز: ${item.code}',
+              ),
+
+            if (item.status == 2 && item.cancelledAt != null) ...[
+              const SizedBox(height: 8),
+              _WarningBox(
+                text:
+                    'تم الإلغاء بتاريخ ${DateFormat('yyyy/MM/dd - hh:mm a').format(item.cancelledAt!)}',
+              ),
+            ],
+
+            if (item.canToggle || item.canComplete) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (item.canToggle)
+                    Expanded(
+                      child: DoctorActionButton(
+                        label:
+                            item.status == 0 ? 'قبول / تأكيد' : 'رفض / إلغاء',
+                        icon: item.status == 0
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.cancel_outlined,
+                        danger: item.status != 0,
+                        onPressed: () => onToggle(item),
+                      ),
                     ),
-                  ),
-                if (item.canToggle && item.canComplete) const SizedBox(width: 8),
-                if (item.canComplete)
-                  Expanded(
-                    child: DoctorActionButton(
-                      label: 'إكمال',
-                      icon: Icons.task_alt_rounded,
-                      onPressed: () => onComplete(item),
+                  if (item.canToggle && item.canComplete)
+                    const SizedBox(width: 8),
+                  if (item.canComplete)
+                    Expanded(
+                      child: DoctorActionButton(
+                        label: 'إكمال',
+                        icon: Icons.task_alt_rounded,
+                        onPressed: () => onComplete(item),
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SmallSourceBadge extends StatelessWidget {
+  const _SmallSourceBadge({
+    required this.text,
+    required this.icon,
+    required this.color,
+    required this.bg,
+  });
+
+  final String text;
+  final IconData icon;
+  final Color color;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE3ECEA)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 7),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: AppColors.primary),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: Colors.grey.shade800,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WarningBox extends StatelessWidget {
+  const _WarningBox({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.danger.withOpacity(.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 17, color: AppColors.danger),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: AppColors.danger,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -255,12 +584,34 @@ class _StatusChip extends StatelessWidget {
   final ValueChanged<int?> onSelected;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsetsDirectional.only(end: 8),
-    child: ChoiceChip(
-      label: Text(label),
-      selected: selected == value,
-      onSelected: (_) => onSelected(value),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final isSelected = selected == value;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => onSelected(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        constraints: const BoxConstraints(minWidth: 74),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : const Color(0xFFDDE9E7),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          softWrap: false,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: isSelected ? Colors.white : AppColors.primaryDark,
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -172,6 +172,9 @@ class DoctorAppointment {
     required this.clinicAddress,
     required this.isGuestBooking,
     required this.isPhoneConfirmed,
+    required this.patientPhoneNumber,
+required this.hasReview,
+this.cancelledAt,
   });
 
   final int id;
@@ -186,6 +189,9 @@ class DoctorAppointment {
   final String clinicAddress;
   final bool isGuestBooking;
   final bool isPhoneConfirmed;
+  final String patientPhoneNumber;
+final bool hasReview;
+final DateTime? cancelledAt;
 
   bool get canToggle => status == 0 || status == 1;
   bool get canComplete => status == 1;
@@ -220,6 +226,11 @@ class DoctorAppointment {
           clinic?['address'] as String? ?? json['clinicAddress'] as String? ?? '',
       isGuestBooking: json['isGuestBooking'] as bool? ?? false,
       isPhoneConfirmed: json['isPhoneConfirmed'] as bool? ?? false,
+      patientPhoneNumber: json['patientPhoneNumber'] ?? '',
+hasReview: json['hasReview'] ?? false,
+cancelledAt: json['cancelledAt'] == null
+    ? null
+    : DateTime.parse(json['cancelledAt']),
     );
   }
 }

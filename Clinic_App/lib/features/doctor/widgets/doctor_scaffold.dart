@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
+import '../../auth/auth_controller.dart';
 
 class DoctorScaffold extends StatelessWidget {
   const DoctorScaffold({
@@ -19,151 +21,147 @@ class DoctorScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
     final path = GoRouterState.of(context).uri.path;
     final selectedIndex = path == '/doctor/appointments'
         ? 1
         : path == '/doctor/clinics' || path.startsWith('/doctor/clinics/')
         ? 2
-        : path == '/doctor/profile'
+        : path == '/doctor/offers' || path.startsWith('/doctor/offers/')
         ? 3
+        : path == '/doctor/profile'
+        ? 4
         : 0;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        toolbarHeight: 64,
-        leadingWidth: 58,
-        titleSpacing: 0,
-        centerTitle: true,
-        leading: Padding(
-          padding: const EdgeInsetsDirectional.only(start: 14),
-          child: showBackButton
-    ? _RoundIconButton(
-        tooltip: 'رجوع',
-        icon: Icons.arrow_back_rounded,
-        onPressed: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go(backRoute);
-          }
-        },
-      )
-    : const SizedBox(width: 40),
-        ),
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        toolbarHeight: 76,
+        titleSpacing: 16,
+        leading: showBackButton
+            ? IconButton(
+                tooltip: 'رجوع',
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(backRoute);
+                  }
+                },
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            : null,
+        title: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22155E75),
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Image.asset('assets/app_logo.png'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    auth.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 14),
-            child:  Container(
-                    width: 34,
-                    height: 34,
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryDark, AppColors.primary],
-                      ),
-                      borderRadius: BorderRadius.circular(9),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x24155E75),
-                          blurRadius: 14,
-                          offset: Offset(0, 7),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset('assets/app_logo.png'),
-                  ),
+          IconButton(
+            tooltip: 'الإشعارات',
+            onPressed: () => context.go('/doctor/notifications'),
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(top: false, child: child),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14155E75),
-                blurRadius: 24,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: NavigationBar(
-            height: 62,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (index) {
-              if (index == 0) context.go('/doctor');
-              if (index == 1) context.go('/doctor/appointments');
-              if (index == 2) context.go('/doctor/clinics');
-              if (index == 3) context.go('/doctor/profile');
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.grid_view_outlined),
-                selectedIcon: Icon(Icons.grid_view_rounded),
-                label: 'الرئيسية',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.event_note_outlined),
-                selectedIcon: Icon(Icons.event_note_rounded),
-                label: 'الحجوزات',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.add_box_outlined),
-                selectedIcon: Icon(Icons.add_box_rounded),
-                label: 'عياداتي',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded),
-                label: 'الملف',
-              ),
-            ],
-          ),
+      body: child,
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x121D4A44),
+              blurRadius: 22,
+              offset: Offset(0, -7),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) {
+            if (index == 0) context.go('/doctor');
+            if (index == 1) context.go('/doctor/appointments');
+            if (index == 2) context.go('/doctor/clinics');
+            if (index == 3) context.go('/doctor/offers');
+            if (index == 4) context.go('/doctor/profile');
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'الرئيسية',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month_rounded),
+              label: 'الحجوزات',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.local_hospital_outlined),
+              selectedIcon: Icon(Icons.local_hospital_rounded),
+              label: 'عياداتي',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.local_offer_outlined),
+              selectedIcon: Icon(Icons.local_offer_rounded),
+              label: 'العروض',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'الملف',
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: tooltip,
-    onPressed: onPressed,
-    icon: Icon(icon, size: 21),
-    style: IconButton.styleFrom(
-      foregroundColor: AppColors.text,
-      backgroundColor: Colors.white,
-      side: const BorderSide(color: AppColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
 }
 
 class DoctorSectionCard extends StatelessWidget {
@@ -173,22 +171,11 @@ class DoctorSectionCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: padding ?? const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0F155E75),
-          blurRadius: 18,
-          offset: Offset(0, 8),
-        ),
-      ],
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: padding ?? const EdgeInsets.all(14),
+      child: child,
     ),
-    child: child,
   );
 }
 
@@ -201,7 +188,7 @@ class DoctorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     physics: const AlwaysScrollableScrollPhysics(),
-    padding: padding ?? const EdgeInsets.fromLTRB(16, 12, 16, 28),
+    padding: padding ?? const EdgeInsets.fromLTRB(16, 14, 16, 28),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,
@@ -226,12 +213,6 @@ class DoctorPrimaryButton extends StatelessWidget {
     onPressed: onPressed,
     icon: Icon(icon ?? Icons.add_rounded, size: 19),
     label: Text(label),
-    style: FilledButton.styleFrom(
-      minimumSize: const Size.fromHeight(48),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
-    ),
   );
 }
 
@@ -254,15 +235,12 @@ class DoctorActionButton extends StatelessWidget {
     onPressed: onPressed,
     icon: Icon(icon, size: 17),
     label: Text(label),
-    style: OutlinedButton.styleFrom(
-      foregroundColor: danger ? AppColors.danger : AppColors.primary,
-      side: BorderSide(
-        color: danger ? AppColors.softCoral : AppColors.border,
-      ),
-      backgroundColor: danger ? const Color(0xFFFFFBFB) : Colors.white,
-      minimumSize: const Size(0, 42),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
+    style: danger
+        ? OutlinedButton.styleFrom(
+            foregroundColor: AppColors.danger,
+            side: const BorderSide(color: AppColors.softCoral),
+          )
+        : null,
   );
 }
 
@@ -318,10 +296,6 @@ class DoctorSwitchTile extends StatelessWidget {
     child: SwitchListTile(
       contentPadding: EdgeInsets.zero,
       value: value,
-      activeColor: Colors.white,
-      activeTrackColor: AppColors.primary,
-      inactiveThumbColor: Colors.white,
-      inactiveTrackColor: AppColors.border,
       onChanged: onChanged,
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       subtitle: subtitle == null
@@ -346,7 +320,7 @@ class DoctorStatusPill extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
       color: color.withValues(alpha: .10),
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       label,

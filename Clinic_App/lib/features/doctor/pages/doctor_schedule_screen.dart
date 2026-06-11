@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
 import '../services/doctor_service.dart';
@@ -44,44 +45,12 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
           _service.getAvailability(clinic.id),
           _service.getExceptions(clinic.id),
         ]);
-        _availability = _completeWeek(
-          clinic.id,
-          result[0] as List<DoctorAvailability>,
-        );
+        _availability = result[0] as List<DoctorAvailability>;
         _exceptions = result[1] as List<ClinicExceptionDay>;
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  List<DoctorAvailability> _completeWeek(
-    int clinicId,
-    List<DoctorAvailability> existing,
-  ) {
-    const names = {
-      1: 'الأحد',
-      2: 'الاثنين',
-      3: 'الثلاثاء',
-      4: 'الأربعاء',
-      5: 'الخميس',
-      6: 'الجمعة',
-      7: 'السبت',
-    };
-    return List.generate(7, (index) {
-      final dayId = index + 1;
-      return existing.where((item) => item.dayId == dayId).firstOrNull ??
-          DoctorAvailability(
-            id: 0,
-            clinicId: clinicId,
-            dayId: dayId,
-            dayName: names[dayId]!,
-            isAvailable: false,
-            startTime: '09:00:00',
-            endTime: '17:00:00',
-            maxAppointments: 10,
-          );
-    });
   }
 
   @override
@@ -92,76 +61,73 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
     child: _loading
         ? const Center(child: CircularProgressIndicator())
         : _clinic == null
-            ? const DoctorEmptyState(
-                icon: Icons.schedule_outlined,
-                message: 'لا توجد عيادة لإدارة الدوام.',
-              )
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-                  children: [
-                    DoctorSectionCard(
-                      child: Text(
-                        _clinic!.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._availability.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: DoctorSectionCard(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(item.dayName),
-                            subtitle: Text(
-                              item.isAvailable
-                                  ? '${item.startTime ?? '--'} - ${item.endTime ?? '--'} | ${item.maxAppointments ?? 0} حجز'
-                                  : 'غير متاح',
-                            ),
-                            trailing: IconButton(
-                              tooltip: 'تعديل',
-                              onPressed: () async {
-                                await context.push(
-                                  '/doctor/schedule/day',
-                                  extra: item,
-                                );
-                                await _load();
-                              },
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
+        ? const DoctorEmptyState(
+            icon: Icons.schedule_outlined,
+            message: 'لا توجد عيادة لإدارة الدوام.',
+          )
+        : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+              children: [
+                DoctorSectionCard(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.local_hospital_rounded, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _clinic!.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton.icon(
-                      onPressed: () async {
-                        await context.push(
-                          '/doctor/schedule/exception',
-                          extra: _clinic,
-                        );
-                        await _load();
-                      },
-                      icon: const Icon(Icons.event_busy_rounded),
-                      label: const Text('إضافة استثناء دوام'),
-                    ),
-                    const SizedBox(height: 12),
-                    ..._exceptions.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: DoctorSectionCard(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              '${item.exceptionDate.year}/${item.exceptionDate.month}/${item.exceptionDate.day}',
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ..._availability.map(
+                  (item) => _ScheduleDayCard(
+                    item: item,
+                    onEdit: () async {
+                      await context.push('/doctor/schedule/day', extra: item);
+                      await _load();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DoctorPrimaryButton(
+                  label: 'إضافة استثناء دوام',
+                  icon: Icons.event_busy_rounded,
+                  onPressed: () async {
+                    await context.push('/doctor/schedule/exception', extra: _clinic);
+                    await _load();
+                  },
+                ),
+                if (_exceptions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'استثناءات الدوام',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._exceptions.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: DoctorSectionCard(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.event_busy_rounded, color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${item.exceptionDate.year}/${item.exceptionDate.month}/${item.exceptionDate.day} - ${item.closureReason ?? 'استثناء'}',
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
                             ),
-                            subtitle: Text(item.closureReason ?? 'استثناء'),
-                            trailing: IconButton(
+                            IconButton(
                               tooltip: 'حذف',
                               onPressed: () async {
                                 await _service.deleteException(item.id);
@@ -169,12 +135,60 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                               },
                               icon: const Icon(Icons.delete_outline_rounded),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+  );
+}
+
+class _ScheduleDayCard extends StatelessWidget {
+  const _ScheduleDayCard({required this.item, required this.onEdit});
+
+  final DoctorAvailability item;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: DoctorSectionCard(
+      child: Row(
+        children: [
+          DoctorStatusPill(
+            label: item.isAvailable ? 'متاح' : 'غير متاح',
+            color: item.isAvailable ? AppColors.primary : AppColors.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.dayName,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
-              ),
+                const SizedBox(height: 2),
+                Text(
+                  item.isAvailable
+                      ? '${item.startTime ?? '--'} - ${item.endTime ?? '--'} | ${item.maxAppointments ?? 0} حجز'
+                      : 'يمكنك تفعيل هذا اليوم وإضافة أوقات الدوام',
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'تعديل',
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        ],
+      ),
+    ),
   );
 }

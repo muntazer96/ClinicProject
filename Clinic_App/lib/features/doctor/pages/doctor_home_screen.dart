@@ -36,6 +36,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         _service.getProfile(),
         _service.getAppointments(),
       ]);
+
       if (!mounted) return;
       _profile = result[0] as DoctorProfile;
       _appointments = result[1] as List<DoctorAppointment>;
@@ -47,17 +48,22 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
+
     final todayItems = _appointments.where((item) {
       final date = item.appointmentDate;
       return date.year == now.year &&
           date.month == now.month &&
           date.day == now.day;
     }).toList();
+
     final upcoming = _appointments
         .where((item) => item.appointmentDate.isAfter(now) && item.status != 2)
         .toList()
       ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+
     final nextAppointment = upcoming.isEmpty ? null : upcoming.first;
+    final waitingToday =
+        todayItems.where((item) => item.status == 0 || item.status == 1).length;
     final completed = todayItems.where((item) => item.status == 3).length;
     final cancelled = todayItems.where((item) => item.status == 2).length;
 
@@ -67,42 +73,77 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
         onRefresh: _load,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : DoctorPage(
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
                 children: [
-                  _DoctorHero(profile: _profile),
-                  const SizedBox(height: 12),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.18,
+                  _DoctorHero(profile: _profile, todayCount: todayItems.length),
+
+                  const SizedBox(height: 14),
+
+                  Row(
                     children: [
-                      _StatTile('حجوزات اليوم', todayItems.length, Icons.event_available_rounded),
-                      _StatTile('القادمة اليوم', todayItems.where((item) => item.status == 0 || item.status == 1).length, Icons.calendar_month_rounded),
-                      _StatTile('المكتملة', completed, Icons.verified_rounded),
-                      _StatTile('الملغاة', cancelled, Icons.cancel_outlined),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'حجوزات اليوم',
+                          value: todayItems.length,
+                          icon: Icons.event_available_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'القادمة اليوم',
+                          value: waitingToday,
+                          icon: Icons.calendar_month_rounded,
+                          color: const Color(0xFF2563EB),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  _QuickLinks(),
-                  const SizedBox(height: 18),
-                  Text(
-                    'أقرب حجز قادم',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
+
                   const SizedBox(height: 10),
-                  if (nextAppointment == null)
-                    const DoctorSectionCard(
-                      child: Text(
-                        'لا يوجد حجز قادم حالياً.',
-                        style: TextStyle(color: AppColors.muted),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          label: 'المكتملة',
+                          value: completed,
+                          icon: Icons.verified_rounded,
+                          color: AppColors.success,
+                        ),
                       ),
-                    )
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatCard(
+                          label: 'الملغاة',
+                          value: cancelled,
+                          icon: Icons.cancel_outlined,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _PremiumButton(
+                    onTap: () => context.go('/doctor/subscription'),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  _SectionHeader(
+                    title: 'أقرب حجز قادم',
+                    action: 'عرض الكل',
+                    onActionTap: () => context.go('/doctor/appointments'),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  if (nextAppointment == null)
+                    const _EmptyNextAppointment()
                   else
                     _NextAppointmentCard(item: nextAppointment),
                 ],
@@ -113,162 +154,329 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 }
 
 class _DoctorHero extends StatelessWidget {
-  const _DoctorHero({required this.profile});
+  const _DoctorHero({
+    required this.profile,
+    required this.todayCount,
+  });
 
   final DoctorProfile? profile;
+  final int todayCount;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [AppColors.primaryDark, AppColors.primary],
+  Widget build(BuildContext context) {
+    final name =
+        profile?.name.isNotEmpty == true ? profile!.name : 'أهلاً دكتور';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F7F73), Color(0xFF0D625C)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(.18),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x24155E75),
-          blurRadius: 20,
-          offset: Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFF4DB),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.workspace_premium_rounded,
-            color: AppColors.accent,
-            size: 34,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: [
+          Row(
             children: [
-              Text(
-                profile?.name.isNotEmpty == true ? profile!.name : 'أهلاً دكتور',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              CircleAvatar(
+                radius: 35,
+                backgroundColor: Colors.white.withOpacity(.20),
+                backgroundImage: profile?.imageUrl == null
+                    ? null
+                    : NetworkImage(profile!.imageUrl!),
+                child: profile?.imageUrl == null
+                    ? const Icon(
+                        Icons.person_rounded,
+                        color: Colors.white,
+                        size: 34,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      profile?.specialization ?? 'إدارة حجوزاتك اليومية',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(.85),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                profile?.specialization ?? 'إدارة حجوزاتك اليومية',
-                style: const TextStyle(
-                  color: Color(0xFFE4F7F4),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.16),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Color(0xFFFFD166),
+                  size: 27,
                 ),
               ),
             ],
           ),
-        ),
-        CircleAvatar(
-          radius: 28,
-          backgroundColor: Colors.white,
-          backgroundImage:
-              profile?.imageUrl == null ? null : NetworkImage(profile!.imageUrl!),
-          child: profile?.imageUrl == null
-              ? const Icon(Icons.person_rounded, color: AppColors.primary)
-              : null,
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(.13),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: Colors.white.withOpacity(.16)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.today_rounded,
+                  color: Colors.white,
+                  size: 21,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'لديك $todayCount حجز لهذا اليوم',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  DateFormat('yyyy/MM/dd').format(DateTime.now()),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.82),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _StatTile extends StatelessWidget {
-  const _StatTile(this.label, this.value, this.icon);
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   final String label;
   final int value;
   final IconData icon;
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => DoctorSectionCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: Icon(icon, color: AppColors.primary, size: 20),
-        ),
-        const Spacer(),
-        Text(
-          '$value',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-        ),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
-        ),
-      ],
-    ),
-  );
-}
-
-class _QuickLinks extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(child: _LinkTile('العيادات', Icons.add_box_rounded, '/doctor/clinics')),
-      const SizedBox(width: 8),
-      Expanded(child: _LinkTile('العروض', Icons.local_offer_rounded, '/doctor/offers')),
-      const SizedBox(width: 8),
-      Expanded(child: _LinkTile('التقييمات', Icons.star_rounded, '/doctor/reviews')),
-      const SizedBox(width: 8),
-      Expanded(child: _LinkTile('المميزات', Icons.tune_rounded, '/doctor/profile')),
-    ],
-  );
-}
-
-class _LinkTile extends StatelessWidget {
-  const _LinkTile(this.label, this.icon, this.route);
-
-  final String label;
-  final IconData icon;
-  final String route;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    borderRadius: BorderRadius.circular(10),
-    onTap: () => context.go(route),
-    child: Container(
-      height: 42,
+  Widget build(BuildContext context) {
+    return Container(
+      height: 128,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 17, color: AppColors.primary),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: const Color(0xFFDDE9E7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.025),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-    ),
-  );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.10),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 22,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            '$value',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          Expanded(
+            child: Align(
+              alignment: AlignmentDirectional.bottomStart,
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumButton extends StatelessWidget {
+  const _PremiumButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFFFF8E7),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE8CF83)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE8A8),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Color(0xFFD6A20B),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'أنواع الاشتراكات',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF4A3510),
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'اطّلع على الباقات والمميزات المتاحة',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF8A6518),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFFD6A20B),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.action,
+    required this.onActionTap,
+  });
+
+  final String title;
+  final String action;
+  final VoidCallback onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: onActionTap,
+          child: Text(action),
+        ),
+      ],
+    );
+  }
 }
 
 class _NextAppointmentCard extends StatelessWidget {
@@ -277,33 +485,124 @@ class _NextAppointmentCard extends StatelessWidget {
   final DoctorAppointment item;
 
   @override
-  Widget build(BuildContext context) => DoctorSectionCard(
-    child: Row(
-      children: [
-        DoctorStatusPill(label: '#${item.queueNumber}'),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.patientName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${DateFormat('yyyy/MM/dd').format(item.appointmentDate)} - ${item.clinicName}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final isGuest = item.isGuestBooking;
+    final sourceColor = isGuest ? const Color(0xFFD6A20B) : AppColors.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: const Color(0xFFDDE9E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.025),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
-        ),
-        const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
-      ],
-    ),
-  );
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: sourceColor.withOpacity(.10),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Center(
+              child: Text(
+                '#${item.queueNumber}',
+                style: TextStyle(
+                  color: sourceColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.patientName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15.5,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${DateFormat('yyyy/MM/dd').format(item.appointmentDate)} - ${item.clinicName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sourceColor.withOpacity(.09),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    isGuest ? 'حجز زائر' : 'مستخدم مسجل',
+                    style: TextStyle(
+                      color: sourceColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.calendar_month_rounded,
+            color: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyNextAppointment extends StatelessWidget {
+  const _EmptyNextAppointment();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE9E7)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_busy_rounded, color: AppColors.muted),
+          const SizedBox(width: 8),
+          Text(
+            'لا يوجد حجز قادم حالياً.',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
