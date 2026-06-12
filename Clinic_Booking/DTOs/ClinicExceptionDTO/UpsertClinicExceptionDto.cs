@@ -10,5 +10,7 @@ namespace Clinic_Booking.DTOs.ClinicExceptionDTO
         public int? MaxAppointments { get; set; }
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
+        public string? AppointmentConflictAction { get; set; }
+        public DateOnly? MoveAppointmentsToDate { get; set; }
     }
 }

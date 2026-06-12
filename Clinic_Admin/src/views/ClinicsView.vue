@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { BadgeDollarSign, Building2, CalendarDays, ExternalLink, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import { provinces } from '../constants/provinces'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
@@ -30,6 +31,7 @@ const deleteClinic = ref<ClinicItem>()
 const form = reactive({
   id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '',
   mapUrl: '', phoneNumber: '', consultationPrice: '', showConsultationPrice: false, isVisible: true,
+  bookingWindowDays: '7',
 })
 const totalPages = computed(() => Math.max(1, Math.ceil(clinics.value.length / pageSize)))
 const paginatedClinics = computed(() => clinics.value.slice((page.value - 1) * pageSize, page.value * pageSize))
@@ -75,10 +77,12 @@ function openEditor(clinic?: ClinicItem) {
     mapUrl: clinic.mapUrl ?? '', phoneNumber: clinic.phoneNumber ?? '',
     consultationPrice: clinic.consultationPrice == null ? '' : String(clinic.consultationPrice),
     showConsultationPrice: clinic.showConsultationPrice,
+    bookingWindowDays: String(clinic.bookingWindowDays ?? 7),
     isVisible: clinic.isVisible,
   } : {
     id: 0, name: '', iraqiProvince: '0', address: '', latitude: '', longitude: '',
     mapUrl: '', phoneNumber: '', consultationPrice: '', showConsultationPrice: false, isVisible: true,
+    bookingWindowDays: '7',
   })
   editorOpen.value = true
 }
@@ -99,6 +103,7 @@ async function saveClinic() {
       phoneNumber: form.phoneNumber || null,
       consultationPrice: nullableNumber(form.consultationPrice),
       showConsultationPrice: form.showConsultationPrice,
+      bookingWindowDays: Math.min(31, Math.max(1, Number(form.bookingWindowDays || 7))),
     }
     const response = form.id
       ? await api.put<ApiResponse<object>>('/Clinic/my', body)
@@ -211,13 +216,14 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
             سعر المراجعة {{ clinic.consultationPrice.toLocaleString('ar-IQ') }} د.ع
             <small>{{ clinic.showConsultationPrice ? 'ظاهر للمرضى' : 'مخفي للمرضى' }}</small>
           </span>
+          <span><CalendarDays :size="16" /> الحجز متاح مسبقاً لمدة <b>{{ clinic.bookingWindowDays ?? 7 }}</b> يوم</span>
           <span v-if="clinic.latitude != null && clinic.longitude != null"><MapPin :size="16" />{{ clinic.latitude }}, {{ clinic.longitude }}</span>
         </div>
         <div class="clinic-card-actions">
           <a v-if="clinic.mapUrl" class="clinic-link" :href="clinic.mapUrl" target="_blank" rel="noopener"><ExternalLink :size="15" /> الخارطة</a>
           <button type="button" @click="openSchedule(clinic)"><CalendarDays :size="16" /> الدوام</button>
           <button type="button" @click="openEditor(clinic)"><Pencil :size="16" /> تعديل</button>
-          <button class="danger-text" type="button" @click="deleteClinic = clinic"><Trash2 :size="16" /> حذف</button>
+          <LongPressButton button-class="danger-text" title="اضغط مطولاً لحذف العيادة" @confirm="deleteClinic = clinic"><Trash2 :size="16" /> حذف</LongPressButton>
         </div>
       </article>
     </section>
@@ -230,6 +236,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
         <label class="full-field"><span>العنوان الكامل</span><input v-model="form.address" required maxlength="500" /></label>
         <label><span>رقم الهاتف</span><input v-model="form.phoneNumber" /></label>
         <label><span>رابط الخارطة</span><input v-model="form.mapUrl" type="url" placeholder="https://maps.google.com/..." /></label>
+        <label><span>عدد أيام الحجز المتاحة مسبقاً</span><input v-model="form.bookingWindowDays" type="number" min="1" max="31" required /></label>
         <label><span>سعر المراجعة</span><input v-model="form.consultationPrice" type="number" min="0" step="0.01" placeholder="اختياري" /></label>
         <label class="checkbox-field"><input v-model="form.showConsultationPrice" type="checkbox" /><span>إظهار سعر المراجعة للمرضى</span></label>
         <label><span>Latitude</span><input v-model="form.latitude" type="number" min="-90" max="90" step="any" /></label>
@@ -241,6 +248,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
 
     <AppModal v-if="scheduleClinic" :title="`دوام ${scheduleClinic.name}`" wide @close="scheduleClinic = undefined">
       <p class="modal-copy">فعّل أيام الاستقبال وحدد وقت العرض والحد الأعلى للأدوار اليومية. تطبّق حدود باقتك عند الحفظ.</p>
+      <p class="schedule-warning">عند تعطيل يوم دوام لديه حجوزات مستقبلية، سينقل النظام الحجوزات إلى أول يوم دوام متاح ويرسل إشعاراً للمرضى.</p>
       <div class="schedule-list">
         <div v-for="day in scheduleDays" :key="day.id" class="schedule-row" :class="{ disabled: !day.enabled }">
           <label class="schedule-check"><input v-model="day.enabled" type="checkbox" /><strong>{{ day.name }}</strong></label>
@@ -255,11 +263,12 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
 
     <AppModal v-if="deleteClinic" title="حذف العيادة" @close="deleteClinic = undefined">
       <p class="modal-copy">سيتم حذف عيادة <strong>{{ deleteClinic.name }}</strong>. لن تظهر للمرضى بعد ذلك.</p>
-      <div class="modal-actions"><button class="secondary-button" type="button" @click="deleteClinic = undefined">تراجع</button><button class="danger-button" type="button" @click="confirmDelete">تأكيد الحذف</button></div>
+      <div class="modal-actions"><button class="secondary-button" type="button" @click="deleteClinic = undefined">تراجع</button><LongPressButton button-class="danger-button" title="اضغط مطولاً لتأكيد الحذف" @confirm="confirmDelete">تأكيد الحذف</LongPressButton></div>
     </AppModal>
   </div>
 </template>
 
 <style scoped>
 .schedule-save-day { align-self: end; min-height: 36px; padding: 7px 9px; font-size: 12px; }
+.schedule-warning { margin: 12px 0 0; padding: 10px 12px; color: #8a5b12; border: 1px solid #f2d49c; border-radius: 8px; background: #fff8e8; font-size: 13px; font-weight: 700; }
 </style>

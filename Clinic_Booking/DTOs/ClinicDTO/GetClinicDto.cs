@@ -16,6 +16,7 @@ namespace Clinic_Booking.DTOs.ClinicDTO
         public string? PhoneNumber { get; set; }
         public decimal? ConsultationPrice { get; set; }
         public bool ShowConsultationPrice { get; set; }
+        public int BookingWindowDays { get; set; }
         public bool IsVisible { get; set; }
     }
 }

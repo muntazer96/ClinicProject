@@ -22,6 +22,7 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.Specialization;
 using Clinic_Booking.Entities.SubscriptionPackage;
 using Clinic_Booking.Entities.User;
+using Clinic_Booking.Entities.UserFavoriteDoctor;
 using Clinic_Booking.Entities.UserPhoneOtpRequest;
 using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -52,6 +53,7 @@ namespace Clinic_Booking.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
         public DbSet<UserPhoneOtpRequest> UserPhoneOtpRequests { get; set; }
+        public DbSet<UserFavoriteDoctor> UserFavoriteDoctors { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
@@ -263,6 +265,7 @@ namespace Clinic_Booking.Data
                 entity.Property(e => e.Latitude).HasPrecision(9, 6);
                 entity.Property(e => e.Longitude).HasPrecision(9, 6);
                 entity.Property(e => e.ConsultationPrice).HasPrecision(10, 2);
+                entity.Property(e => e.BookingWindowDays).HasDefaultValue(7);
                 entity.HasIndex(e => new { e.IraqiProvince, e.IsVisible, e.IsDeleted });
 
                 entity.HasOne(c => c.Doctor)
@@ -475,6 +478,25 @@ namespace Clinic_Booking.Data
 
                 entity.HasIndex(e => new { e.UserId, e.IsUsed });
                 entity.HasIndex(e => new { e.PhoneNumber, e.IsUsed });
+            });
+
+            // UserFavoriteDoctor
+            modelBuilder.Entity<UserFavoriteDoctor>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.DoctorId })
+                    .IsUnique()
+                    .HasFilter("\"IsDeleted\" = false");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany()
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Review

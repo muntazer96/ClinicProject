@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { BadgePercent, CalendarDays, CheckCircle2, Edit3, Plus, RefreshCw, Search, Sparkles, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
@@ -406,7 +407,7 @@ onMounted(async () => {
               <td>
                 <div class="row-actions">
                   <button type="button" class="secondary-button icon-action" @click="openEditor(offer)"><Edit3 :size="15" /></button>
-                  <button type="button" class="danger-button icon-action" @click="deleting = offer"><Trash2 :size="15" /></button>
+                  <LongPressButton button-class="danger-button icon-action" title="اضغط مطولاً لحذف العرض" @confirm="deleting = offer"><Trash2 :size="15" /></LongPressButton>
                 </div>
               </td>
             </tr>
@@ -513,7 +514,7 @@ onMounted(async () => {
       <p class="modal-copy">سيتم حذف عرض <strong>{{ deleting.title }}</strong> ولن يظهر ضمن عروض الطبيب.</p>
       <div class="modal-actions">
         <button class="secondary-button" type="button" @click="deleting = undefined">تراجع</button>
-        <button class="danger-button" type="button" :disabled="saving" @click="confirmDelete">تأكيد الحذف</button>
+        <LongPressButton button-class="danger-button" :disabled="saving" title="اضغط مطولاً لتأكيد الحذف" @confirm="confirmDelete">تأكيد الحذف</LongPressButton>
       </div>
     </AppModal>
   </div>

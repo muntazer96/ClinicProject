@@ -26,6 +26,12 @@ const contactClinic = computed(() => doctor.value?.clinics.find((clinic) => clin
 const mapClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.mapUrl))
 const firstBookableClinic = computed(() => doctor.value?.clinics.find((clinic) => clinic.availabilities.length > 0) ?? doctor.value?.clinics[0])
 const canConfirmOtp = computed(() => Boolean(form.otpCode.trim() && !booking.value))
+const maxBookingDate = computed(() => {
+  const days = Math.max(1, selectedClinic.value?.bookingWindowDays ?? 7)
+  const date = new Date()
+  date.setDate(date.getDate() + days - 1)
+  return date.toLocaleDateString('en-CA')
+})
 
 function today() {
   return new Date().toLocaleDateString('en-CA')
@@ -204,6 +210,7 @@ onUnmounted(() => window.clearInterval(resendTimer))
           <article v-for="clinic in doctor.clinics" :key="clinic.id" class="public-clinic-row">
             <strong>{{ clinic.name }}</strong>
             <span><MapPin :size="15" /> {{ clinic.iraqiProvinceName }}، {{ clinic.address }}</span>
+            <span><CalendarDays :size="15" /> الحجز متاح مسبقاً لمدة {{ clinic.bookingWindowDays ?? 7 }} يوم</span>
             <div class="clinic-actions">
               <a v-if="clinic.phoneNumber" :href="`tel:${clinic.phoneNumber}`"><Phone :size="15" /> {{ clinic.phoneNumber }}</a>
               <a v-if="clinic.mapUrl" :href="clinic.mapUrl" target="_blank" rel="noreferrer"><MapPin :size="15" /> موقع العيادة</a>
@@ -218,7 +225,7 @@ onUnmounted(() => window.clearInterval(resendTimer))
           <p v-if="!doctor.canBookOnline" class="form-error">الحجز الإلكتروني غير مفعل لهذا الطبيب حالياً.</p>
           <form v-else-if="!otpMode" class="modal-form" @submit.prevent="createBooking">
             <label><span>العيادة</span><select v-model="form.clinicId" required><option v-for="clinic in doctor.clinics" :key="clinic.id" :value="clinic.id">{{ clinic.name }}</option></select></label>
-            <label><span>تاريخ الحجز</span><input v-model="form.appointmentDate" type="date" :min="today()" required /></label>
+            <label><span>تاريخ الحجز</span><input v-model="form.appointmentDate" type="date" :min="today()" :max="maxBookingDate" required /></label>
             <div v-if="availability" class="queue-box" :class="{ unavailable: !availability.isAvailable || availability.remainingAppointments <= 0 }">
               <strong>{{ availability.dayName }} - {{ availability.isAvailable ? `${availability.remainingAppointments} دور متبقي` : 'اليوم غير متاح' }}</strong>
               <span>{{ availability.closureReason || `${formatTime(availability.startTime)} - ${formatTime(availability.endTime)}` }}</span>

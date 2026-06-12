@@ -94,6 +94,7 @@ class DoctorClinic {
     required this.phoneNumber,
     required this.consultationPrice,
     required this.showConsultationPrice,
+    required this.bookingWindowDays,
     required this.isVisible,
     this.mapUrl,
     this.latitude,
@@ -109,6 +110,7 @@ class DoctorClinic {
   final String? phoneNumber;
   final double? consultationPrice;
   final bool showConsultationPrice;
+  final int bookingWindowDays;
   final bool isVisible;
   final String? mapUrl;
   final double? latitude;
@@ -124,6 +126,7 @@ class DoctorClinic {
     phoneNumber: json['phoneNumber'] as String?,
     consultationPrice: (json['consultationPrice'] as num?)?.toDouble(),
     showConsultationPrice: json['showConsultationPrice'] as bool? ?? false,
+    bookingWindowDays: json['bookingWindowDays'] as int? ?? 7,
     isVisible: json['isVisible'] as bool? ?? true,
     mapUrl: json['mapUrl'] as String?,
     latitude: (json['latitude'] as num?)?.toDouble(),
@@ -141,6 +144,7 @@ class DoctorClinic {
     'phoneNumber': phoneNumber,
     'consultationPrice': price ?? consultationPrice,
     'showConsultationPrice': showConsultationPrice,
+    'bookingWindowDays': bookingWindowDays,
     'isVisible': isVisible,
   };
 
@@ -154,6 +158,7 @@ class DoctorClinic {
     'phoneNumber': phoneNumber,
     'consultationPrice': consultationPrice,
     'showConsultationPrice': showConsultationPrice,
+    'bookingWindowDays': bookingWindowDays,
     'isVisible': isVisible,
   };
 }
@@ -349,6 +354,30 @@ class DoctorOfferManage {
         remainingDays: json['remainingDays'] as int? ?? 0,
         isActive: json['isActive'] as bool? ?? false,
         isCurrentlyVisible: json['isCurrentlyVisible'] as bool? ?? false,
+      );
+}
+
+class DoctorNotificationItem {
+  const DoctorNotificationItem({
+    required this.id,
+    required this.message,
+    required this.createdAt,
+    required this.status,
+  });
+
+  final int id;
+  final String message;
+  final DateTime createdAt;
+  final int status;
+
+  bool get isRead => status == 1;
+
+  factory DoctorNotificationItem.fromJson(Map<String, dynamic> json) =>
+      DoctorNotificationItem(
+        id: json['id'] as int? ?? 0,
+        message: json['message'] as String? ?? '',
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        status: json['status'] as int? ?? 0,
       );
 }
 

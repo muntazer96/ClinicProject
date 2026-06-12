@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/external_links.dart';
+import '../../../widgets/long_press_button.dart';
 import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
 import '../services/doctor_service.dart';
@@ -31,6 +33,9 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   void initState() {
     super.initState();
     _service = DoctorService(context.read<AuthController>().api);
+    final today = DateTime.now();
+    _fromDate = DateTime(today.year, today.month, today.day);
+    _toDate = _fromDate;
     _load();
   }
 
@@ -384,17 +389,32 @@ class _AppointmentCard extends StatelessWidget {
               const SizedBox(height: 14),
               Row(
                 children: [
-                  if (item.canToggle)
+                  if (item.patientPhoneNumber.trim().isNotEmpty)
                     Expanded(
                       child: DoctorActionButton(
-                        label:
-                            item.status == 0 ? 'قبول / تأكيد' : 'رفض / إلغاء',
-                        icon: item.status == 0
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.cancel_outlined,
-                        danger: item.status != 0,
-                        onPressed: () => onToggle(item),
+                        label: 'اتصال',
+                        icon: Icons.phone_rounded,
+                        onPressed: () =>
+                            openPhone(context, item.patientPhoneNumber),
                       ),
+                    ),
+                  if (item.patientPhoneNumber.trim().isNotEmpty &&
+                      (item.canToggle || item.canComplete))
+                    const SizedBox(width: 8),
+                  if (item.canToggle)
+                    Expanded(
+                      child: item.status == 0
+                          ? DoctorActionButton(
+                              label: 'قبول / تأكيد',
+                              icon: Icons.check_circle_outline_rounded,
+                              onPressed: () => onToggle(item),
+                            )
+                          : LongPressButton(
+                              danger: true,
+                              onLongPress: () => onToggle(item),
+                              icon: const Icon(Icons.cancel_outlined),
+                              label: const Text('رفض / إلغاء'),
+                            ),
                     ),
                   if (item.canToggle && item.canComplete)
                     const SizedBox(width: 8),

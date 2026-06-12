@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { CalendarClock, Check, CircleX, Crown, PackageCheck, Plus, RefreshCw, RotateCw, SlidersHorizontal, Sparkles, TrendingUp } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
 import type { ApiResponse, DoctorFeature, DoctorItem, DoctorSubscription, PageResult, SubscriptionPackage } from '../types/api'
@@ -287,7 +288,7 @@ onMounted(initialize)
                 <button v-if="subscription.status === 1" type="button" title="تفعيل الاشتراك" @click="activate(subscription)"><Check :size="17" /></button>
                 <button v-if="subscription.status !== 3" type="button" title="تجديد الاشتراك" @click="openRenew(subscription)"><RotateCw :size="17" /></button>
                 <button v-if="subscription.status === 0 && subscription.isActive" type="button" title="ترقية الباقة" @click="openUpgrade(subscription)"><TrendingUp :size="17" /></button>
-                <button v-if="subscription.status !== 3" class="danger-action" type="button" title="إلغاء الاشتراك" @click="askCancel(subscription)"><CircleX :size="17" /></button>
+                <LongPressButton v-if="subscription.status !== 3" button-class="danger-action" title="اضغط مطولاً لإلغاء الاشتراك" @confirm="askCancel(subscription)"><CircleX :size="17" /></LongPressButton>
               </div></td>
             </tr>
           </tbody>
@@ -358,7 +359,7 @@ onMounted(initialize)
 
     <AppModal v-if="confirmation" :title="confirmation.title" @close="confirmation = undefined">
       <p class="modal-copy">{{ confirmation.text }}</p>
-      <div class="modal-actions"><button class="secondary-button" type="button" @click="confirmation = undefined">تراجع</button><button class="danger-button" type="button" @click="runConfirmation">تأكيد الإلغاء</button></div>
+      <div class="modal-actions"><button class="secondary-button" type="button" @click="confirmation = undefined">تراجع</button><LongPressButton button-class="danger-button" title="اضغط مطولاً لتأكيد الإلغاء" @confirm="runConfirmation">تأكيد الإلغاء</LongPressButton></div>
     </AppModal>
   </div>
 </template>

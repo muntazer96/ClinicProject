@@ -117,6 +117,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                         PhoneNumber = a.Clinic.PhoneNumber,
                         ConsultationPrice = a.Clinic.ConsultationPrice,
                         ShowConsultationPrice = a.Clinic.ShowConsultationPrice,
+                        BookingWindowDays = a.Clinic.BookingWindowDays,
                         IsVisible = a.Clinic.IsVisible
                     },
                     AppointmentDate = a.AppointmentDate,
@@ -276,6 +277,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var bookingWindowDays = clinic.BookingWindowDays <= 0 ? 7 : clinic.BookingWindowDays;
+            days = Math.Min(days, bookingWindowDays);
             var endDate = startDate.AddDays(days - 1);
             var startDateTime = startDate.ToDateTime(TimeOnly.MinValue);
             var endDateTime = endDate.ToDateTime(TimeOnly.MaxValue);

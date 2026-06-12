@@ -306,7 +306,9 @@ class _OfferCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: onDelete,
+                        onPressed: () =>
+                            showAppSnackBar(context, 'اضغط مطولاً للحذف.'),
+                        onLongPress: onDelete,
                         icon: const Icon(Icons.delete_outline, size: 18),
                         label: const Text(
                           'حذف',

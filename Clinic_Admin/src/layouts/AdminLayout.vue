@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
-  BadgePercent, BarChart3, Bell, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
+  BadgePercent, BarChart3, Bell, BellRing, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
   House, KeyRound, LogOut, Menu, MessageCircle, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
@@ -11,7 +11,7 @@ import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
 import { getErrorMessage } from '../utils/errors'
 import godevLogo from '../assets/godev_logo.png'
-import type { ApiResponse } from '../types/api'
+import type { ApiResponse, CurrentDoctorSubscription } from '../types/api'
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
@@ -22,6 +22,7 @@ const accountMenuOpen = ref(false)
 const changePasswordOpen = ref(false)
 const savingPassword = ref(false)
 const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
+const currentSubscription = ref<CurrentDoctorSubscription>()
 
 const links = computed(() => [
   { label: 'الرئيسية', to: '/', icon: House, roles: ['SuperAdmin', 'DoctorUser'] },
@@ -35,12 +36,17 @@ const links = computed(() => [
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'عياداتي', to: '/clinics', icon: Building2, roles: ['DoctorUser'] },
   { label: 'الإجازات', to: '/exceptions', icon: Bell, roles: ['DoctorUser'] },
+  { label: 'الإشعارات', to: '/notifications', icon: BellRing, roles: ['DoctorUser'] },
   { label: 'التقييمات', to: '/reviews', icon: MessageSquareText, roles: ['DoctorUser'] },
   { label: 'الملف الشخصي', to: '/profile', icon: UserRound, roles: ['DoctorUser'] },
 ].filter((link) => auth.hasAnyRole(link.roles)))
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'لوحة التحكم')
 const roleLabel = computed(() => auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب')
+const hasPremiumTheme = computed(() => {
+  const normalizedName = currentSubscription.value?.packageNormalizedName?.toLowerCase() ?? ''
+  return normalizedName.includes('premium') || normalizedName.includes('gold') || normalizedName.includes('pro')
+})
 
 function isLinkActive(path: string) {
   if (path === '/') return route.path === '/'
@@ -78,10 +84,22 @@ async function changePassword() {
     savingPassword.value = false
   }
 }
+
+async function loadCurrentSubscription() {
+  if (!auth.hasAnyRole(['DoctorUser'])) return
+  try {
+    const response = await api.get<ApiResponse<CurrentDoctorSubscription>>('/DoctorSubscription/my/current')
+    currentSubscription.value = response.data.data
+  } catch {
+    currentSubscription.value = undefined
+  }
+}
+
+onMounted(loadCurrentSubscription)
 </script>
 
 <template>
-  <div class="admin-shell">
+  <div class="admin-shell" :class="{ 'premium-shell': hasPremiumTheme }">
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false" />
     <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="brand">

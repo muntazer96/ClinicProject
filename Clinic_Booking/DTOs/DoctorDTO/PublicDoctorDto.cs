@@ -53,6 +53,7 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public string Address { get; set; }
         public decimal? ConsultationPrice { get; set; }
         public bool ShowConsultationPrice { get; set; }
+        public int BookingWindowDays { get; set; }
     }
 
     public class PublicDoctorClinicDto : PublicDoctorClinicSummaryDto

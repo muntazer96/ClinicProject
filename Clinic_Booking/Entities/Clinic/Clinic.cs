@@ -16,6 +16,7 @@ namespace Clinic_Booking.Entities.Clinic
         public string? PhoneNumber { get; set; }
         public decimal? ConsultationPrice { get; set; }
         public bool ShowConsultationPrice { get; set; } = false;
+        public int BookingWindowDays { get; set; } = 7;
         public bool IsVisible { get; set; } = true;
         public ICollection<DoctorAvailability.DoctorAvailability> Availabilities { get; set; }
         public ICollection<Appointment.Appointment> Appointments { get; set; }

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { CalendarOff, Pencil, Plus, RefreshCw, Trash2 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import { useNotificationsStore } from '../stores/notifications'
 import type { ApiResponse, ClinicExceptionItem, ClinicItem } from '../types/api'
@@ -19,7 +20,17 @@ const saving = ref(false)
 const editorOpen = ref(false)
 const deleteException = ref<ClinicExceptionItem>()
 const filters = reactive({ fromDate: '', toDate: '' })
-const form = reactive({ id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '' })
+const form = reactive({
+  id: 0,
+  exceptionDate: '',
+  isClosed: true,
+  closureReason: '',
+  maxAppointments: '',
+  startTime: '',
+  endTime: '',
+  appointmentConflictAction: 'none',
+  moveAppointmentsToDate: '',
+})
 const selectedClinicName = computed(() => clinics.value.find((clinic) => clinic.id === Number(clinicId.value))?.name)
 const totalPages = computed(() => Math.max(1, Math.ceil(exceptions.value.length / pageSize)))
 const paginatedExceptions = computed(() => exceptions.value.slice((page.value - 1) * pageSize, page.value * pageSize))
@@ -27,6 +38,7 @@ const paginatedExceptions = computed(() => exceptions.value.slice((page.value - 
 function formatDate(value: string) { return new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'full' }).format(new Date(`${value}T00:00:00`)) }
 function normalizePage() { if (page.value > totalPages.value) page.value = totalPages.value }
 function changePage(newPage: number) { page.value = newPage }
+function today() { return new Date().toLocaleDateString('en-CA') }
 function applyExceptionFilters() {
   page.value = 1
   loadExceptions()
@@ -55,7 +67,8 @@ function openEditor(item?: ClinicExceptionItem) {
   Object.assign(form, item ? {
     id: item.id, exceptionDate: item.exceptionDate, isClosed: item.isClosed, closureReason: item.closureReason ?? '',
     maxAppointments: item.maxAppointments?.toString() ?? '', startTime: item.startTime?.slice(0, 5) ?? '', endTime: item.endTime?.slice(0, 5) ?? '',
-  } : { id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '' })
+    appointmentConflictAction: 'none', moveAppointmentsToDate: '',
+  } : { id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '', appointmentConflictAction: 'none', moveAppointmentsToDate: '' })
   editorOpen.value = true
 }
 async function saveException() {
@@ -65,6 +78,8 @@ async function saveException() {
       id: form.id || null, clinicId: Number(clinicId.value), exceptionDate: form.exceptionDate, isClosed: form.isClosed,
       closureReason: form.closureReason || null, maxAppointments: form.isClosed || form.maxAppointments === '' ? null : Number(form.maxAppointments),
       startTime: form.isClosed || !form.startTime ? null : `${form.startTime}:00`, endTime: form.isClosed || !form.endTime ? null : `${form.endTime}:00`,
+      appointmentConflictAction: form.isClosed && form.appointmentConflictAction !== 'none' ? form.appointmentConflictAction : null,
+      moveAppointmentsToDate: form.isClosed && form.appointmentConflictAction === 'move' ? form.moveAppointmentsToDate : null,
     })
     notifications.show(response.data.message); editorOpen.value = false; await loadExceptions()
   } catch (error) { notifications.show(getErrorMessage(error), 'error') }
@@ -103,7 +118,7 @@ onMounted(async () => {
         <div><span class="status-badge" :class="item.isClosed ? 'status-danger' : 'status-warning'">{{ item.isClosed ? 'إغلاق كامل' : 'دوام مخصص' }}</span><h3>{{ formatDate(item.exceptionDate) }}</h3></div>
         <p v-if="item.closureReason">{{ item.closureReason }}</p>
         <div v-if="!item.isClosed" class="exception-details"><span>الأدوار: <b>{{ item.maxAppointments ?? 'حسب الجدول' }}</b></span><span v-if="item.startTime">الدوام: <b>{{ item.startTime.slice(0, 5) }} - {{ item.endTime?.slice(0, 5) }}</b></span></div>
-        <div class="clinic-card-actions"><button type="button" @click="openEditor(item)"><Pencil :size="16" /> تعديل</button><button class="danger-text" type="button" @click="deleteException = item"><Trash2 :size="16" /> حذف</button></div>
+        <div class="clinic-card-actions"><button type="button" @click="openEditor(item)"><Pencil :size="16" /> تعديل</button><LongPressButton button-class="danger-text" title="اضغط مطولاً لحذف الاستثناء" @confirm="deleteException = item"><Trash2 :size="16" /> حذف</LongPressButton></div>
       </article>
     </section>
     <AppPagination :page="page" :total-pages="totalPages" @change="changePage" />
@@ -115,13 +130,28 @@ onMounted(async () => {
           <label><span>عدد الأدوار المتاحة</span><input v-model="form.maxAppointments" type="number" min="0" placeholder="اتركه فارغاً لاستخدام الجدول الأسبوعي" /></label>
           <div class="form-grid"><label><span>من الساعة</span><input v-model="form.startTime" type="time" /></label><label><span>إلى الساعة</span><input v-model="form.endTime" type="time" /></label></div>
         </template>
+        <div v-if="form.isClosed" class="conflict-box">
+          <span>معالجة حجوزات هذا اليوم</span>
+          <label><input v-model="form.appointmentConflictAction" type="radio" value="none" /> اترك الحجوزات بدون تغيير</label>
+          <label><input v-model="form.appointmentConflictAction" type="radio" value="move" /> نقل جميع الحجوزات إلى يوم آخر</label>
+          <label><input v-model="form.appointmentConflictAction" type="radio" value="cancel" /> إلغاء جميع الحجوزات وإرسال إشعار للمرضى</label>
+          <label v-if="form.appointmentConflictAction === 'move'"><span>التاريخ الجديد</span><input v-model="form.moveAppointmentsToDate" type="date" :min="today()" required /></label>
+        </div>
         <label><span>ملاحظة أو سبب الإغلاق</span><textarea v-model="form.closureReason" rows="3" maxlength="500" /></label>
         <div class="modal-actions"><button class="secondary-button" type="button" @click="editorOpen = false">تراجع</button><button class="compact-primary" type="submit" :disabled="saving">{{ saving ? 'جارِ الحفظ...' : 'حفظ الاستثناء' }}</button></div>
       </form>
     </AppModal>
     <AppModal v-if="deleteException" title="حذف الاستثناء" @close="deleteException = undefined">
       <p class="modal-copy">سيعود هذا اليوم للعمل وفق جدول الدوام الأسبوعي بعد حذف الاستثناء.</p>
-      <div class="modal-actions"><button class="secondary-button" type="button" @click="deleteException = undefined">تراجع</button><button class="danger-button" type="button" @click="confirmDelete">تأكيد الحذف</button></div>
+      <div class="modal-actions"><button class="secondary-button" type="button" @click="deleteException = undefined">تراجع</button><LongPressButton button-class="danger-button" title="اضغط مطولاً لتأكيد الحذف" @confirm="confirmDelete">تأكيد الحذف</LongPressButton></div>
     </AppModal>
   </div>
 </template>
+
+<style scoped>
+.conflict-box { display: grid; gap: 9px; padding: 12px; border: 1px solid #f2d49c; border-radius: 9px; background: #fff8e8; }
+.conflict-box > span { color: #8a5b12; font-weight: 800; }
+.conflict-box label { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 700; }
+.conflict-box input[type="radio"] { width: auto; }
+.conflict-box label:has(input[type="date"]) { display: block; }
+</style>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
@@ -129,7 +130,11 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                             ),
                             IconButton(
                               tooltip: 'حذف',
-                              onPressed: () async {
+                              onPressed: () => showAppSnackBar(
+                                context,
+                                'اضغط مطولاً لحذف الاستثناء.',
+                              ),
+                              onLongPress: () async {
                                 await _service.deleteException(item.id);
                                 await _load();
                               },

@@ -19,6 +19,7 @@ class DoctorHomeScreen extends StatefulWidget {
 class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   late final DoctorService _service;
   DoctorProfile? _profile;
+  DoctorSubscriptionInfo? _subscription;
   List<DoctorAppointment> _appointments = [];
   bool _loading = true;
 
@@ -35,11 +36,13 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
       final result = await Future.wait([
         _service.getProfile(),
         _service.getAppointments(),
+        _service.getCurrentSubscription(),
       ]);
 
       if (!mounted) return;
       _profile = result[0] as DoctorProfile;
       _appointments = result[1] as List<DoctorAppointment>;
+      _subscription = result[2] as DoctorSubscriptionInfo?;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -131,6 +134,11 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
                   _PremiumButton(
                     onTap: () => context.go('/doctor/subscription'),
                   ),
+
+                  if (_subscription?.endDate != null) ...[
+                    const SizedBox(height: 10),
+                    _SubscriptionCountdownCard(subscription: _subscription!),
+                  ],
 
                   const SizedBox(height: 18),
 
@@ -441,6 +449,56 @@ class _PremiumButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SubscriptionCountdownCard extends StatelessWidget {
+  const _SubscriptionCountdownCard({required this.subscription});
+
+  final DoctorSubscriptionInfo subscription;
+
+  @override
+  Widget build(BuildContext context) {
+    final endDate = subscription.endDate!;
+    final today = DateTime.now();
+    final daysLeft = DateTime(endDate.year, endDate.month, endDate.day)
+        .difference(DateTime(today.year, today.month, today.day))
+        .inDays;
+    final color = daysLeft <= 1
+        ? AppColors.danger
+        : daysLeft <= 3
+            ? AppColors.warning
+            : AppColors.success;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.hourglass_bottom_rounded, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              daysLeft < 0
+                  ? 'انتهى الاشتراك'
+                  : 'متبقي $daysLeft يوم على انتهاء الاشتراك',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            DateFormat('yyyy/MM/dd').format(endDate),
+            style: TextStyle(color: color, fontWeight: FontWeight.w800),
+          ),
+        ],
       ),
     );
   }

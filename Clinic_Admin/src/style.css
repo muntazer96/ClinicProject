@@ -54,6 +54,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .developer-credit img { width: 62px; height: auto; object-fit: contain; filter: drop-shadow(0 5px 12px rgba(17, 50, 45, .12)); }
 
 .admin-shell { min-height: 100vh; background: #f6f9f8; }
+.admin-shell.premium-shell { --primary: #a47126; --primary-dark: #7f561f; --primary-soft: #fff1db; }
+.admin-shell.premium-shell .sidebar { background: #453116; }
+.admin-shell.premium-shell .brand-icon { color: #fff7e6; background: rgba(255, 214, 128, .18); }
+.admin-shell.premium-shell .side-nav a { color: #ead7b5; }
 .sidebar { position: fixed; inset: 0 0 0 auto; z-index: 10; width: 255px; display: flex; flex-direction: column; color: #d8ede9; background: #123e39; }
 .brand { height: 83px; display: flex; align-items: center; gap: 11px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .brand-icon { display: grid; place-items: center; width: 42px; height: 42px; color: #d7fffa; border-radius: 13px; background: rgba(255,255,255,.12); }

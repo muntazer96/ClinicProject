@@ -52,6 +52,28 @@ class DirectoryService {
     );
   }
 
+  Future<List<DoctorSummary>> getFavoriteDoctors() async {
+    final response = await _client.dio.get('/FavoriteDoctor');
+    final data = response.data['data'] as List? ?? const [];
+    return data
+        .map((item) => DoctorSummary.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<bool> isFavoriteDoctor(int doctorId) async {
+    final response = await _client.dio.get('/FavoriteDoctor/$doctorId');
+    final data = response.data['data'] as Map<String, dynamic>? ?? const {};
+    return data['isFavorite'] as bool? ?? false;
+  }
+
+  Future<void> addFavoriteDoctor(int doctorId) async {
+    await _client.dio.post('/FavoriteDoctor/$doctorId');
+  }
+
+  Future<void> removeFavoriteDoctor(int doctorId) async {
+    await _client.dio.delete('/FavoriteDoctor/$doctorId');
+  }
+
   Future<DoctorOfferResult> getOffers({
     int page = 1,
     int pageSize = DirectoryService.pageSize,

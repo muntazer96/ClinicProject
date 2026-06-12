@@ -5,6 +5,7 @@ using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IClinicExceptionServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.IPushNotificationServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +15,16 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
+        private readonly IPushNotificationServices _pushNotificationServices;
 
-        public ClinicExceptionServices(ApplicationDbContext context, ILoadServices load)
+        public ClinicExceptionServices(
+            ApplicationDbContext context,
+            ILoadServices load,
+            IPushNotificationServices pushNotificationServices)
         {
             _context = context;
             _load = load;
+            _pushNotificationServices = pushNotificationServices;
         }
 
         public async Task<IActionResult> GetMineAsync(int clinicId, DateOnly? fromDate, DateOnly? toDate)
@@ -131,6 +137,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             try
             {
                 await _context.SaveChangesAsync();
+                await HandleConflictingAppointmentsAsync(form, doctorId.Value, exceptionDate);
             }
             catch (DbUpdateException)
             {
@@ -217,7 +224,172 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 return BadRequest($"Maximum appointments cannot exceed your package limit ({packageLimit}).");
             }
 
+            var action = NormalizeConflictAction(form.AppointmentConflictAction);
+            if (action == "move")
+            {
+                if (!form.MoveAppointmentsToDate.HasValue)
+                {
+                    return BadRequest("A new date is required when moving bookings.");
+                }
+
+                if (form.MoveAppointmentsToDate.Value <= form.ExceptionDate ||
+                    form.MoveAppointmentsToDate.Value < DateOnly.FromDateTime(DateTime.Today))
+                {
+                    return BadRequest("The new booking date must be a future date after the exception date.");
+                }
+            }
+            else if (action != null && action != "cancel")
+            {
+                return BadRequest("Unsupported appointment conflict action.");
+            }
+
             return null;
+        }
+
+        private async Task HandleConflictingAppointmentsAsync(
+            UpsertClinicExceptionDto form,
+            int doctorId,
+            DateTime exceptionDate)
+        {
+            if (!form.IsClosed)
+            {
+                return;
+            }
+
+            var action = NormalizeConflictAction(form.AppointmentConflictAction);
+            if (action == null)
+            {
+                return;
+            }
+
+            var appointments = await _context.Appointments
+                .Where(appointment =>
+                    appointment.ClinicId == form.ClinicId &&
+                    appointment.DoctorId == doctorId &&
+                    appointment.AppointmentDate.Date == exceptionDate.Date &&
+                    appointment.Status != AppointmentStatus.Cancelled &&
+                    appointment.Status != AppointmentStatus.Completed &&
+                    !appointment.IsDeleted)
+                .OrderBy(appointment => appointment.QueueNumber)
+                .ToListAsync();
+
+            if (appointments.Count == 0)
+            {
+                return;
+            }
+
+            if (action == "cancel")
+            {
+                await CancelConflictingAppointmentsAsync(appointments, form.ClosureReason);
+                return;
+            }
+
+            if (action == "move" && form.MoveAppointmentsToDate.HasValue)
+            {
+                await MoveConflictingAppointmentsAsync(
+                    appointments,
+                    form.MoveAppointmentsToDate.Value.ToDateTime(TimeOnly.MinValue));
+            }
+        }
+
+        private async Task CancelConflictingAppointmentsAsync(
+            List<Entities.Appointment.Appointment> appointments,
+            string? reason)
+        {
+            var now = DateTime.UtcNow;
+            foreach (var appointment in appointments)
+            {
+                appointment.Status = AppointmentStatus.Cancelled;
+                appointment.CancellationReason = string.IsNullOrWhiteSpace(reason)
+                    ? "Clinic exception."
+                    : reason.Trim();
+                appointment.CancelledAt = now;
+                appointment.CancelledByUserId = _load.GetCurrentUserId();
+                appointment.ModifiedAt = now;
+                appointment.ModifierId = _load.GetCurrentUserId();
+            }
+
+            await _context.SaveChangesAsync();
+            foreach (var appointment in appointments)
+            {
+                await NotifyPatientAsync(
+                    appointment,
+                    "تم إلغاء الحجز",
+                    $"تم إلغاء حجزك بتاريخ {appointment.AppointmentDate:yyyy/MM/dd}. السبب: {appointment.CancellationReason}");
+            }
+        }
+
+        private async Task MoveConflictingAppointmentsAsync(
+            List<Entities.Appointment.Appointment> appointments,
+            DateTime targetDate)
+        {
+            var nextQueueNumber = await _context.Appointments
+                .Where(appointment =>
+                    appointment.ClinicId == appointments[0].ClinicId &&
+                    appointment.AppointmentDate.Date == targetDate.Date &&
+                    !appointment.IsDeleted)
+                .Select(appointment => (int?)appointment.QueueNumber)
+                .MaxAsync() ?? 0;
+
+            foreach (var appointment in appointments)
+            {
+                appointment.AppointmentDate = targetDate;
+                appointment.QueueNumber = ++nextQueueNumber;
+                appointment.ModifiedAt = DateTime.UtcNow;
+                appointment.ModifierId = _load.GetCurrentUserId();
+            }
+
+            await _context.SaveChangesAsync();
+            foreach (var appointment in appointments)
+            {
+                await NotifyPatientAsync(
+                    appointment,
+                    "تم تغيير موعد الحجز",
+                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}.");
+            }
+        }
+
+        private async Task NotifyPatientAsync(
+            Entities.Appointment.Appointment appointment,
+            string title,
+            string body)
+        {
+            _context.Notifications.Add(new Entities.Notification.Notification
+            {
+                DoctorId = appointment.DoctorId,
+                Message = body,
+                CreatedAt = DateTime.UtcNow,
+                Status = NotificationStatus.Unread
+            });
+            await _context.SaveChangesAsync();
+
+            if (!appointment.UserId.HasValue)
+            {
+                return;
+            }
+
+            await _pushNotificationServices.SendToUserAsync(
+                appointment.UserId.Value,
+                title,
+                body,
+                new Dictionary<string, string>
+                {
+                    ["type"] = "booking",
+                    ["appointmentId"] = appointment.Id.ToString(),
+                    ["doctorId"] = appointment.DoctorId.ToString(),
+                    ["clinicId"] = appointment.ClinicId.ToString(),
+                    ["status"] = appointment.Status.ToString()
+                });
+        }
+
+        private static string? NormalizeConflictAction(string? action)
+        {
+            if (string.IsNullOrWhiteSpace(action))
+            {
+                return null;
+            }
+
+            return action.Trim().ToLowerInvariant();
         }
 
         private async Task<int?> GetCurrentDoctorIdAsync()

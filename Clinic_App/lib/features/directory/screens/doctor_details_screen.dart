@@ -30,17 +30,19 @@ class DoctorDetailsScreen extends StatefulWidget {
 }
 
 class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
-  final _service = DirectoryService();
+  late final DirectoryService _service;
   late final ReviewService _reviewService;
   late final AnalyticsService _analytics;
   DoctorProfile? _doctor;
   DoctorReviews? _reviews;
+  bool _isFavorite = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     final api = context.read<AuthController>().api;
+    _service = DirectoryService(api);
     _reviewService = ReviewService(api);
     _analytics = AnalyticsService(api);
     _analytics.trackLater(
@@ -60,14 +62,41 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         _service.getDoctor(widget.doctorId),
         _reviewService.getDoctorReviews(widget.doctorId),
       ]);
+      final isFavorite = context.read<AuthController>().isAuthenticated
+          ? await _service.isFavoriteDoctor(widget.doctorId)
+          : false;
       if (mounted) {
         setState(() {
           _doctor = results[0] as DoctorProfile;
           _reviews = results[1] as DoctorReviews?;
+          _isFavorite = isFavorite;
         });
       }
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final auth = context.read<AuthController>();
+    if (!auth.isAuthenticated) {
+      context.push('/login?redirect=${Uri.encodeComponent('/doctors/${widget.doctorId}')}');
+      return;
+    }
+
+    try {
+      if (_isFavorite) {
+        await _service.removeFavoriteDoctor(widget.doctorId);
+      } else {
+        await _service.addFavoriteDoctor(widget.doctorId);
+      }
+      if (mounted) setState(() => _isFavorite = !_isFavorite);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ApiClient.errorMessage(error))),
+        );
+      }
     }
   }
 
@@ -86,7 +115,11 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             children: [
-              _ProfileCard(doctor: _doctor!),
+              _ProfileCard(
+                doctor: _doctor!,
+                isFavorite: _isFavorite,
+                onFavoriteTap: _toggleFavorite,
+              ),
               const SizedBox(height: 16),
               if (_doctor!.description.isNotEmpty) ...[
                 const _Title('نبذة عن الطبيب'),
@@ -168,15 +201,25 @@ class _ReviewsButton extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.doctor});
+  const _ProfileCard({
+    required this.doctor,
+    required this.isFavorite,
+    required this.onFavoriteTap,
+  });
   final DoctorProfile doctor;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
 
   static const _premiumColor = Color(0xFFD49A00);
 
   @override
   Widget build(BuildContext context) {
     if (!doctor.isFeatured) {
-      return _StandardProfileCard(doctor: doctor);
+      return _StandardProfileCard(
+        doctor: doctor,
+        isFavorite: isFavorite,
+        onFavoriteTap: onFavoriteTap,
+      );
     }
 
     return Card(
@@ -262,6 +305,17 @@ class _ProfileCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: IconButton.filledTonal(
+                    onPressed: onFavoriteTap,
+                    icon: Icon(
+                      isFavorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 5),
                 Text(
                   doctor.specializationName,
@@ -315,8 +369,14 @@ class _ProfileCard extends StatelessWidget {
 }
 
 class _StandardProfileCard extends StatelessWidget {
-  const _StandardProfileCard({required this.doctor});
+  const _StandardProfileCard({
+    required this.doctor,
+    required this.isFavorite,
+    required this.onFavoriteTap,
+  });
   final DoctorProfile doctor;
+  final bool isFavorite;
+  final VoidCallback onFavoriteTap;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -348,6 +408,17 @@ class _StandardProfileCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 23,
                   fontWeight: FontWeight.w900,
+                ),
+              ),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: IconButton.filledTonal(
+                  onPressed: onFavoriteTap,
+                  icon: Icon(
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),

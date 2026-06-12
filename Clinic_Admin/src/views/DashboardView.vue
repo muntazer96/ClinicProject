@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Activity, ArrowLeft, BadgePercent, CalendarDays, Eye, RefreshCw, Search, Stethoscope, UsersRound } from '@lucide/vue'
+import { Activity, ArrowLeft, BadgePercent, CalendarClock, CalendarDays, Crown, Eye, RefreshCw, Search, Stethoscope, UsersRound } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
-import type { AnalyticsSummary, ApiResponse } from '../types/api'
+import type { AnalyticsSummary, ApiResponse, CurrentDoctorSubscription } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
 
 const auth = useAuthStore()
@@ -13,6 +13,7 @@ const notifications = useNotificationsStore()
 const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
 const loading = ref(false)
 const summary = ref<AnalyticsSummary | null>(null)
+const currentSubscription = ref<CurrentDoctorSubscription | null>(null)
 
 const today = new Date()
 const fromDate = toInputDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7))
@@ -52,6 +53,25 @@ const offerStats = computed(() => [
 
 const trend = computed(() => isAdmin.value ? summary.value?.userGrowth ?? [] : summary.value?.appointmentTrend ?? [])
 const hasEvents = computed(() => (summary.value?.recentEvents.length ?? 0) > 0)
+const daysRemaining = computed(() => {
+  if (!currentSubscription.value?.endDate) return null
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const end = new Date(currentSubscription.value.endDate)
+  end.setHours(0, 0, 0, 0)
+  return Math.max(0, Math.ceil((end.getTime() - todayStart.getTime()) / 86400000))
+})
+const subscriptionTone = computed(() => {
+  const days = daysRemaining.value
+  if (days == null) return 'green'
+  if (days <= 1) return 'red'
+  if (days <= 3) return 'orange'
+  return 'green'
+})
+const isPremiumSubscription = computed(() => {
+  const name = currentSubscription.value?.packageNormalizedName?.toLowerCase() ?? ''
+  return name.includes('premium') || name.includes('gold') || name.includes('pro')
+})
 
 function toInputDate(date: Date) {
   return date.toLocaleDateString('en-CA')
@@ -89,11 +109,25 @@ async function loadSummary() {
   }
 }
 
-onMounted(loadSummary)
+async function loadCurrentSubscription() {
+  if (isAdmin.value) return
+  try {
+    const response = await api.get<ApiResponse<CurrentDoctorSubscription>>('/DoctorSubscription/my/current')
+    currentSubscription.value = response.data.data
+  } catch (error: any) {
+    if (error.response?.status !== 404) notifications.show(getErrorMessage(error), 'error')
+  }
+}
+
+async function initialize() {
+  await Promise.all([loadSummary(), loadCurrentSubscription()])
+}
+
+onMounted(initialize)
 </script>
 
 <template>
-  <div class="dashboard-page" :class="{ 'stats-loading': loading }">
+  <div class="dashboard-page" :class="{ 'stats-loading': loading, 'premium-theme': isPremiumSubscription }">
     <section class="overview-hero">
       <div>
         <span class="section-kicker">{{ isAdmin ? 'Super Admin' : 'Doctor' }}</span>
@@ -108,6 +142,15 @@ onMounted(loadSummary)
           الإحصائيات
           <ArrowLeft :size="16" />
         </RouterLink>
+      </div>
+    </section>
+
+    <section v-if="!isAdmin && currentSubscription" class="subscription-counter" :class="[`tone-${subscriptionTone}`, { premium: isPremiumSubscription }]">
+      <span class="subscription-icon"><Crown v-if="isPremiumSubscription" :size="21" /><CalendarClock v-else :size="21" /></span>
+      <div>
+        <span class="section-kicker">{{ isPremiumSubscription ? 'حساب مميز' : 'الاشتراك الحالي' }}</span>
+        <h3>{{ currentSubscription.packageArabicName || currentSubscription.packageName }}</h3>
+        <p>متبقي {{ daysRemaining }} يوم حتى انتهاء الاشتراك</p>
       </div>
     </section>
 
@@ -174,6 +217,7 @@ onMounted(loadSummary)
 
 <style scoped>
 .dashboard-page { display: flex; flex-direction: column; gap: 16px; }
+.premium-theme { --primary: #a47126; --primary-dark: #7f561f; --primary-soft: #fff1db; }
 .overview-hero {
   display: flex;
   align-items: center;
@@ -188,6 +232,15 @@ onMounted(loadSummary)
 .overview-hero h2 { margin: 6px 0 0; color: var(--ink); font-size: 26px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .hero-actions a { text-decoration: none; }
+.subscription-counter { display: flex; align-items: center; gap: 13px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; box-shadow: var(--shadow); }
+.subscription-counter h3 { margin: 4px 0; color: var(--ink); }
+.subscription-counter p { margin: 0; color: var(--muted); font-weight: 800; }
+.subscription-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; }
+.tone-green .subscription-icon { color: #167163; background: #e1f4ef; }
+.tone-orange .subscription-icon { color: #a46724; background: #fff1db; }
+.tone-red .subscription-icon { color: #a23d3d; background: #ffeded; }
+.subscription-counter.premium { border-color: #eed29d; background: #fffaf0; }
+.subscription-counter.premium .subscription-icon { color: #a47126; background: #fff1db; }
 .overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
 .panel-title { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; color: var(--primary); }
 .panel-title h3 { margin: 0; font-size: 16px; }

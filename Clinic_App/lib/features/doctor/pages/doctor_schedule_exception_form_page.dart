@@ -27,6 +27,8 @@ class _DoctorScheduleExceptionFormPageState
   final _reason = TextEditingController();
 
   DateTime _date = DateTime.now();
+  DateTime? _moveDate;
+  String _conflictAction = 'none';
   bool _closed = true;
   bool _saving = false;
 
@@ -55,6 +57,19 @@ class _DoctorScheduleExceptionFormPageState
     }
   }
 
+  Future<void> _pickMoveDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: _date.add(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 180)),
+      initialDate: _moveDate ?? _date.add(const Duration(days: 1)),
+    );
+
+    if (picked != null) {
+      setState(() => _moveDate = picked);
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
 
@@ -64,6 +79,10 @@ class _DoctorScheduleExceptionFormPageState
         date: _date,
         isClosed: _closed,
         reason: _reason.text.trim(),
+        appointmentConflictAction:
+            _conflictAction == 'none' ? null : _conflictAction,
+        moveAppointmentsToDate:
+            _conflictAction == 'move' ? _moveDate : null,
       );
 
       if (!mounted) return;
@@ -127,6 +146,47 @@ class _DoctorScheduleExceptionFormPageState
                 ),
               ),
             ),
+
+            if (_closed) ...[
+              const SizedBox(height: 14),
+              _SectionCard(
+                title: 'الحجوزات الموجودة في هذا اليوم',
+                icon: Icons.event_repeat_rounded,
+                child: Column(
+                  children: [
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'none',
+                          icon: Icon(Icons.do_not_disturb_on_outlined),
+                          label: Text('لاحقاً'),
+                        ),
+                        ButtonSegment(
+                          value: 'move',
+                          icon: Icon(Icons.redo_rounded),
+                          label: Text('نقل'),
+                        ),
+                        ButtonSegment(
+                          value: 'cancel',
+                          icon: Icon(Icons.cancel_outlined),
+                          label: Text('إلغاء'),
+                        ),
+                      ],
+                      selected: {_conflictAction},
+                      onSelectionChanged: (values) =>
+                          setState(() => _conflictAction = values.first),
+                    ),
+                    if (_conflictAction == 'move') ...[
+                      const SizedBox(height: 12),
+                      _DatePickerBox(
+                        date: _moveDate ?? _date.add(const Duration(days: 1)),
+                        onTap: _pickMoveDate,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
 
             const SizedBox(height: 18),
 

@@ -195,6 +195,8 @@ class DoctorService {
     String? startTime,
     String? endTime,
     int? maxAppointments,
+    String? appointmentConflictAction,
+    DateTime? moveAppointmentsToDate,
   }) async {
     await _client.dio.post(
       '/ClinicException/my',
@@ -208,6 +210,10 @@ class DoctorService {
           'startTime': startTime!.trim(),
         if (endTime?.trim().isNotEmpty == true) 'endTime': endTime!.trim(),
         if (maxAppointments != null) 'maxAppointments': maxAppointments,
+        if (appointmentConflictAction?.trim().isNotEmpty == true)
+          'appointmentConflictAction': appointmentConflictAction!.trim(),
+        if (moveAppointmentsToDate != null)
+          'moveAppointmentsToDate': _dateOnly(moveAppointmentsToDate),
       },
     );
   }
@@ -233,6 +239,20 @@ class DoctorService {
 
   Future<void> deleteOffer(int id) async {
     await _client.dio.delete('/DoctorOffer/my/$id');
+  }
+
+  Future<List<DoctorNotificationItem>> getNotifications() async {
+    final response = await _client.dio.get('/Notification/doctor/my');
+    return _listData(response.data)
+        .map(
+          (item) =>
+              DoctorNotificationItem.fromJson(item as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    await _client.dio.post('/Notification/doctor/my/$id/read');
   }
 
   Future<DoctorReviewsSummary> getReviews() async {

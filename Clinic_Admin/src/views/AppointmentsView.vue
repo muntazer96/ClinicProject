@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { CalendarCheck, Check, CheckCheck, Plus, RefreshCw, Search, X } from '@lucide/vue'
+import { CalendarCheck, Check, CheckCheck, PhoneCall, Plus, RefreshCw, Search, X } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
@@ -397,7 +398,8 @@ onMounted(async () => {
               <td v-if="!isAdmin">
                 <div class="row-actions">
                   <button v-if="appointment.status === 0" type="button" title="تأكيد الحجز" @click="toggleStatus(appointment)"><Check :size="16" /></button>
-                  <button v-if="appointment.status === 1" class="danger-action" type="button" title="إلغاء الحجز" @click="cancelAppointment = appointment"><X :size="16" /></button>
+                  <a v-if="appointment.patientPhoneNumber" class="row-link" :href="`tel:${appointment.patientPhoneNumber}`" title="اتصال بالمريض"><PhoneCall :size="16" /></a>
+                  <LongPressButton v-if="appointment.status === 1" button-class="danger-action" title="اضغط مطولاً لإلغاء الحجز" @confirm="cancelAppointment = appointment"><X :size="16" /></LongPressButton>
                   <button v-if="appointment.status === 1" type="button" title="إكمال الحجز" @click="complete(appointment)"><CheckCheck :size="16" /></button>
                 </div>
               </td>
@@ -428,7 +430,7 @@ onMounted(async () => {
 
     <AppModal v-if="cancelAppointment" title="تأكيد إلغاء الحجز" @close="cancelAppointment = undefined">
       <p class="modal-copy">سيتم إلغاء حجز <strong>{{ cancelAppointment.patientName || 'المراجع' }}</strong> ذي الدور <strong>#{{ cancelAppointment.queueNumber }}</strong>. هل تريد المتابعة؟</p>
-      <div class="modal-actions"><button class="secondary-button" type="button" @click="cancelAppointment = undefined">تراجع</button><button class="danger-button" type="button" @click="confirmCancel">تأكيد الإلغاء</button></div>
+      <div class="modal-actions"><button class="secondary-button" type="button" @click="cancelAppointment = undefined">تراجع</button><LongPressButton button-class="danger-button" title="اضغط مطولاً لتأكيد الإلغاء" @confirm="confirmCancel">تأكيد الإلغاء</LongPressButton></div>
     </AppModal>
   </div>
 </template>

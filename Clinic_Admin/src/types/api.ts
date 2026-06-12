@@ -95,6 +95,29 @@ export interface DoctorSubscription {
   cancelledAt?: string
 }
 
+export interface CurrentDoctorSubscription {
+  id: number
+  packageId: number
+  packageName: string
+  packageArabicName: string
+  packageEnglishName: string
+  packageNormalizedName: string
+  startDate: string
+  endDate: string
+  status: string
+  price: number
+  yearlyPrice: number
+  maxClinics: number
+  maxDailyAppointments: number
+  maxWeeklyDays: number
+  showReviews: boolean
+  showMessages: boolean
+  eBooking: boolean
+  ePayments: boolean
+  makeOffers: boolean
+  maxActiveOffers: number
+}
+
 export interface FeatureItem {
   id: number
   name: string
@@ -156,6 +179,7 @@ export interface ClinicItem {
   phoneNumber?: string
   consultationPrice?: number
   showConsultationPrice: boolean
+  bookingWindowDays: number
   isVisible: boolean
 }
 
@@ -219,6 +243,14 @@ export interface ClinicExceptionItem {
   endTime?: string
 }
 
+export interface DoctorNotificationItem {
+  id: number
+  message: string
+  createdAt: string
+  status: number
+  readAt?: string
+}
+
 export interface ReviewItem {
   id: number
   user: {
@@ -258,6 +290,7 @@ export interface PublicDoctorListItem {
     iraqiProvince: number
     iraqiProvinceName: string
     address: string
+    bookingWindowDays?: number
   }>
 }
 
@@ -275,6 +308,7 @@ export interface PublicClinic {
   longitude?: number
   mapUrl?: string
   phoneNumber?: string
+  bookingWindowDays?: number
   availabilities: Array<{
     dayId: number
     dayName: string

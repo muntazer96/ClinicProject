@@ -19,6 +19,7 @@ import '../features/booking/screens/otp_screen.dart';
 import '../features/booking/screens/review_booking_screen.dart';
 import '../features/booking/screens/success_screen.dart';
 import '../features/directory/screens/doctor_details_screen.dart';
+import '../features/directory/screens/favorite_doctors_screen.dart';
 import '../features/directory/screens/search_screen.dart';
 import '../features/directory/screens/specializations_screen.dart';
 import '../features/doctor/models/doctor_models.dart';
@@ -154,6 +155,10 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
     GoRoute(
+      path: '/favorites',
+      builder: (_, __) => const FavoriteDoctorsScreen(),
+    ),
+    GoRoute(
       path: '/search',
       builder: (_, state) => SearchScreen(
         initialSpecialization: int.tryParse(
@@ -281,6 +286,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     }
     final protectedPages = {
       '/bookings',
+      '/favorites',
       '/profile',
       '/profile/change-password',
       '/profile/edit-name',

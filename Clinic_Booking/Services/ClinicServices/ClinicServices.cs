@@ -92,7 +92,8 @@ namespace Clinic_Booking.Services.ClinicServices
                 form.Address,
                 form.Latitude,
                 form.Longitude,
-                form.ConsultationPrice);
+                form.ConsultationPrice,
+                form.BookingWindowDays);
             if (validation != null)
             {
                 return validation;
@@ -143,6 +144,7 @@ namespace Clinic_Booking.Services.ClinicServices
                 PhoneNumber = form.PhoneNumber?.Trim(),
                 ConsultationPrice = form.ConsultationPrice,
                 ShowConsultationPrice = form.ShowConsultationPrice,
+                BookingWindowDays = form.BookingWindowDays ?? 7,
                 IsVisible = form.IsVisible,
                 CreatorId = _load.GetCurrentUserId()
             };
@@ -166,7 +168,8 @@ namespace Clinic_Booking.Services.ClinicServices
                 form.Address,
                 form.Latitude,
                 form.Longitude,
-                form.ConsultationPrice);
+                form.ConsultationPrice,
+                form.BookingWindowDays);
             if (validation != null)
             {
                 return validation;
@@ -199,6 +202,7 @@ namespace Clinic_Booking.Services.ClinicServices
             clinic.PhoneNumber = form.PhoneNumber?.Trim();
             clinic.ConsultationPrice = form.ConsultationPrice;
             clinic.ShowConsultationPrice = form.ShowConsultationPrice;
+            clinic.BookingWindowDays = form.BookingWindowDays ?? 7;
             clinic.IsVisible = form.IsVisible;
             clinic.ModifierId = _load.GetCurrentUserId();
             clinic.ModifiedAt = DateTime.UtcNow;
@@ -262,6 +266,7 @@ namespace Clinic_Booking.Services.ClinicServices
                     PhoneNumber = c.PhoneNumber,
                     ConsultationPrice = c.ConsultationPrice,
                     ShowConsultationPrice = c.ShowConsultationPrice,
+                    BookingWindowDays = c.BookingWindowDays,
                     IsVisible = c.IsVisible
                 });
         }
@@ -271,7 +276,8 @@ namespace Clinic_Booking.Services.ClinicServices
             string address,
             decimal? latitude,
             decimal? longitude,
-            decimal? consultationPrice)
+            decimal? consultationPrice,
+            int? bookingWindowDays)
         {
             if (string.IsNullOrWhiteSpace(name) || name.Length > 200)
             {
@@ -296,6 +302,11 @@ namespace Clinic_Booking.Services.ClinicServices
             if (consultationPrice is < 0)
             {
                 return BadRequest("سعر المراجعة يجب أن يكون صفراً أو أكثر.");
+            }
+
+            if (bookingWindowDays is < 1 or > 31)
+            {
+                return BadRequest("Booking window days must be between 1 and 31.");
             }
 
             return null;

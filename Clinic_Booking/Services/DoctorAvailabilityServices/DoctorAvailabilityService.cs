@@ -2,8 +2,10 @@
 using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.DoctorAvailability;
+using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.IServices.IPushNotificationServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +15,15 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
-        public DoctorAvailabilityService(ApplicationDbContext context,ILoadServices load)
+        private readonly IPushNotificationServices _pushNotificationServices;
+        public DoctorAvailabilityService(
+            ApplicationDbContext context,
+            ILoadServices load,
+            IPushNotificationServices pushNotificationServices)
         {
             _context = context;
             _load = load;
+            _pushNotificationServices = pushNotificationServices;
         }
         //public async Task<IActionResult> SetWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         //{
@@ -453,6 +460,14 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             await _context.SaveChangesAsync();
 
+            if (!availability.IsAvailable)
+            {
+                await MoveAppointmentsFromDisabledDayAsync(
+                    availability.ClinicId,
+                    clinic.DoctorId,
+                    day.NormalizedName);
+            }
+
             var result = new GetDoctorDayAvailabilityDto
             {
                 Id = availability.Id,
@@ -474,6 +489,133 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 Message = isNewAvailability ? "تم إضافة معلومات اليوم بنجاح." : "تم تحديث معلومات اليوم بنجاح.",
                 Data = result
             });
+        }
+
+        private async Task MoveAppointmentsFromDisabledDayAsync(
+            int clinicId,
+            int doctorId,
+            string disabledDayName)
+        {
+            var today = DateTime.Today;
+            var appointments = await _context.Appointments
+                .Where(appointment =>
+                    appointment.ClinicId == clinicId &&
+                    appointment.DoctorId == doctorId &&
+                    appointment.AppointmentDate.Date >= today &&
+                    appointment.Status != AppointmentStatus.Cancelled &&
+                    appointment.Status != AppointmentStatus.Completed &&
+                    !appointment.IsDeleted)
+                .OrderBy(appointment => appointment.AppointmentDate)
+                .ThenBy(appointment => appointment.QueueNumber)
+                .ToListAsync();
+
+            appointments = appointments
+                .Where(appointment =>
+                    appointment.AppointmentDate.DayOfWeek.ToString() ==
+                    disabledDayName)
+                .ToList();
+
+            if (appointments.Count == 0)
+            {
+                return;
+            }
+
+            var availableDays = await _context.DoctorAvailabilities
+                .Include(availability => availability.Day)
+                .Where(availability =>
+                    availability.ClinicId == clinicId &&
+                    availability.IsAvailable &&
+                    !availability.IsDeleted)
+                .ToListAsync();
+
+            if (availableDays.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var appointment in appointments)
+            {
+                var targetDate = FindNextAvailableDate(
+                    appointment.AppointmentDate.Date.AddDays(1),
+                    availableDays);
+                if (!targetDate.HasValue)
+                {
+                    continue;
+                }
+
+                var nextQueueNumber = await _context.Appointments
+                    .Where(item =>
+                        item.ClinicId == clinicId &&
+                        item.AppointmentDate.Date == targetDate.Value.Date &&
+                        !item.IsDeleted)
+                    .Select(item => (int?)item.QueueNumber)
+                    .MaxAsync() ?? 0;
+
+                appointment.AppointmentDate = targetDate.Value;
+                appointment.QueueNumber = nextQueueNumber + 1;
+                appointment.ModifiedAt = DateTime.UtcNow;
+                appointment.ModifierId = _load.GetCurrentUserId();
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var appointment in appointments)
+            {
+                await NotifyPatientAsync(
+                    appointment,
+                    "تم تغيير موعد الحجز",
+                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}.");
+            }
+        }
+
+        private async Task NotifyPatientAsync(
+            Entities.Appointment.Appointment appointment,
+            string title,
+            string body)
+        {
+            _context.Notifications.Add(new Entities.Notification.Notification
+            {
+                DoctorId = appointment.DoctorId,
+                Message = body,
+                CreatedAt = DateTime.UtcNow,
+                Status = NotificationStatus.Unread
+            });
+            await _context.SaveChangesAsync();
+
+            if (!appointment.UserId.HasValue)
+            {
+                return;
+            }
+
+            await _pushNotificationServices.SendToUserAsync(
+                appointment.UserId.Value,
+                title,
+                body,
+                new Dictionary<string, string>
+                {
+                    ["type"] = "booking",
+                    ["appointmentId"] = appointment.Id.ToString(),
+                    ["doctorId"] = appointment.DoctorId.ToString(),
+                    ["clinicId"] = appointment.ClinicId.ToString(),
+                    ["status"] = appointment.Status.ToString()
+                });
+        }
+
+        private static DateTime? FindNextAvailableDate(
+            DateTime startDate,
+            List<DoctorAvailability> availableDays)
+        {
+            for (var offset = 0; offset < 31; offset++)
+            {
+                var candidate = startDate.AddDays(offset);
+                if (availableDays.Any(availability =>
+                        availability.Day.NormalizedName == candidate.DayOfWeek.ToString()))
+                {
+                    return candidate.Date;
+                }
+            }
+
+            return null;
         }
 
     }

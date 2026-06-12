@@ -8,6 +8,7 @@ namespace Clinic_Booking.Entities.Notification
         public string Message { get; set; } // نص الإشعار
         public DateTime CreatedAt { get; set; } // وقت الإنشاء
         public NotificationStatus Status { get; set; } = NotificationStatus.Unread; // حالة الإشعار (مقروء، غير مقروء)
+        public DateTime? ReadAt { get; set; }
 
         public Guid? UserId { get; set; } // معرف المستخدم (إن وجد)
         public User.AspNetUsers User { get; set; }

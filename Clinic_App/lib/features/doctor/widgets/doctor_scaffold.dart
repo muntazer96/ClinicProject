@@ -26,6 +26,7 @@ class DoctorScaffold extends StatefulWidget {
 
 class _DoctorScaffoldState extends State<DoctorScaffold> {
   String? _doctorName;
+  bool _premium = false;
 
   @override
   void initState() {
@@ -37,8 +38,17 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
     final auth = context.read<AuthController>();
     if (!auth.isDoctor) return;
     try {
-      final profile = await DoctorService(auth.api).getProfile();
-      if (mounted) setState(() => _doctorName = profile.name);
+      final service = DoctorService(auth.api);
+      final profile = await service.getProfile();
+      final subscription = await service.getCurrentSubscription();
+      if (mounted) {
+        setState(() {
+          _doctorName = profile.name;
+          _premium =
+              subscription?.packageNormalizedName.trim().toLowerCase() ==
+                  'premium';
+        });
+      }
     } catch (_) {}
   }
 
@@ -67,9 +77,11 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
     final displayName = _doctorName?.isNotEmpty == true
         ? _doctorName!
         : auth.displayName;
+    final premiumColor = _premium ? const Color(0xFFD49A00) : AppColors.primary;
 
     return Scaffold(
       appBar: AppBar(
+        foregroundColor: premiumColor,
         toolbarHeight: 76,
         titleSpacing: 16,
         leading: widget.showBackButton
@@ -140,7 +152,11 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           IconButton(
             tooltip: 'الإشعارات',
             onPressed: () => context.go('/doctor/notifications'),
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: Icon(
+              _premium
+                  ? Icons.workspace_premium_rounded
+                  : Icons.notifications_none_rounded,
+            ),
           ),
           const SizedBox(width: 4),
         ],
@@ -158,6 +174,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           ],
         ),
         child: NavigationBar(
+          indicatorColor: premiumColor.withOpacity(.14),
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             if (index == 0) context.go('/doctor');

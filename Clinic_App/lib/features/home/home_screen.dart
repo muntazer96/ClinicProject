@@ -771,6 +771,14 @@ class _ServiceList extends StatelessWidget {
       ),
       const SizedBox(height: 10),
       _ServiceRow(
+        icon: Icons.favorite_rounded,
+        title: 'الأطباء المفضلون',
+        subtitle: 'وصول سريع للأطباء الذين تتابعهم.',
+        color: const Color(0xFFFFE4EA),
+        onTap: () => context.go('/favorites'),
+      ),
+      const SizedBox(height: 10),
+      _ServiceRow(
         icon: Icons.manage_search_rounded,
         title: 'متابعة حجز زائر',
         subtitle: 'اعرض الحجز أو ألغِه باستخدام الهاتف والكود.',

@@ -26,6 +26,7 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
   final _address = TextEditingController();
   final _phone = TextEditingController();
   final _price = TextEditingController();
+  final _bookingWindowDays = TextEditingController(text: '7');
   final _mapUrl = TextEditingController();
 
   List<ProvinceItem> _provinces = [];
@@ -50,6 +51,7 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
       _address.text = clinic.address;
       _phone.text = clinic.phoneNumber ?? '';
       _price.text = clinic.consultationPrice?.toStringAsFixed(0) ?? '';
+      _bookingWindowDays.text = clinic.bookingWindowDays.toString();
       _mapUrl.text = clinic.mapUrl ?? '';
       _showPrice = clinic.showConsultationPrice;
       _visible = clinic.isVisible;
@@ -64,6 +66,7 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
     _address.dispose();
     _phone.dispose();
     _price.dispose();
+    _bookingWindowDays.dispose();
     _mapUrl.dispose();
     super.dispose();
   }
@@ -104,6 +107,7 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
       'phoneNumber': _phone.text.trim(),
       'consultationPrice': double.tryParse(_price.text.trim()),
       'showConsultationPrice': _showPrice,
+      'bookingWindowDays': int.tryParse(_bookingWindowDays.text.trim()) ?? 7,
       'isVisible': _visible,
     };
 
@@ -210,6 +214,13 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
                   label: 'رابط الخريطة',
                   icon: Icons.location_on_rounded,
                   keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 12),
+                _AppTextField(
+                  controller: _bookingWindowDays,
+                  label: 'عدد أيام الحجز المتاحة',
+                  icon: Icons.event_repeat_rounded,
+                  keyboardType: TextInputType.number,
                 ),
               ],
             ),

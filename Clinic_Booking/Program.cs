@@ -39,6 +39,7 @@ using Clinic_Booking.Services.DoctorSubscriptionServices;
 using Clinic_Booking.Services.EmailServices;
 using Clinic_Booking.Services.FeatureServices;
 using Clinic_Booking.Services.LoadServices;
+using Clinic_Booking.Services.MaintenanceServices;
 using Clinic_Booking.Services.PushNotificationServices;
 using Clinic_Booking.Services.ReviewServices;
 using Clinic_Booking.Services.SpecializationServices;
@@ -80,6 +81,7 @@ builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServic
 builder.Services.AddHttpClient<IWhatsAppMessageServices, WhatsAppMessageServices>();
 builder.Services.AddHostedService<SubscriptionExpirationService>();
 builder.Services.AddHostedService<AppointmentReminderService>();
+builder.Services.AddHostedService<DataCleanupService>();
 builder.Services.Configure<BookingOtpOptions>(
     builder.Configuration.GetSection(BookingOtpOptions.SectionName));
 builder.Services.Configure<PushNotificationOptions>(
