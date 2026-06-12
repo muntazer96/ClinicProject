@@ -548,9 +548,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
-                    Code = 400,
-                    Message = $"Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„Ø­Ø¬Ø² Ø¨Ø¹Ø¯ ØªØ§Ø±ÙŠØ® {maxBookableDate:yyyy/MM/dd}.",
-                    Data = null
+Code = 400,
+Message = $"لا يمكن الحجز بعد تاريخ {maxBookableDate:yyyy/MM/dd}.",
+Data = null
                 });
             }
 
