@@ -10,6 +10,8 @@ namespace Clinic_Booking.DTOs.DoctorSubscriptionDTO
         public string PackageNormalizedName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public int DaysRemaining { get; set; }
+        public bool IsTopPackage { get; set; }
         public string Status { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public decimal YearlyPrice { get; set; }

@@ -8,6 +8,7 @@ import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
 import '../services/doctor_service.dart';
 import '../widgets/doctor_scaffold.dart';
+import 'doctor_schedule_exception_form_page.dart';
 
 class DoctorScheduleScreen extends StatefulWidget {
   const DoctorScheduleScreen({super.key, this.clinic});
@@ -103,7 +104,13 @@ class _DoctorScheduleScreenState extends State<DoctorScheduleScreen> {
                   label: 'إضافة استثناء دوام',
                   icon: Icons.event_busy_rounded,
                   onPressed: () async {
-                    await context.push('/doctor/schedule/exception', extra: _clinic);
+                    await context.push(
+                      '/doctor/schedule/exception',
+                      extra: DoctorScheduleExceptionFormArgs(
+                        clinic: _clinic!,
+                        exceptions: _exceptions,
+                      ),
+                    );
                     await _load();
                   },
                 ),

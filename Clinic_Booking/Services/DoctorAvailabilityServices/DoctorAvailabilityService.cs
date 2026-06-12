@@ -1,8 +1,10 @@
 ﻿using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
+using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.DoctorAvailability;
 using Clinic_Booking.Enums;
+using Clinic_Booking.IServices.IAppointmentReschedulingServices;
 using Clinic_Booking.IServices.IDoctorAvailabilityServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -16,14 +18,17 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly IAppointmentReschedulingServices _appointmentReschedulingServices;
         public DoctorAvailabilityService(
             ApplicationDbContext context,
             ILoadServices load,
-            IPushNotificationServices pushNotificationServices)
+            IPushNotificationServices pushNotificationServices,
+            IAppointmentReschedulingServices appointmentReschedulingServices)
         {
             _context = context;
             _load = load;
             _pushNotificationServices = pushNotificationServices;
+            _appointmentReschedulingServices = appointmentReschedulingServices;
         }
         //public async Task<IActionResult> SetWeeklyAvailabilityAsync(AddDoctorAvailabilityDto dto)
         //{
@@ -529,56 +534,51 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 return [];
             }
 
-            var availableDays = await _context.DoctorAvailabilities
-                .Include(availability => availability.Day)
-                .Where(availability =>
-                    availability.ClinicId == clinicId &&
-                    availability.IsAvailable &&
-                    !availability.IsDeleted)
-                .ToListAsync();
-
-            if (availableDays.Count == 0)
-            {
-                return [];
-            }
-
-            var queueNumbersByDate = new Dictionary<DateTime, int>();
+            var moveStates = new Dictionary<DateTime, AppointmentMoveCapacityState>();
             var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
-                var targetDate = FindNextAvailableDate(
+                var moveTarget = await _appointmentReschedulingServices.FindNextMoveTargetAsync(
+                    clinicId,
                     appointment.AppointmentDate.Date.AddDays(1),
-                    availableDays);
-                if (!targetDate.HasValue)
+                    moveStates);
+                if (moveTarget == null)
                 {
+                    notifications.Add(CancelAppointment(
+                        appointment,
+                        "لا توجد مواعيد متاحة لنقل الحجز بعد تعطيل يوم الدوام."));
                     continue;
                 }
 
-                if (!queueNumbersByDate.TryGetValue(targetDate.Value.Date, out var nextQueueNumber))
-                {
-                    nextQueueNumber = await _context.Appointments
-                        .Where(item =>
-                            item.ClinicId == clinicId &&
-                            item.AppointmentDate.Date == targetDate.Value.Date &&
-                            !item.IsDeleted)
-                        .Select(item => (int?)item.QueueNumber)
-                        .MaxAsync() ?? 0;
-                }
-
-                nextQueueNumber++;
-                queueNumbersByDate[targetDate.Value.Date] = nextQueueNumber;
-
-                appointment.AppointmentDate = targetDate.Value;
-                appointment.QueueNumber = nextQueueNumber;
+                appointment.AppointmentDate = moveTarget.Date;
+                appointment.QueueNumber = moveTarget.QueueNumber;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 appointment.ModifierId = _load.GetCurrentUserId();
                 notifications.Add(ToPendingNotification(
                     appointment,
                     "تم تغيير موعد الحجز",
-                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}."));
+                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}. رقم الدور الجديد #{appointment.QueueNumber}."));
             }
 
             return notifications;
+        }
+
+        private PendingAppointmentNotification CancelAppointment(
+            Entities.Appointment.Appointment appointment,
+            string reason)
+        {
+            var now = DateTime.UtcNow;
+            appointment.Status = AppointmentStatus.Cancelled;
+            appointment.CancellationReason = reason;
+            appointment.CancelledAt = now;
+            appointment.CancelledByUserId = _load.GetCurrentUserId();
+            appointment.ModifiedAt = now;
+            appointment.ModifierId = _load.GetCurrentUserId();
+
+            return ToPendingNotification(
+                appointment,
+                "تم إلغاء الحجز",
+                $"تم إلغاء حجزك بتاريخ {appointment.AppointmentDate:yyyy/MM/dd}. السبب: {appointment.CancellationReason}");
         }
 
         private static PendingAppointmentNotification ToPendingNotification(
@@ -638,23 +638,6 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             AppointmentStatus Status,
             string Title,
             string Body);
-
-        private static DateTime? FindNextAvailableDate(
-            DateTime startDate,
-            List<DoctorAvailability> availableDays)
-        {
-            for (var offset = 0; offset < 31; offset++)
-            {
-                var candidate = startDate.AddDays(offset);
-                if (availableDays.Any(availability =>
-                        availability.Day.NormalizedName == candidate.DayOfWeek.ToString()))
-                {
-                    return candidate.Date;
-                }
-            }
-
-            return null;
-        }
 
     }
 }

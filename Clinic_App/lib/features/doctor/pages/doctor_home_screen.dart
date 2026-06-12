@@ -462,10 +462,7 @@ class _SubscriptionCountdownCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final endDate = subscription.endDate!;
-    final today = DateTime.now();
-    final daysLeft = DateTime(endDate.year, endDate.month, endDate.day)
-        .difference(DateTime(today.year, today.month, today.day))
-        .inDays;
+    final daysLeft = subscription.daysRemaining;
     final color = daysLeft <= 1
         ? AppColors.danger
         : daysLeft <= 3
@@ -485,9 +482,7 @@ class _SubscriptionCountdownCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              daysLeft < 0
-                  ? 'انتهى الاشتراك'
-                  : 'متبقي $daysLeft يوم على انتهاء الاشتراك',
+              'متبقي $daysLeft يوم على انتهاء الاشتراك',
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w900,

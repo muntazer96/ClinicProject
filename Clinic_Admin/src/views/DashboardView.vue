@@ -53,14 +53,7 @@ const offerStats = computed(() => [
 
 const trend = computed(() => isAdmin.value ? summary.value?.userGrowth ?? [] : summary.value?.appointmentTrend ?? [])
 const hasEvents = computed(() => (summary.value?.recentEvents.length ?? 0) > 0)
-const daysRemaining = computed(() => {
-  if (!currentSubscription.value?.endDate) return null
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const end = new Date(currentSubscription.value.endDate)
-  end.setHours(0, 0, 0, 0)
-  return Math.max(0, Math.ceil((end.getTime() - todayStart.getTime()) / 86400000))
-})
+const daysRemaining = computed(() => currentSubscription.value?.daysRemaining ?? null)
 const subscriptionTone = computed(() => {
   const days = daysRemaining.value
   if (days == null) return 'green'
@@ -68,10 +61,7 @@ const subscriptionTone = computed(() => {
   if (days <= 3) return 'orange'
   return 'green'
 })
-const isPremiumSubscription = computed(() => {
-  const name = currentSubscription.value?.packageNormalizedName?.toLowerCase() ?? ''
-  return name.includes('premium') || name.includes('gold') || name.includes('pro')
-})
+const isPremiumSubscription = computed(() => currentSubscription.value?.isTopPackage ?? false)
 
 function toInputDate(date: Date) {
   return date.toLocaleDateString('en-CA')

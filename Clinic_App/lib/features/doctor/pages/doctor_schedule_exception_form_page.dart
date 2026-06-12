@@ -12,9 +12,14 @@ import '../services/doctor_service.dart';
 import '../widgets/doctor_scaffold.dart';
 
 class DoctorScheduleExceptionFormPage extends StatefulWidget {
-  const DoctorScheduleExceptionFormPage({super.key, required this.clinic});
+  const DoctorScheduleExceptionFormPage({
+    super.key,
+    required this.clinic,
+    this.exceptions = const [],
+  });
 
   final DoctorClinic clinic;
+  final List<ClinicExceptionDay> exceptions;
 
   @override
   State<DoctorScheduleExceptionFormPage> createState() =>
@@ -44,25 +49,108 @@ class _DoctorScheduleExceptionFormPageState
     super.dispose();
   }
 
+  DateTime get _today => DateUtils.dateOnly(DateTime.now());
+  DateTime get _maxMoveDate => _today.add(
+        Duration(
+          days: widget.clinic.bookingWindowDays <= 0
+              ? 6
+              : widget.clinic.bookingWindowDays - 1,
+        ),
+      );
+  Set<String> get _closedExceptionDates => widget.exceptions
+      .where((exception) => exception.isClosed)
+      .map((exception) => _dateKey(exception.exceptionDate))
+      .toSet();
+
+  void _normalizeMoveDateForExceptionDate() {
+    if (_moveDate == null) return;
+    final minMoveDate = DateUtils.dateOnly(_date).add(const Duration(days: 1));
+    final moveDate = DateUtils.dateOnly(_moveDate!);
+    if (moveDate.isBefore(minMoveDate) || moveDate.isAfter(_maxMoveDate)) {
+      _moveDate = null;
+    }
+  }
+
+  bool _validateMoveDate() {
+    if (!_closed || _conflictAction != 'move') return true;
+    final moveDate = _moveDate == null ? null : DateUtils.dateOnly(_moveDate!);
+    final minMoveDate = DateUtils.dateOnly(_date).add(const Duration(days: 1));
+    if (moveDate == null) {
+      showAppSnackBar(
+        context,
+        'يجب تحديد تاريخ جديد عند نقل الحجوزات.',
+      );
+      return false;
+    }
+    if (moveDate.isBefore(minMoveDate) || moveDate.isAfter(_maxMoveDate)) {
+      showAppSnackBar(
+        context,
+        'تاريخ النقل يجب أن يكون بعد تاريخ الاستثناء وضمن نافذة الحجز '
+        '(${widget.clinic.bookingWindowDays} يوم).',
+      );
+      return false;
+    }
+    if (_closedExceptionDates.contains(_dateKey(moveDate))) {
+      showAppSnackBar(context, 'تاريخ النقل المحدد مغلق لهذه العيادة.');
+      return false;
+    }
+    return true;
+  }
+
+  DateTime? _firstAvailableMoveDate(DateTime firstDate, DateTime lastDate) {
+    var candidate = firstDate;
+    while (!candidate.isAfter(lastDate)) {
+      if (!_closedExceptionDates.contains(_dateKey(candidate))) {
+        return candidate;
+      }
+      candidate = candidate.add(const Duration(days: 1));
+    }
+    return null;
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      firstDate: DateTime.now(),
+      firstDate: _today,
       lastDate: DateTime.now().add(const Duration(days: 180)),
       initialDate: _date,
     );
 
     if (picked != null) {
-      setState(() => _date = picked);
+      setState(() {
+        _date = picked;
+        _normalizeMoveDateForExceptionDate();
+      });
     }
   }
 
   Future<void> _pickMoveDate() async {
+    final firstDate = DateUtils.dateOnly(_date).add(const Duration(days: 1));
+    final lastDate = _maxMoveDate;
+    final firstAvailableDate = _firstAvailableMoveDate(firstDate, lastDate);
+    if (firstDate.isAfter(lastDate) || firstAvailableDate == null) {
+      showAppSnackBar(
+        context,
+        'لا يوجد تاريخ نقل متاح ضمن نافذة الحجز لهذه العيادة.',
+      );
+      return;
+    }
+    final currentMoveDate = _moveDate == null
+        ? firstAvailableDate
+        : DateUtils.dateOnly(_moveDate!);
+    final initialDate =
+        currentMoveDate.isBefore(firstDate) ||
+            currentMoveDate.isAfter(lastDate) ||
+            _closedExceptionDates.contains(_dateKey(currentMoveDate))
+            ? firstAvailableDate
+            : currentMoveDate;
     final picked = await showDatePicker(
       context: context,
-      firstDate: _date.add(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 180)),
-      initialDate: _moveDate ?? _date.add(const Duration(days: 1)),
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDate: initialDate,
+      selectableDayPredicate: (date) =>
+          !_closedExceptionDates.contains(_dateKey(date)),
     );
 
     if (picked != null) {
@@ -70,7 +158,15 @@ class _DoctorScheduleExceptionFormPageState
     }
   }
 
+  static String _dateKey(DateTime date) {
+    final value = DateUtils.dateOnly(date);
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _save() async {
+    if (!_validateMoveDate()) return;
     setState(() => _saving = true);
 
     try {
@@ -182,6 +278,16 @@ class _DoctorScheduleExceptionFormPageState
                         date: _moveDate ?? _date.add(const Duration(days: 1)),
                         onTap: _pickMoveDate,
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'تاريخ النقل يجب أن يكون بعد تاريخ الاستثناء وضمن '
+                        'نافذة الحجز (${widget.clinic.bookingWindowDays} يوم).',
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -225,6 +331,16 @@ class _DoctorScheduleExceptionFormPageState
           ],
         ),
       );
+}
+
+class DoctorScheduleExceptionFormArgs {
+  const DoctorScheduleExceptionFormArgs({
+    required this.clinic,
+    required this.exceptions,
+  });
+
+  final DoctorClinic clinic;
+  final List<ClinicExceptionDay> exceptions;
 }
 
 class _HeroExceptionCard extends StatelessWidget {

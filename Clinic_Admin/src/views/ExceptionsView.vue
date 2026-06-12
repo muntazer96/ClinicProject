@@ -32,13 +32,48 @@ const form = reactive({
   moveAppointmentsToDate: '',
 })
 const selectedClinicName = computed(() => clinics.value.find((clinic) => clinic.id === Number(clinicId.value))?.name)
+const selectedClinic = computed(() => clinics.value.find((clinic) => clinic.id === Number(clinicId.value)))
+const bookingWindowDays = computed(() => Math.max(1, selectedClinic.value?.bookingWindowDays ?? 7))
 const totalPages = computed(() => Math.max(1, Math.ceil(exceptions.value.length / pageSize)))
 const paginatedExceptions = computed(() => exceptions.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+const minMoveDate = computed(() => form.exceptionDate ? addDays(form.exceptionDate, 1) : today())
+const maxMoveDate = computed(() => addDays(today(), bookingWindowDays.value - 1))
+const moveDateHint = computed(() => `تاريخ النقل يجب أن يكون بعد تاريخ الاستثناء وضمن نافذة الحجز (${bookingWindowDays.value} يوم).`)
+const isMoveDateClosed = computed(() => exceptions.value.some((item) =>
+  item.id !== form.id &&
+  item.isClosed &&
+  item.exceptionDate === form.moveAppointmentsToDate,
+))
 
 function formatDate(value: string) { return new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'full' }).format(new Date(`${value}T00:00:00`)) }
 function normalizePage() { if (page.value > totalPages.value) page.value = totalPages.value }
 function changePage(newPage: number) { page.value = newPage }
 function today() { return new Date().toLocaleDateString('en-CA') }
+function addDays(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00`)
+  date.setDate(date.getDate() + days)
+  return date.toLocaleDateString('en-CA')
+}
+function validateMoveDate() {
+  if (!form.isClosed || form.appointmentConflictAction !== 'move') return true
+  if (!form.moveAppointmentsToDate) {
+    notifications.show('يجب تحديد تاريخ جديد عند نقل الحجوزات.', 'error')
+    return false
+  }
+  if (form.moveAppointmentsToDate < minMoveDate.value) {
+    notifications.show('تاريخ النقل يجب أن يكون بعد تاريخ الاستثناء.', 'error')
+    return false
+  }
+  if (form.moveAppointmentsToDate > maxMoveDate.value) {
+    notifications.show(`تاريخ النقل يجب أن يكون ضمن نافذة الحجز الخاصة بالعيادة (${bookingWindowDays.value} يوم).`, 'error')
+    return false
+  }
+  if (isMoveDateClosed.value) {
+    notifications.show('تاريخ النقل المحدد مغلق لهذه العيادة.', 'error')
+    return false
+  }
+  return true
+}
 function applyExceptionFilters() {
   page.value = 1
   loadExceptions()
@@ -72,6 +107,7 @@ function openEditor(item?: ClinicExceptionItem) {
   editorOpen.value = true
 }
 async function saveException() {
+  if (!validateMoveDate()) return
   saving.value = true
   try {
     const response = await api.post<ApiResponse<object>>('/ClinicException/my', {
@@ -135,7 +171,7 @@ onMounted(async () => {
           <label><input v-model="form.appointmentConflictAction" type="radio" value="none" /> اترك الحجوزات بدون تغيير</label>
           <label><input v-model="form.appointmentConflictAction" type="radio" value="move" /> نقل جميع الحجوزات إلى يوم آخر</label>
           <label><input v-model="form.appointmentConflictAction" type="radio" value="cancel" /> إلغاء جميع الحجوزات وإرسال إشعار للمرضى</label>
-          <label v-if="form.appointmentConflictAction === 'move'"><span>التاريخ الجديد</span><input v-model="form.moveAppointmentsToDate" type="date" :min="today()" required /></label>
+          <label v-if="form.appointmentConflictAction === 'move'"><span>التاريخ الجديد</span><input v-model="form.moveAppointmentsToDate" type="date" :min="minMoveDate" :max="maxMoveDate" required /><small class="field-hint">{{ moveDateHint }}</small></label>
         </div>
         <label><span>ملاحظة أو سبب الإغلاق</span><textarea v-model="form.closureReason" rows="3" maxlength="500" /></label>
         <div class="modal-actions"><button class="secondary-button" type="button" @click="editorOpen = false">تراجع</button><button class="compact-primary" type="submit" :disabled="saving">{{ saving ? 'جارِ الحفظ...' : 'حفظ الاستثناء' }}</button></div>
@@ -154,4 +190,5 @@ onMounted(async () => {
 .conflict-box label { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 700; }
 .conflict-box input[type="radio"] { width: auto; }
 .conflict-box label:has(input[type="date"]) { display: block; }
+.field-hint { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; }
 </style>

@@ -91,6 +91,14 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 .ToListAsync();
 
             var package = subscription.Package;
+            var daysRemaining = Math.Max(0, (subscription.EndDate.Date - now.Date).Days);
+            var topPackageId = await _context.SubscriptionPackages
+                .Where(item => !item.IsDeleted)
+                .OrderByDescending(item => item.YearlyPrice)
+                .ThenByDescending(item => item.Price)
+                .ThenByDescending(item => item.Id)
+                .Select(item => (int?)item.Id)
+                .FirstOrDefaultAsync();
             var packageDto = new CurrentDoctorSubscriptionPackageDto
             {
                 Id = package.Id,
@@ -126,6 +134,8 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                     PackageNormalizedName = package.NormalizedName,
                     StartDate = subscription.StartDate,
                     EndDate = subscription.EndDate,
+                    DaysRemaining = daysRemaining,
+                    IsTopPackage = topPackageId.HasValue && topPackageId.Value == package.Id,
                     Status = subscription.Status.ToString(),
                     Price = package.Price,
                     YearlyPrice = package.YearlyPrice,

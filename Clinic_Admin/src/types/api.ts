@@ -104,6 +104,8 @@ export interface CurrentDoctorSubscription {
   packageNormalizedName: string
   startDate: string
   endDate: string
+  daysRemaining: number
+  isTopPackage: boolean
   status: string
   price: number
   yearlyPrice: number

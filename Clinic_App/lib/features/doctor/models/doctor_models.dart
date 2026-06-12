@@ -535,6 +535,8 @@ class DoctorSubscriptionInfo {
     required this.statusName,
     required this.startDate,
     required this.endDate,
+    required this.daysRemaining,
+    required this.isTopPackage,
     required this.features,
   });
 
@@ -548,6 +550,8 @@ class DoctorSubscriptionInfo {
   final String statusName;
   final DateTime? startDate;
   final DateTime? endDate;
+  final int daysRemaining;
+  final bool isTopPackage;
   final List<DoctorFeatureItem> features;
 
   factory DoctorSubscriptionInfo.fromJson(Map<String, dynamic> json) {
@@ -610,6 +614,8 @@ class DoctorSubscriptionInfo {
       endDate: json['endDate'] == null
           ? null
           : DateTime.tryParse(json['endDate'] as String),
+      daysRemaining: json['daysRemaining'] as int? ?? 0,
+      isTopPackage: json['isTopPackage'] as bool? ?? false,
       features: ((json['features'] as List?) ?? const [])
           .map((item) => DoctorFeatureItem.fromJson(item as Map<String, dynamic>))
           .toList(),

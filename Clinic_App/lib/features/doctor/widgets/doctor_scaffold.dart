@@ -44,9 +44,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
       if (mounted) {
         setState(() {
           _doctorName = profile.name;
-          _premium =
-              subscription?.packageNormalizedName.trim().toLowerCase() ==
-                  'premium';
+          _premium = subscription?.isTopPackage ?? false;
         });
       }
     } catch (_) {}

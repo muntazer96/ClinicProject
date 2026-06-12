@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ArrowRight, CalendarDays, CheckCircle2, Copy, MapPin, Phone, RefreshCw, Star, Stethoscope } from '@lucide/vue'
+import AppModal from '../components/AppModal.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import type { ApiResponse, PublicDoctorProfile, QueueAvailabilityItem } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
@@ -14,6 +16,7 @@ const loading = ref(false)
 const booking = ref(false)
 const otpMode = ref(false)
 const message = ref('')
+const bookingConfirmOpen = ref(false)
 const bookingResult = ref<{ code: string; queueNumber: number }>()
 const resendSeconds = ref(0)
 let resendTimer: number | undefined
@@ -102,16 +105,8 @@ async function loadAvailability() {
 }
 
 async function createBooking() {
-  const accepted = window.confirm([
-    'تأكيد الحجز',
-    `الطبيب: ${doctor.value?.name ?? '-'}`,
-    `العيادة: ${selectedClinic.value?.name ?? '-'}`,
-    `التاريخ: ${availability.value?.dayName ?? ''} ${form.appointmentDate}`,
-    `المراجع: ${form.guestName}`,
-    `الهاتف: ${form.guestPhoneNumber}`,
-  ].join('\n'))
-  if (!accepted) return
   booking.value = true
+  bookingConfirmOpen.value = false
   message.value = ''
   try {
     const response = await api.post<ApiResponse<any>>('/Appointment', {
@@ -223,7 +218,7 @@ onUnmounted(() => window.clearInterval(resendTimer))
         <div id="public-booking-panel" class="public-panel booking-panel">
           <h2>حجز دور</h2>
           <p v-if="!doctor.canBookOnline" class="form-error">الحجز الإلكتروني غير مفعل لهذا الطبيب حالياً.</p>
-          <form v-else-if="!otpMode" class="modal-form" @submit.prevent="createBooking">
+          <form v-else-if="!otpMode" class="modal-form" @submit.prevent="bookingConfirmOpen = true">
             <label><span>العيادة</span><select v-model="form.clinicId" required><option v-for="clinic in doctor.clinics" :key="clinic.id" :value="clinic.id">{{ clinic.name }}</option></select></label>
             <label><span>تاريخ الحجز</span><input v-model="form.appointmentDate" type="date" :min="today()" :max="maxBookingDate" required /></label>
             <div v-if="availability" class="queue-box" :class="{ unavailable: !availability.isAvailable || availability.remainingAppointments <= 0 }">
@@ -254,6 +249,20 @@ onUnmounted(() => window.clearInterval(resendTimer))
         </div>
       </section>
     </template>
+
+    <AppModal v-if="bookingConfirmOpen && doctor" title="تأكيد الحجز" @close="bookingConfirmOpen = false">
+      <div class="confirm-summary">
+        <span>الطبيب <strong>{{ doctor.name }}</strong></span>
+        <span>العيادة <strong>{{ selectedClinic?.name ?? '-' }}</strong></span>
+        <span>التاريخ <strong>{{ availability?.dayName ?? '' }} {{ form.appointmentDate }}</strong></span>
+        <span>المراجع <strong>{{ form.guestName }}</strong></span>
+        <span>الهاتف <strong>{{ form.guestPhoneNumber }}</strong></span>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" @click="bookingConfirmOpen = false">تراجع</button>
+        <LongPressButton button-class="compact-primary" :disabled="booking || !canBook" title="اضغط مطولاً لتأكيد الحجز" @confirm="createBooking">تأكيد الحجز</LongPressButton>
+      </div>
+    </AppModal>
   </main>
 </template>
 
@@ -271,5 +280,8 @@ onUnmounted(() => window.clearInterval(resendTimer))
 .queue-box { display: grid; gap: 4px; padding: 11px; color: #167163; border: 1px solid #c8eadf; border-radius: 9px; background: #f0faf6; font-size: 13px; }.queue-box.unavailable { color: #a23d3d; border-color: #ffd6d6; background: #fff3f3; }
 .booking-code { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 11px; color: #167163; border-radius: 9px; background: #e1f4ef; }.booking-message { color: var(--muted); line-height: 1.8; margin: 13px 0 0; }
 .icon-copy-button { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-inline-start: auto; color: #167163; border: 1px solid #bde3d9; border-radius: 8px; background: #fff; cursor: pointer; }.icon-copy-button:disabled { opacity: .55; cursor: not-allowed; }
+.confirm-summary { display: grid; gap: 9px; margin-bottom: 14px; }
+.confirm-summary span { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; color: var(--muted); border-bottom: 1px solid var(--line); }
+.confirm-summary strong { color: var(--ink); text-align: left; }
 @media (max-width: 820px) { .public-details-grid { grid-template-columns: 1fr; }.doctor-public-hero { align-items: flex-start; }.doctor-public-photo { width: 82px; height: 82px; } }
 </style>

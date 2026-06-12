@@ -76,11 +76,19 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/doctor/schedule/exception',
-      builder: (_, state) => state.extra is DoctorClinic
-          ? DoctorScheduleExceptionFormPage(
-              clinic: state.extra! as DoctorClinic,
-            )
-          : const _MissingBookingData(),
+      builder: (_, state) {
+        final extra = state.extra;
+        if (extra is DoctorScheduleExceptionFormArgs) {
+          return DoctorScheduleExceptionFormPage(
+            clinic: extra.clinic,
+            exceptions: extra.exceptions,
+          );
+        }
+        if (extra is DoctorClinic) {
+          return DoctorScheduleExceptionFormPage(clinic: extra);
+        }
+        return const _MissingBookingData();
+      },
     ),
     GoRoute(
       path: '/doctor/profile',

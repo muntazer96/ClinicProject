@@ -43,10 +43,7 @@ const links = computed(() => [
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'لوحة التحكم')
 const roleLabel = computed(() => auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب')
-const hasPremiumTheme = computed(() => {
-  const normalizedName = currentSubscription.value?.packageNormalizedName?.toLowerCase() ?? ''
-  return normalizedName.includes('premium') || normalizedName.includes('gold') || normalizedName.includes('pro')
-})
+const hasPremiumTheme = computed(() => currentSubscription.value?.isTopPackage ?? false)
 
 function isLinkActive(path: string) {
   if (path === '/') return route.path === '/'

@@ -1,8 +1,10 @@
 using Clinic_Booking.Data;
+using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.ClinicExceptionDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Enums;
+using Clinic_Booking.IServices.IAppointmentReschedulingServices;
 using Clinic_Booking.IServices.IClinicExceptionServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -16,15 +18,18 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly IAppointmentReschedulingServices _appointmentReschedulingServices;
 
         public ClinicExceptionServices(
             ApplicationDbContext context,
             ILoadServices load,
-            IPushNotificationServices pushNotificationServices)
+            IPushNotificationServices pushNotificationServices,
+            IAppointmentReschedulingServices appointmentReschedulingServices)
         {
             _context = context;
             _load = load;
             _pushNotificationServices = pushNotificationServices;
+            _appointmentReschedulingServices = appointmentReschedulingServices;
         }
 
         public async Task<IActionResult> GetMineAsync(int clinicId, DateOnly? fromDate, DateOnly? toDate)
@@ -37,7 +42,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (!await OwnsClinicAsync(clinicId, doctorId.Value))
             {
-                return NotFound("Clinic not found or you do not have permission to manage it.");
+                return NotFound("العيادة غير موجودة أو لا تملك صلاحية إدارتها.");
             }
 
             var query = _context.ClinicExceptions
@@ -68,7 +73,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 })
                 .ToListAsync();
 
-            return Ok(exceptions, "Clinic exceptions retrieved successfully.");
+            return Ok(exceptions, "تم جلب أيام الاستثناء بنجاح.");
         }
 
         public async Task<IActionResult> UpsertMineAsync(UpsertClinicExceptionDto form)
@@ -81,7 +86,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (!await OwnsClinicAsync(form.ClinicId, doctorId.Value))
             {
-                return NotFound("Clinic not found or you do not have permission to manage it.");
+                return NotFound("العيادة غير موجودة أو لا تملك صلاحية إدارتها.");
             }
 
             var validation = await ValidateAsync(form, doctorId.Value);
@@ -103,7 +108,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (form.Id.HasValue && exception == null)
             {
-                return NotFound("Clinic exception not found.");
+                return NotFound("يوم الاستثناء غير موجود.");
             }
 
             if (exception == null)
@@ -141,13 +146,13 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 }
                 catch (DbUpdateException)
                 {
-                    return BadRequest("Only one exception can be configured for a clinic on the same date.");
+                    return BadRequest("لا يمكن إضافة أكثر من يوم استثناء لنفس العيادة في نفس التاريخ.");
                 }
             }
 
             await SendPendingNotificationsAsync(pendingNotifications);
 
-            return Ok(new { exception.Id }, "Clinic exception saved successfully.");
+            return Ok(new { exception.Id }, "تم حفظ يوم الاستثناء بنجاح.");
         }
 
         public async Task<IActionResult> DeleteMineAsync(int id)
@@ -167,7 +172,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (exception == null)
             {
-                return NotFound("Clinic exception not found or you do not have permission to delete it.");
+                return NotFound("يوم الاستثناء غير موجود أو لا تملك صلاحية حذفه.");
             }
 
             exception.IsDeleted = true;
@@ -175,35 +180,35 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             exception.DeletedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            return Ok<object>(null, "Clinic exception deleted successfully.");
+            return Ok<object>(null, "تم حذف يوم الاستثناء بنجاح.");
         }
 
         private async Task<IActionResult?> ValidateAsync(UpsertClinicExceptionDto form, int doctorId)
         {
             if (form.ClinicId <= 0 || form.ExceptionDate == default)
             {
-                return BadRequest("Clinic and exception date are required.");
+                return BadRequest("العيادة وتاريخ الاستثناء مطلوبان.");
             }
 
             if (form.ExceptionDate < DateOnly.FromDateTime(DateTime.Today))
             {
-                return BadRequest("Clinic exceptions cannot be configured for a past date.");
+                return BadRequest("لا يمكن إضافة يوم استثناء بتاريخ سابق.");
             }
 
             if (form.ClosureReason?.Length > 500)
             {
-                return BadRequest("Closure reason cannot exceed 500 characters.");
+                return BadRequest("سبب الإغلاق يجب أن لا يتجاوز 500 حرف.");
             }
 
             if (form.MaxAppointments is < 0)
             {
-                return BadRequest("Maximum appointments cannot be negative.");
+                return BadRequest("الحد الأقصى للحجوزات لا يمكن أن يكون سالباً.");
             }
 
             if (form.StartTime.HasValue != form.EndTime.HasValue ||
                 form.StartTime.HasValue && form.StartTime >= form.EndTime)
             {
-                return BadRequest("Display start and end times must be provided together, and the end time must be later.");
+                return BadRequest("يجب إدخال وقت البداية والنهاية معاً، ويجب أن يكون وقت النهاية بعد وقت البداية.");
             }
 
             var now = DateTime.UtcNow;
@@ -219,12 +224,12 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (!packageLimit.HasValue)
             {
-                return BadRequest("An active subscription is required to configure clinic exceptions.");
+                return BadRequest("يجب وجود اشتراك نشط لإدارة أيام الاستثناء.");
             }
 
             if (form.MaxAppointments > packageLimit.Value)
             {
-                return BadRequest($"Maximum appointments cannot exceed your package limit ({packageLimit}).");
+                return BadRequest($"الحد الأقصى للحجوزات لا يمكن أن يتجاوز حد الباقة ({packageLimit}).");
             }
 
             var action = NormalizeConflictAction(form.AppointmentConflictAction);
@@ -232,18 +237,40 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             {
                 if (!form.MoveAppointmentsToDate.HasValue)
                 {
-                    return BadRequest("A new date is required when moving bookings.");
+                    return BadRequest("يجب تحديد تاريخ جديد عند نقل الحجوزات.");
                 }
 
                 if (form.MoveAppointmentsToDate.Value <= form.ExceptionDate ||
                     form.MoveAppointmentsToDate.Value < DateOnly.FromDateTime(DateTime.Today))
                 {
-                    return BadRequest("The new booking date must be a future date after the exception date.");
+                    return BadRequest("تاريخ النقل يجب أن يكون تاريخاً لاحقاً بعد تاريخ الاستثناء.");
+                }
+
+                var bookingWindowDays = await _context.Clinics
+                    .Where(clinic => clinic.Id == form.ClinicId && !clinic.IsDeleted)
+                    .Select(clinic => clinic.BookingWindowDays)
+                    .FirstOrDefaultAsync();
+                bookingWindowDays = bookingWindowDays <= 0 ? 7 : bookingWindowDays;
+                var maxBookableDate = DateOnly.FromDateTime(DateTime.Today.AddDays(bookingWindowDays - 1));
+                if (form.MoveAppointmentsToDate.Value > maxBookableDate)
+                {
+                    return BadRequest($"تاريخ النقل يجب أن يكون ضمن نافذة الحجز الخاصة بالعيادة ({bookingWindowDays} يوم).");
+                }
+
+                var moveDate = form.MoveAppointmentsToDate.Value.ToDateTime(TimeOnly.MinValue);
+                var isMoveDateClosed = await _context.ClinicExceptions.AnyAsync(exception =>
+                    exception.ClinicId == form.ClinicId &&
+                    exception.ExceptionDate == moveDate &&
+                    exception.IsClosed &&
+                    !exception.IsDeleted);
+                if (isMoveDateClosed)
+                {
+                    return BadRequest("تاريخ النقل المحدد مغلق لهذه العيادة.");
                 }
             }
             else if (action != null && action != "cancel")
             {
-                return BadRequest("Unsupported appointment conflict action.");
+                return BadRequest("إجراء معالجة الحجوزات غير مدعوم.");
             }
 
             return null;
@@ -290,7 +317,8 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             {
                 return await MoveConflictingAppointmentsAsync(
                     appointments,
-                    form.MoveAppointmentsToDate.Value.ToDateTime(TimeOnly.MinValue));
+                    form.MoveAppointmentsToDate.Value.ToDateTime(TimeOnly.MinValue),
+                    form.ClosureReason);
             }
 
             return [];
@@ -306,7 +334,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             {
                 appointment.Status = AppointmentStatus.Cancelled;
                 appointment.CancellationReason = string.IsNullOrWhiteSpace(reason)
-                    ? "Clinic exception."
+                    ? "تم إغلاق العيادة في هذا اليوم."
                     : reason.Trim();
                 appointment.CancelledAt = now;
                 appointment.CancelledByUserId = _load.GetCurrentUserId();
@@ -314,8 +342,8 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 appointment.ModifierId = _load.GetCurrentUserId();
                 notifications.Add(ToPendingNotification(
                     appointment,
-                    "Booking cancelled",
-                    $"Your booking on {appointment.AppointmentDate:yyyy/MM/dd} was cancelled. Reason: {appointment.CancellationReason}"));
+                    "تم إلغاء الحجز",
+                    $"تم إلغاء حجزك بتاريخ {appointment.AppointmentDate:yyyy/MM/dd}. السبب: {appointment.CancellationReason}"));
             }
 
             return notifications;
@@ -323,30 +351,64 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
         private async Task<List<PendingAppointmentNotification>> MoveConflictingAppointmentsAsync(
             List<Entities.Appointment.Appointment> appointments,
-            DateTime targetDate)
+            DateTime targetDate,
+            string? cancellationReason)
         {
-            var nextQueueNumber = await _context.Appointments
-                .Where(appointment =>
-                    appointment.ClinicId == appointments[0].ClinicId &&
-                    appointment.AppointmentDate.Date == targetDate.Date &&
-                    !appointment.IsDeleted)
-                .Select(appointment => (int?)appointment.QueueNumber)
-                .MaxAsync() ?? 0;
+            var clinicId = appointments[0].ClinicId;
+            var moveStates = new Dictionary<DateTime, AppointmentMoveCapacityState>();
 
             var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
-                appointment.AppointmentDate = targetDate;
-                appointment.QueueNumber = ++nextQueueNumber;
-                appointment.ModifiedAt = DateTime.UtcNow;
-                appointment.ModifierId = _load.GetCurrentUserId();
+                var moveTarget = await _appointmentReschedulingServices.FindNextMoveTargetAsync(
+                    clinicId,
+                    targetDate.Date,
+                    moveStates);
+
+                if (moveTarget == null)
+                {
+                    notifications.Add(CancelAppointment(
+                        appointment,
+                        string.IsNullOrWhiteSpace(cancellationReason)
+                            ? "لا توجد مواعيد متاحة لنقل الحجز بعد إغلاق العيادة."
+                            : cancellationReason.Trim()));
+                    continue;
+                }
+
+                ApplyMove(appointment, moveTarget);
                 notifications.Add(ToPendingNotification(
                     appointment,
-                    "Booking rescheduled",
-                    $"Your booking was moved to {appointment.AppointmentDate:yyyy/MM/dd}. New queue number #{appointment.QueueNumber}."));
+                    "تم تغيير موعد الحجز",
+                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}. رقم الدور الجديد #{appointment.QueueNumber}."));
             }
 
             return notifications;
+        }
+
+        private PendingAppointmentNotification CancelAppointment(
+            Entities.Appointment.Appointment appointment,
+            string reason)
+        {
+            var now = DateTime.UtcNow;
+            appointment.Status = AppointmentStatus.Cancelled;
+            appointment.CancellationReason = reason;
+            appointment.CancelledAt = now;
+            appointment.CancelledByUserId = _load.GetCurrentUserId();
+            appointment.ModifiedAt = now;
+            appointment.ModifierId = _load.GetCurrentUserId();
+
+            return ToPendingNotification(
+                appointment,
+                "تم إلغاء الحجز",
+                $"تم إلغاء حجزك بتاريخ {appointment.AppointmentDate:yyyy/MM/dd}. السبب: {appointment.CancellationReason}");
+        }
+
+        private void ApplyMove(Entities.Appointment.Appointment appointment, AppointmentMoveTargetDto moveTarget)
+        {
+            appointment.AppointmentDate = moveTarget.Date;
+            appointment.QueueNumber = moveTarget.QueueNumber;
+            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifierId = _load.GetCurrentUserId();
         }
 
         private static PendingAppointmentNotification ToPendingNotification(
@@ -467,7 +529,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             {
                 Status = "Error",
                 Code = 401,
-                Message = "You must sign in with a linked doctor account."
+                Message = "يجب تسجيل الدخول بحساب طبيب مرتبط."
             });
         }
 

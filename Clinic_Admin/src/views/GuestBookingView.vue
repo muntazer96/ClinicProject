@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowRight, Ban, CalendarDays, Copy, MapPin, Phone, Search, Trash2 } from '@lucide/vue'
+import AppModal from '../components/AppModal.vue'
+import LongPressButton from '../components/LongPressButton.vue'
 import api from '../services/api'
 import type { ApiResponse, BookingDetails } from '../types/api'
 import { getErrorMessage } from '../utils/errors'
@@ -9,6 +11,7 @@ import { getErrorMessage } from '../utils/errors'
 const storageKey = 'clinic_guest_booking_lookup'
 const loading = ref(false)
 const cancelling = ref(false)
+const cancelConfirmOpen = ref(false)
 const booking = ref<BookingDetails>()
 const message = ref('')
 const hasSavedLookup = ref(false)
@@ -91,8 +94,6 @@ async function findBooking() {
 
 async function cancelBooking() {
   if (!booking.value) return
-  const accepted = window.confirm(`هل تريد إلغاء حجز الدور #${booking.value.queueNumber}؟`)
-  if (!accepted) return
   cancelling.value = true
   message.value = ''
   try {
@@ -102,6 +103,7 @@ async function cancelBooking() {
       reason: form.reason || null,
     })
     message.value = response.data.message
+    cancelConfirmOpen.value = false
     await findBooking()
   } catch (error) {
     message.value = getErrorMessage(error)
@@ -150,11 +152,20 @@ onMounted(restoreLookup)
         <a v-if="booking.clinicPhoneNumber" class="secondary-button" :href="`tel:${booking.clinicPhoneNumber}`"><Phone :size="16" /> اتصال بالعيادة</a>
         <a v-if="booking.mapUrl" class="secondary-button" :href="booking.mapUrl" target="_blank" rel="noreferrer"><MapPin :size="16" /> موقع العيادة</a>
       </div>
-      <form v-if="canCancel(booking.status)" class="modal-form cancel-form" @submit.prevent="cancelBooking">
+      <form v-if="canCancel(booking.status)" class="modal-form cancel-form" @submit.prevent="cancelConfirmOpen = true">
         <label><span>سبب الإلغاء</span><textarea v-model="form.reason" rows="3" maxlength="500" /></label>
         <button class="danger-button" type="submit" :disabled="cancelling"><Ban :size="16" /> {{ cancelling ? 'جارِ الإلغاء...' : 'إلغاء الحجز' }}</button>
       </form>
     </section>
+
+    <AppModal v-if="cancelConfirmOpen && booking" title="تأكيد إلغاء الحجز" @close="cancelConfirmOpen = false">
+      <p class="confirm-text">هل تريد إلغاء حجز الدور #{{ booking.queueNumber }}؟</p>
+      <p v-if="form.reason" class="confirm-note">السبب: {{ form.reason }}</p>
+      <div class="modal-actions">
+        <button class="secondary-button" type="button" @click="cancelConfirmOpen = false">تراجع</button>
+        <LongPressButton button-class="danger-button" :disabled="cancelling" title="اضغط مطولاً لتأكيد الإلغاء" @confirm="cancelBooking">تأكيد الإلغاء</LongPressButton>
+      </div>
+    </AppModal>
   </main>
 </template>
 
@@ -170,5 +181,7 @@ onMounted(restoreLookup)
 .code-line { display: flex !important; align-items: center; justify-content: space-between; gap: 8px; }.copy-inline { display: inline-grid; place-items: center; width: 26px; height: 26px; color: var(--primary); border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; }
 .booking-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }.booking-actions a { text-decoration: none; }
 .cancel-form { margin-top: 14px; }
+.confirm-text { margin: 0 0 8px; color: var(--ink); font-weight: 900; line-height: 1.8; }
+.confirm-note { margin: 0; color: var(--muted); line-height: 1.8; }
 @media (max-width: 520px) { .guest-booking-grid { grid-template-columns: 1fr; }.booking-heading { display: grid; }.status-pill { width: fit-content; } }
 </style>
