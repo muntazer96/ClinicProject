@@ -962,7 +962,7 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var clientBaseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
+            var clientBaseUrl = GetClientAppBaseUrl();
             if (string.IsNullOrWhiteSpace(clientBaseUrl))
             {
                 return new ObjectResult(new ResponseDto<string>
@@ -976,11 +976,8 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
 
-            string url_front = "http://localhost:5173";
-
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            // confirmationLink = $"{clientBaseUrl.TrimEnd('/')}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-            var confirmationLink = $"{url_front}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
+            var confirmationLink = $"{clientBaseUrl}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
             await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
 
@@ -1364,7 +1361,7 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var clientBaseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
+            var clientBaseUrl = GetClientAppBaseUrl();
             if (string.IsNullOrWhiteSpace(clientBaseUrl))
             {
                 return new ObjectResult(new ResponseDto<string>
@@ -1378,13 +1375,7 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
 
-            string url_front = "http://localhost:5173";
-
-
-            //var resetLink = $"{clientBaseUrl.TrimEnd('/')}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-            var resetLink = $"{url_front}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-
-
+            var resetLink = $"{clientBaseUrl}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
 
             await _emailServices.SendAsync(user.Email, "إعادة تعيين كلمة المرور", _load.ResetPasswordHTMLTemplate(resetLink));
 
@@ -1495,6 +1486,13 @@ namespace Clinic_Booking.Services.UserServices
             return await _userManager.FindByEmailAsync(value)
                 ?? await _userManager.FindByNameAsync(value);
         }
+
+        private string? GetClientAppBaseUrl()
+        {
+            var baseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
+            return string.IsNullOrWhiteSpace(baseUrl) ? null : baseUrl.TrimEnd('/');
+        }
+
         private List<Claim> BuildUserClaims(AspNetUsers user, IEnumerable<string> userRoles)
         {
             var authClaims = new List<Claim>

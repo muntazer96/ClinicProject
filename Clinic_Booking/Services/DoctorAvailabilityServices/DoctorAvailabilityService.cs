@@ -458,15 +458,24 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 availability.ModifiedAt = DateTime.UtcNow;
             }
 
-            await _context.SaveChangesAsync();
-
-            if (!availability.IsAvailable)
+            List<PendingAppointmentNotification> pendingNotifications = [];
+            await using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                await MoveAppointmentsFromDisabledDayAsync(
-                    availability.ClinicId,
-                    clinic.DoctorId,
-                    day.NormalizedName);
+                await _context.SaveChangesAsync();
+
+                if (!availability.IsAvailable)
+                {
+                    pendingNotifications = await MoveAppointmentsFromDisabledDayAsync(
+                        availability.ClinicId,
+                        clinic.DoctorId,
+                        day.NormalizedName);
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
             }
+
+            await SendPendingNotificationsAsync(pendingNotifications);
 
             var result = new GetDoctorDayAvailabilityDto
             {
@@ -491,7 +500,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             });
         }
 
-        private async Task MoveAppointmentsFromDisabledDayAsync(
+        private async Task<List<PendingAppointmentNotification>> MoveAppointmentsFromDisabledDayAsync(
             int clinicId,
             int doctorId,
             string disabledDayName)
@@ -517,7 +526,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             if (appointments.Count == 0)
             {
-                return;
+                return [];
             }
 
             var availableDays = await _context.DoctorAvailabilities
@@ -530,9 +539,11 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             if (availableDays.Count == 0)
             {
-                return;
+                return [];
             }
 
+            var queueNumbersByDate = new Dictionary<DateTime, int>();
+            var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
                 var targetDate = FindNextAvailableDate(
@@ -543,63 +554,90 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                     continue;
                 }
 
-                var nextQueueNumber = await _context.Appointments
-                    .Where(item =>
-                        item.ClinicId == clinicId &&
-                        item.AppointmentDate.Date == targetDate.Value.Date &&
-                        !item.IsDeleted)
-                    .Select(item => (int?)item.QueueNumber)
-                    .MaxAsync() ?? 0;
+                if (!queueNumbersByDate.TryGetValue(targetDate.Value.Date, out var nextQueueNumber))
+                {
+                    nextQueueNumber = await _context.Appointments
+                        .Where(item =>
+                            item.ClinicId == clinicId &&
+                            item.AppointmentDate.Date == targetDate.Value.Date &&
+                            !item.IsDeleted)
+                        .Select(item => (int?)item.QueueNumber)
+                        .MaxAsync() ?? 0;
+                }
+
+                nextQueueNumber++;
+                queueNumbersByDate[targetDate.Value.Date] = nextQueueNumber;
 
                 appointment.AppointmentDate = targetDate.Value;
-                appointment.QueueNumber = nextQueueNumber + 1;
+                appointment.QueueNumber = nextQueueNumber;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 appointment.ModifierId = _load.GetCurrentUserId();
-            }
-
-            await _context.SaveChangesAsync();
-
-            foreach (var appointment in appointments)
-            {
-                await NotifyPatientAsync(
+                notifications.Add(ToPendingNotification(
                     appointment,
                     "تم تغيير موعد الحجز",
-                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}.");
+                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}."));
             }
+
+            return notifications;
         }
 
-        private async Task NotifyPatientAsync(
+        private static PendingAppointmentNotification ToPendingNotification(
             Entities.Appointment.Appointment appointment,
             string title,
             string body)
         {
-            _context.Notifications.Add(new Entities.Notification.Notification
-            {
-                DoctorId = appointment.DoctorId,
-                Message = body,
-                CreatedAt = DateTime.UtcNow,
-                Status = NotificationStatus.Unread
-            });
-            await _context.SaveChangesAsync();
+            return new PendingAppointmentNotification(
+                appointment.DoctorId,
+                appointment.ClinicId,
+                appointment.Id,
+                appointment.UserId,
+                appointment.Status,
+                title,
+                body);
+        }
 
-            if (!appointment.UserId.HasValue)
+        private async Task SendPendingNotificationsAsync(List<PendingAppointmentNotification> notifications)
+        {
+            if (notifications.Count == 0)
             {
                 return;
             }
 
-            await _pushNotificationServices.SendToUserAsync(
-                appointment.UserId.Value,
-                title,
-                body,
-                new Dictionary<string, string>
-                {
-                    ["type"] = "booking",
-                    ["appointmentId"] = appointment.Id.ToString(),
-                    ["doctorId"] = appointment.DoctorId.ToString(),
-                    ["clinicId"] = appointment.ClinicId.ToString(),
-                    ["status"] = appointment.Status.ToString()
-                });
+            var now = DateTime.UtcNow;
+            _context.Notifications.AddRange(notifications.Select(notification => new Entities.Notification.Notification
+            {
+                DoctorId = notification.DoctorId,
+                Message = notification.Body,
+                CreatedAt = now,
+                Status = NotificationStatus.Unread
+            }));
+            await _context.SaveChangesAsync();
+
+            foreach (var notification in notifications.Where(item => item.UserId.HasValue))
+            {
+                await _pushNotificationServices.SendToUserAsync(
+                    notification.UserId!.Value,
+                    notification.Title,
+                    notification.Body,
+                    new Dictionary<string, string>
+                    {
+                        ["type"] = "booking",
+                        ["appointmentId"] = notification.AppointmentId.ToString(),
+                        ["doctorId"] = notification.DoctorId.ToString(),
+                        ["clinicId"] = notification.ClinicId.ToString(),
+                        ["status"] = notification.Status.ToString()
+                    });
+            }
         }
+
+        private sealed record PendingAppointmentNotification(
+            int DoctorId,
+            int ClinicId,
+            int AppointmentId,
+            Guid? UserId,
+            AppointmentStatus Status,
+            string Title,
+            string Body);
 
         private static DateTime? FindNextAvailableDate(
             DateTime startDate,

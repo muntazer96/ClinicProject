@@ -45,21 +45,16 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (fromDate.HasValue)
             {
-                var startDate = fromDate.Value.ToDateTime(TimeOnly.MinValue);
-                query = query.Where(exception => exception.ExceptionDate >= startDate);
+                query = query.Where(exception => exception.ExceptionDate >= fromDate.Value.ToDateTime(TimeOnly.MinValue));
             }
 
             if (toDate.HasValue)
             {
-                var endDate = toDate.Value.ToDateTime(TimeOnly.MinValue);
-                query = query.Where(exception => exception.ExceptionDate <= endDate);
+                query = query.Where(exception => exception.ExceptionDate <= toDate.Value.ToDateTime(TimeOnly.MinValue));
             }
 
-            var exceptionEntities = await query
+            var exceptions = await query
                 .OrderBy(exception => exception.ExceptionDate)
-                .ToListAsync();
-
-            var exceptions = exceptionEntities
                 .Select(exception => new GetClinicExceptionDto
                 {
                     Id = exception.Id,
@@ -71,7 +66,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                     StartTime = exception.StartTime,
                     EndTime = exception.EndTime
                 })
-                .ToList();
+                .ToListAsync();
 
             return Ok(exceptions, "Clinic exceptions retrieved successfully.");
         }
@@ -134,15 +129,23 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             exception.StartTime = form.StartTime;
             exception.EndTime = form.EndTime;
 
-            try
+            List<PendingAppointmentNotification> pendingNotifications;
+            await using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                await _context.SaveChangesAsync();
-                await HandleConflictingAppointmentsAsync(form, doctorId.Value, exceptionDate);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    pendingNotifications = await HandleConflictingAppointmentsAsync(form, doctorId.Value, exceptionDate);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    return BadRequest("Only one exception can be configured for a clinic on the same date.");
+                }
             }
-            catch (DbUpdateException)
-            {
-                return BadRequest("Only one exception can be configured for a clinic on the same date.");
-            }
+
+            await SendPendingNotificationsAsync(pendingNotifications);
 
             return Ok(new { exception.Id }, "Clinic exception saved successfully.");
         }
@@ -246,20 +249,20 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             return null;
         }
 
-        private async Task HandleConflictingAppointmentsAsync(
+        private async Task<List<PendingAppointmentNotification>> HandleConflictingAppointmentsAsync(
             UpsertClinicExceptionDto form,
             int doctorId,
             DateTime exceptionDate)
         {
             if (!form.IsClosed)
             {
-                return;
+                return [];
             }
 
             var action = NormalizeConflictAction(form.AppointmentConflictAction);
             if (action == null)
             {
-                return;
+                return [];
             }
 
             var appointments = await _context.Appointments
@@ -275,28 +278,30 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             if (appointments.Count == 0)
             {
-                return;
+                return [];
             }
 
             if (action == "cancel")
             {
-                await CancelConflictingAppointmentsAsync(appointments, form.ClosureReason);
-                return;
+                return CancelConflictingAppointments(appointments, form.ClosureReason);
             }
 
             if (action == "move" && form.MoveAppointmentsToDate.HasValue)
             {
-                await MoveConflictingAppointmentsAsync(
+                return await MoveConflictingAppointmentsAsync(
                     appointments,
                     form.MoveAppointmentsToDate.Value.ToDateTime(TimeOnly.MinValue));
             }
+
+            return [];
         }
 
-        private async Task CancelConflictingAppointmentsAsync(
+        private List<PendingAppointmentNotification> CancelConflictingAppointments(
             List<Entities.Appointment.Appointment> appointments,
             string? reason)
         {
             var now = DateTime.UtcNow;
+            var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
                 appointment.Status = AppointmentStatus.Cancelled;
@@ -307,19 +312,16 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 appointment.CancelledByUserId = _load.GetCurrentUserId();
                 appointment.ModifiedAt = now;
                 appointment.ModifierId = _load.GetCurrentUserId();
+                notifications.Add(ToPendingNotification(
+                    appointment,
+                    "Booking cancelled",
+                    $"Your booking on {appointment.AppointmentDate:yyyy/MM/dd} was cancelled. Reason: {appointment.CancellationReason}"));
             }
 
-            await _context.SaveChangesAsync();
-            foreach (var appointment in appointments)
-            {
-                await NotifyPatientAsync(
-                    appointment,
-                    "تم إلغاء الحجز",
-                    $"تم إلغاء حجزك بتاريخ {appointment.AppointmentDate:yyyy/MM/dd}. السبب: {appointment.CancellationReason}");
-            }
+            return notifications;
         }
 
-        private async Task MoveConflictingAppointmentsAsync(
+        private async Task<List<PendingAppointmentNotification>> MoveConflictingAppointmentsAsync(
             List<Entities.Appointment.Appointment> appointments,
             DateTime targetDate)
         {
@@ -331,55 +333,69 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 .Select(appointment => (int?)appointment.QueueNumber)
                 .MaxAsync() ?? 0;
 
+            var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
                 appointment.AppointmentDate = targetDate;
                 appointment.QueueNumber = ++nextQueueNumber;
                 appointment.ModifiedAt = DateTime.UtcNow;
                 appointment.ModifierId = _load.GetCurrentUserId();
+                notifications.Add(ToPendingNotification(
+                    appointment,
+                    "Booking rescheduled",
+                    $"Your booking was moved to {appointment.AppointmentDate:yyyy/MM/dd}. New queue number #{appointment.QueueNumber}."));
             }
 
-            await _context.SaveChangesAsync();
-            foreach (var appointment in appointments)
-            {
-                await NotifyPatientAsync(
-                    appointment,
-                    "تم تغيير موعد الحجز",
-                    $"تم نقل حجزك إلى {appointment.AppointmentDate:yyyy/MM/dd}، رقم الدور الجديد #{appointment.QueueNumber}.");
-            }
+            return notifications;
         }
 
-        private async Task NotifyPatientAsync(
+        private static PendingAppointmentNotification ToPendingNotification(
             Entities.Appointment.Appointment appointment,
             string title,
             string body)
         {
-            _context.Notifications.Add(new Entities.Notification.Notification
-            {
-                DoctorId = appointment.DoctorId,
-                Message = body,
-                CreatedAt = DateTime.UtcNow,
-                Status = NotificationStatus.Unread
-            });
-            await _context.SaveChangesAsync();
+            return new PendingAppointmentNotification(
+                appointment.DoctorId,
+                appointment.ClinicId,
+                appointment.Id,
+                appointment.UserId,
+                appointment.Status,
+                title,
+                body);
+        }
 
-            if (!appointment.UserId.HasValue)
+        private async Task SendPendingNotificationsAsync(List<PendingAppointmentNotification> notifications)
+        {
+            if (notifications.Count == 0)
             {
                 return;
             }
 
-            await _pushNotificationServices.SendToUserAsync(
-                appointment.UserId.Value,
-                title,
-                body,
-                new Dictionary<string, string>
-                {
-                    ["type"] = "booking",
-                    ["appointmentId"] = appointment.Id.ToString(),
-                    ["doctorId"] = appointment.DoctorId.ToString(),
-                    ["clinicId"] = appointment.ClinicId.ToString(),
-                    ["status"] = appointment.Status.ToString()
-                });
+            var now = DateTime.UtcNow;
+            _context.Notifications.AddRange(notifications.Select(notification => new Entities.Notification.Notification
+            {
+                DoctorId = notification.DoctorId,
+                Message = notification.Body,
+                CreatedAt = now,
+                Status = NotificationStatus.Unread
+            }));
+            await _context.SaveChangesAsync();
+
+            foreach (var notification in notifications.Where(item => item.UserId.HasValue))
+            {
+                await _pushNotificationServices.SendToUserAsync(
+                    notification.UserId!.Value,
+                    notification.Title,
+                    notification.Body,
+                    new Dictionary<string, string>
+                    {
+                        ["type"] = "booking",
+                        ["appointmentId"] = notification.AppointmentId.ToString(),
+                        ["doctorId"] = notification.DoctorId.ToString(),
+                        ["clinicId"] = notification.ClinicId.ToString(),
+                        ["status"] = notification.Status.ToString()
+                    });
+            }
         }
 
         private static string? NormalizeConflictAction(string? action)
@@ -454,5 +470,14 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 Message = "You must sign in with a linked doctor account."
             });
         }
+
+        private sealed record PendingAppointmentNotification(
+            int DoctorId,
+            int ClinicId,
+            int AppointmentId,
+            Guid? UserId,
+            AppointmentStatus Status,
+            string Title,
+            string Body);
     }
 }
