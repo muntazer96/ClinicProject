@@ -542,6 +542,18 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var maxBookableDate = GetMaxBookableDate(clinic.BookingWindowDays);
+            if (form.AppointmentDate.Date > maxBookableDate)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = $"Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„Ø­Ø¬Ø² Ø¨Ø¹Ø¯ ØªØ§Ø±ÙŠØ® {maxBookableDate:yyyy/MM/dd}.",
+                    Data = null
+                });
+            }
+
             var userId = GetAuthenticatedUserId();
             if (!userId.HasValue &&
                 (string.IsNullOrWhiteSpace(form.GuestName) || string.IsNullOrWhiteSpace(form.GuestPhoneNumber)))
@@ -1641,6 +1653,12 @@ namespace Clinic_Booking.Services.AppointmentServices
         private static string FormatAppointmentDate(DateTime appointmentDate)
         {
             return appointmentDate.ToString("yyyy/MM/dd");
+        }
+
+        private static DateTime GetMaxBookableDate(int bookingWindowDays)
+        {
+            var days = bookingWindowDays <= 0 ? 7 : bookingWindowDays;
+            return DateTime.Today.AddDays(days - 1);
         }
 
         private static Dictionary<string, string> BookingNotificationData(Appointment appointment)
