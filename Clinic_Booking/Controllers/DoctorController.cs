@@ -62,6 +62,13 @@ namespace Clinic_Booking.Controllers
             return await _services.UpdateMyProfileAsync(form);
         }
 
+        [HttpPut("image")]
+        [Authorize(Roles = "DoctorUser")]
+        public async Task<IActionResult> UpdateMyImageAsync(IFormFile file)
+        {
+            return await _services.UpdateMyImageAsync(file);
+        }
+
         [HttpPut]
         [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> UpdateDoctorAsync(DoctorUpdateDto form)

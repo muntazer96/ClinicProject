@@ -40,7 +40,8 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       try {
         _subscription = await _service.getCurrentSubscription();
         _features =
-            _subscription?.features ?? await _service.getDoctorFeatures(profile.id);
+            _subscription?.features ??
+            await _service.getDoctorFeatures(profile.id);
       } catch (_) {
         _subscription = null;
         _features = const [];
@@ -52,138 +53,125 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
-        length: 2,
-        child: DoctorScaffold(
-          title: 'الملف الشخصي',
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F7F6),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: TabBar(
-                  indicator: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: AppColors.primaryDark,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  tabs: const [
-  Tab(
-    child: Text(
-      'حسابي',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w800,
-        fontFamily: 'Cairo',
-      ),
-    ),
-  ),
-  Tab(
-    child: Text(
-      'بيانات الطبيب',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w800,
-        fontFamily: 'Cairo',
-      ),
-    ),
-  ),
-],
-                ),
+    length: 2,
+    child: DoctorScaffold(
+      title: 'الملف الشخصي',
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F7F6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TabBar(
+              indicator: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(13),
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    const ProfileScreen(),
-                    _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            child: ListView(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                              children: [
-                                _DoctorProfileCard(profile: _profile),
-
-                                const SizedBox(height: 14),
-
-                                SizedBox(
-                                  height: 48,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () async {
-                                      await context.push(
-                                        '/doctor/profile/edit',
-                                        extra: _profile,
-                                      );
-                                      await _load();
-                                    },
-                                    icon: const Icon(Icons.edit_outlined),
-                                    label: const Text(
-                                      'تعديل بيانات الطبيب',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                _QuickTile(
-                                  icon: Icons.star_rounded,
-                                  title: 'التقييمات',
-                                  subtitle: 'عرض تقييمات المرضى والردود',
-                                  color: AppColors.warning,
-                                  onTap: () => context.push('/doctor/reviews'),
-                                ),
-
-                                const SizedBox(height: 14),
-
-                                _SubscriptionCard(subscription: _subscription),
-
-                                const SizedBox(height: 14),
-
-                                _FeaturesCard(
-                                  features: _features,
-                                  onManage: () => context.push(
-                                    '/doctor/features',
-                                    extra: _profile,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                  ],
+              labelColor: Colors.white,
+              unselectedLabelColor: AppColors.primaryDark,
+              labelStyle: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+              unselectedLabelStyle: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: const [
+                Tab(
+                  child: Text(
+                    'حسابي',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                  ),
                 ),
-              ),
-            ],
+                Tab(
+                  child: Text(
+                    'بيانات الطبيب',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
+          Expanded(
+            child: TabBarView(
+              children: [
+                ProfileScreen(onProfileChanged: _load),
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                          children: [
+                            _DoctorProfileCard(profile: _profile),
+
+                            const SizedBox(height: 14),
+
+                            SizedBox(
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await context.push(
+                                    '/doctor/profile/edit',
+                                    extra: _profile,
+                                  );
+                                  await _load();
+                                },
+                                icon: const Icon(Icons.edit_outlined),
+                                label: const Text(
+                                  'تعديل بيانات الطبيب',
+                                  style: TextStyle(fontWeight: FontWeight.w900),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            _QuickTile(
+                              icon: Icons.star_rounded,
+                              title: 'التقييمات',
+                              subtitle: 'عرض تقييمات المرضى والردود',
+                              color: AppColors.warning,
+                              onTap: () => context.push('/doctor/reviews'),
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            _SubscriptionCard(subscription: _subscription),
+
+                            const SizedBox(height: 14),
+
+                            _FeaturesCard(
+                              features: _features,
+                              onManage: () => context.push(
+                                '/doctor/features',
+                                extra: _profile,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _DoctorProfileCard extends StatelessWidget {
@@ -221,16 +209,18 @@ class _DoctorProfileCard extends StatelessWidget {
             child: CircleAvatar(
               radius: 39,
               backgroundColor: Colors.white.withOpacity(.18),
-              backgroundImage: profile?.imageUrl == null
-                  ? null
-                  : NetworkImage(profile!.imageUrl!),
-              child: profile?.imageUrl == null
-                  ? const Icon(
-                      Icons.medical_services_rounded,
-                      color: Colors.white,
-                      size: 34,
-                    )
-                  : null,
+              child: ClipOval(
+                child: profile?.imageUrl == null
+                    ? const _DoctorAvatarFallback(size: 78, iconSize: 34)
+                    : Image.network(
+                        profile!.imageUrl!,
+                        width: 78,
+                        height: 78,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const _DoctorAvatarFallback(size: 78, iconSize: 34),
+                      ),
+              ),
             ),
           ),
           const SizedBox(width: 13),
@@ -253,10 +243,10 @@ class _DoctorProfileCard extends StatelessWidget {
                   icon: Icons.workspace_premium_rounded,
                   text: profile?.specialization ?? '-',
                 ),
-                if (profile?.description?.isNotEmpty == true) ...[
+                if (profile?.description.isNotEmpty == true) ...[
                   const SizedBox(height: 8),
                   Text(
-                    profile!.description!,
+                    profile!.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -277,10 +267,7 @@ class _DoctorProfileCard extends StatelessWidget {
 }
 
 class _WhitePill extends StatelessWidget {
-  const _WhitePill({
-    required this.icon,
-    required this.text,
-  });
+  const _WhitePill({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -314,6 +301,26 @@ class _WhitePill extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DoctorAvatarFallback extends StatelessWidget {
+  const _DoctorAvatarFallback({required this.size, required this.iconSize});
+
+  final double size;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    color: Colors.white.withOpacity(.12),
+    child: Icon(
+      Icons.medical_services_rounded,
+      color: Colors.white,
+      size: iconSize,
+    ),
+  );
 }
 
 class _QuickTile extends StatelessWidget {
@@ -387,10 +394,7 @@ class _QuickTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.muted,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
             ],
           ),
         ),
@@ -407,6 +411,13 @@ class _SubscriptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasSub = subscription != null;
+    final package = subscription?.package;
+    final packageName = subscription?.packageArabicName.isNotEmpty == true
+        ? subscription!.packageArabicName
+        : subscription?.packageName ?? '-';
+    final englishName = subscription?.packageEnglishName.isNotEmpty == true
+        ? subscription!.packageEnglishName
+        : subscription?.packageNormalizedName ?? '';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -453,12 +464,20 @@ class _SubscriptionCard extends StatelessWidget {
             )
           else ...[
             Text(
-              subscription!.packageName,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
+              packageName,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
+            if (englishName.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Text(
+                englishName,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -479,6 +498,53 @@ class _SubscriptionCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _SubscriptionMetric(
+                    icon: Icons.payments_outlined,
+                    title: 'السعر',
+                    value: _money(package?.price ?? 0),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SubscriptionMetric(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'السعر السنوي',
+                    value: _money(package?.yearlyPrice ?? 0),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _FeaturePill(text: 'العيادات: ${package?.maxClinics ?? 0}'),
+                _FeaturePill(
+                  text: 'حجوزات يومية: ${package?.maxDailyAppointments ?? 0}',
+                ),
+                _FeaturePill(
+                  text: 'أيام أسبوعية: ${package?.maxWeeklyDays ?? 0}',
+                ),
+                _FeaturePill(
+                  text: 'العروض النشطة: ${package?.maxActiveOffers ?? 0}',
+                ),
+                if (package?.showReviews == true)
+                  const _FeaturePill(text: 'إظهار التقييمات'),
+                if (package?.showMessages == true)
+                  const _FeaturePill(text: 'الرسائل'),
+                if (package?.eBooking == true)
+                  const _FeaturePill(text: 'الحجز الإلكتروني'),
+                if (package?.ePayments == true)
+                  const _FeaturePill(text: 'الدفع الإلكتروني'),
+                if (package?.makeOffers == true)
+                  const _FeaturePill(text: 'إنشاء العروض'),
+              ],
+            ),
           ],
         ],
       ),
@@ -487,6 +553,65 @@ class _SubscriptionCard extends StatelessWidget {
 
   String _format(DateTime? value) =>
       value == null ? '-' : DateFormat('yyyy/MM/dd').format(value);
+
+  String _money(double value) => value <= 0
+      ? '-'
+      : NumberFormat.currency(
+          locale: 'ar_IQ',
+          symbol: 'د.ع',
+          decimalDigits: 0,
+        ).format(value);
+}
+
+class _SubscriptionMetric extends StatelessWidget {
+  const _SubscriptionMetric({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE3ECEA)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 18),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DateInfoBox extends StatelessWidget {
@@ -539,10 +664,7 @@ class _DateInfoBox extends StatelessWidget {
 }
 
 class _FeaturesCard extends StatelessWidget {
-  const _FeaturesCard({
-    required this.features,
-    required this.onManage,
-  });
+  const _FeaturesCard({required this.features, required this.onManage});
 
   final List<DoctorFeatureItem> features;
   final VoidCallback onManage;
@@ -582,10 +704,7 @@ class _FeaturesCard extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                 ),
               ),
-              TextButton(
-                onPressed: onManage,
-                child: const Text('إدارة'),
-              ),
+              TextButton(onPressed: onManage, child: const Text('إدارة')),
             ],
           ),
           const SizedBox(height: 10),
@@ -599,9 +718,7 @@ class _FeaturesCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: enabledFeatures
-                  .map(
-                    (item) => _FeaturePill(text: item.name),
-                  )
+                  .map((item) => _FeaturePill(text: item.name))
                   .toList(),
             ),
         ],
@@ -627,7 +744,11 @@ class _FeaturePill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle_rounded, size: 15, color: AppColors.primary),
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 15,
+            color: AppColors.primary,
+          ),
           const SizedBox(width: 5),
           Text(
             text,
@@ -644,10 +765,7 @@ class _FeaturePill extends StatelessWidget {
 }
 
 class _SmallBadge extends StatelessWidget {
-  const _SmallBadge({
-    required this.text,
-    required this.color,
-  });
+  const _SmallBadge({required this.text, required this.color});
 
   final String text;
   final Color color;

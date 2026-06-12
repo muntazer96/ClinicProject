@@ -90,6 +90,27 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 })
                 .ToListAsync();
 
+            var package = subscription.Package;
+            var packageDto = new CurrentDoctorSubscriptionPackageDto
+            {
+                Id = package.Id,
+                Name = package.Name,
+                ArabicName = package.Name,
+                EnglishName = package.NormalizedName,
+                NormalizedName = package.NormalizedName,
+                Price = package.Price,
+                YearlyPrice = package.YearlyPrice,
+                MaxClinics = package.MaxClinics,
+                MaxDailyAppointments = package.MaxDailyAppointments,
+                MaxWeeklyDays = package.MaxWeeklyDays,
+                ShowReviews = package.ShowReviews,
+                ShowMessages = package.ShowMessages,
+                EBooking = package.EBooking,
+                EPayments = package.EPayments,
+                MakeOffers = package.MakeOffers,
+                MaxActiveOffers = package.MaxActiveOffers
+            };
+
             return new OkObjectResult(new ResponseDto<CurrentDoctorSubscriptionDto>
             {
                 Status = "Success",
@@ -97,10 +118,27 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 Message = "تم جلب الاشتراك الحالي بنجاح.",
                 Data = new CurrentDoctorSubscriptionDto
                 {
-                    PackageName = subscription.Package.Name,
+                    Id = subscription.Id,
+                    PackageId = subscription.PackageId,
+                    PackageName = package.Name,
+                    PackageArabicName = package.Name,
+                    PackageEnglishName = package.NormalizedName,
+                    PackageNormalizedName = package.NormalizedName,
                     StartDate = subscription.StartDate,
                     EndDate = subscription.EndDate,
                     Status = subscription.Status.ToString(),
+                    Price = package.Price,
+                    YearlyPrice = package.YearlyPrice,
+                    MaxClinics = package.MaxClinics,
+                    MaxDailyAppointments = package.MaxDailyAppointments,
+                    MaxWeeklyDays = package.MaxWeeklyDays,
+                    ShowReviews = package.ShowReviews,
+                    ShowMessages = package.ShowMessages,
+                    EBooking = package.EBooking,
+                    EPayments = package.EPayments,
+                    MakeOffers = package.MakeOffers,
+                    MaxActiveOffers = package.MaxActiveOffers,
+                    Package = packageDto,
                     Features = features
                 }
             });

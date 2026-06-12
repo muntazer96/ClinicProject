@@ -12,6 +12,7 @@ namespace Clinic_Booking.IServices.IDoctorServices
         Task<IActionResult> AddDoctorAsync(DoctorAddDto form);
         Task<IActionResult> GetMyProfileAsync();
         Task<IActionResult> UpdateMyProfileAsync(DoctorProfileUpdateDto form);
+        Task<IActionResult> UpdateMyImageAsync(IFormFile file);
         Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form);
         Task<IActionResult> UnlinkAccountAsync(int doctorId);
         Task<IActionResult> UpdateVisibilityAsync(int doctorId, DoctorVisibilityUpdateDto form);

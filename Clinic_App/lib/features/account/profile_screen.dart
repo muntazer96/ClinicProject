@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
@@ -9,7 +10,9 @@ import '../auth/auth_controller.dart';
 import 'profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.onProfileChanged});
+
+  final Future<void> Function()? onProfileChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -20,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile? _profile;
   bool _loading = true;
   bool _savingName = false;
+  bool _uploadingImage = false;
   bool _sendingEmailConfirmation = false;
   bool _sendingPhoneConfirmation = false;
   String? _error;
@@ -51,8 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editName() async {
     final profile = _profile;
     if (profile == null) return;
+    final isDoctor = context.read<AuthController>().isDoctor;
     final name = await context.push<String>(
-      '/profile/edit-name?name=${Uri.encodeComponent(profile.name)}',
+      '${isDoctor ? '/doctor/profile/edit-name' : '/profile/edit-name'}?name=${Uri.encodeComponent(profile.name)}',
     );
     if (name == null || name.isEmpty || name == profile.name) return;
 
@@ -67,6 +72,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = updated;
       });
       context.read<AuthController>().setProfile(updated);
+      await widget.onProfileChanged?.call();
+      if (!mounted) return;
       showAppSnackBar(
         context,
         'تم تحديث الاسم بنجاح.',
@@ -83,6 +90,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _savingName = false);
     }
+  }
+
+  Future<void> _changeProfileImage() async {
+    if (_uploadingImage) return;
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1200,
+    );
+    if (image == null || !mounted) return;
+    final imageBytes = await image.readAsBytes();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        var uploading = false;
+        var sheetOpen = true;
+        return StatefulBuilder(
+          builder: (context, setSheetState) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.memory(
+                      imageBytes,
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton.icon(
+                    onPressed: uploading
+                        ? null
+                        : () async {
+                            setSheetState(() => uploading = true);
+                            setState(() => _uploadingImage = true);
+                            try {
+                              await _service.updateProfileImage(
+                                fileName: image.name,
+                                bytes: imageBytes,
+                              );
+                              if (!mounted) return;
+                              sheetOpen = false;
+                              Navigator.of(sheetContext).pop();
+                              await _load();
+                              await widget.onProfileChanged?.call();
+                              if (!mounted) return;
+                              if (mounted) {
+                                showAppSnackBar(
+                                  context,
+                                  'تم تحديث الصورة بنجاح.',
+                                  type: AppSnackBarType.success,
+                                );
+                              }
+                            } catch (error) {
+                              if (mounted) {
+                                showAppSnackBar(
+                                  context,
+                                  ApiClient.errorMessage(error),
+                                  type: AppSnackBarType.error,
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _uploadingImage = false);
+                              }
+                              if (sheetOpen) {
+                                setSheetState(() => uploading = false);
+                              }
+                            }
+                          },
+                    icon: uploading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.cloud_upload_rounded),
+                    label: Text(
+                      uploading ? 'جاري رفع الصورة...' : 'رفع الصورة',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: uploading
+                        ? null
+                        : () {
+                            sheetOpen = false;
+                            Navigator.of(sheetContext).pop();
+                          },
+                    icon: const Icon(Icons.close_rounded),
+                    label: const Text('إلغاء الصورة المختارة'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _sendEmailConfirmation() async {
@@ -183,7 +296,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _ProfileHero(
             profile: profile,
             savingName: _savingName,
+            uploadingImage: _uploadingImage,
             onEditName: _editName,
+            onChangeImage: _changeProfileImage,
           ),
           const SizedBox(height: 12),
           if (_error != null) _Notice(text: _error!, error: true),
@@ -298,11 +413,15 @@ class _ProfileHero extends StatelessWidget {
   const _ProfileHero({
     required this.profile,
     required this.savingName,
+    required this.uploadingImage,
     required this.onEditName,
+    required this.onChangeImage,
   });
   final UserProfile profile;
   final bool savingName;
+  final bool uploadingImage;
   final VoidCallback onEditName;
+  final VoidCallback onChangeImage;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -316,17 +435,54 @@ class _ProfileHero extends StatelessWidget {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 34,
-              backgroundColor: Colors.white.withValues(alpha: .18),
-              child: Text(
-                profile.initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 34,
+                  backgroundColor: Colors.white.withValues(alpha: .18),
+                  child: ClipOval(
+                    child: profile.imageUrl == null
+                        ? _InitialsAvatar(initials: profile.initials)
+                        : Image.network(
+                            profile.imageUrl!,
+                            width: 68,
+                            height: 68,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _InitialsAvatar(initials: profile.initials),
+                          ),
+                  ),
                 ),
-              ),
+                Positioned(
+                  bottom: -4,
+                  left: -4,
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: uploadingImage ? null : onChangeImage,
+                      child: Padding(
+                        padding: const EdgeInsets.all(7),
+                        child: uploadingImage
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.camera_alt_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -409,6 +565,28 @@ class _StatusPill extends StatelessWidget {
         const SizedBox(width: 5),
         Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
       ],
+    ),
+  );
+}
+
+class _InitialsAvatar extends StatelessWidget {
+  const _InitialsAvatar({required this.initials});
+
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 68,
+    height: 68,
+    alignment: Alignment.center,
+    color: Colors.white.withValues(alpha: .12),
+    child: Text(
+      initials,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+      ),
     ),
   );
 }

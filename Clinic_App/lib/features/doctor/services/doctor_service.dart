@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/api_client.dart';
@@ -52,6 +54,18 @@ class DoctorService {
     await _client.dio.put('/Doctor/my', data: form);
   }
 
+  Future<void> updateProfileImage({
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    await _client.dio.put(
+      '/Doctor/image',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+      }),
+    );
+  }
+
   Future<List<DoctorClinic>> getClinics() async {
     final response = await _client.dio.get('/Clinic/my');
     return _listData(response.data)
@@ -100,13 +114,16 @@ class DoctorService {
     required String patientPhoneNumber,
     String? notes,
   }) async {
-    await _client.dio.post('/Appointment/manual', data: {
-      'clinicId': clinicId,
-      'appointmentDate': appointmentDate.toIso8601String(),
-      'patientName': patientName.trim(),
-      'patientPhoneNumber': patientPhoneNumber.trim(),
-      if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
-    });
+    await _client.dio.post(
+      '/Appointment/manual',
+      data: {
+        'clinicId': clinicId,
+        'appointmentDate': appointmentDate.toIso8601String(),
+        'patientName': patientName.trim(),
+        'patientPhoneNumber': patientPhoneNumber.trim(),
+        if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
+      },
+    );
   }
 
   Future<void> toggleAppointment(int appointmentId) async {
@@ -126,7 +143,9 @@ class DoctorService {
   Future<List<DoctorAvailability>> getAvailability(int clinicId) async {
     final response = await _client.dio.get('/DoctorAvailability/$clinicId');
     return _listData(response.data)
-        .map((item) => DoctorAvailability.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) => DoctorAvailability.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -138,14 +157,17 @@ class DoctorService {
     required int maxAppointments,
     required bool isAvailable,
   }) async {
-    await _client.dio.put('/DoctorAvailability/single-day', data: {
-      'clinicId': clinicId,
-      'dayId': dayId,
-      'startTime': startTime,
-      'endTime': endTime,
-      'maxAppointments': maxAppointments,
-      'isAvailable': isAvailable,
-    });
+    await _client.dio.put(
+      '/DoctorAvailability/single-day',
+      data: {
+        'clinicId': clinicId,
+        'dayId': dayId,
+        'startTime': startTime,
+        'endTime': endTime,
+        'maxAppointments': maxAppointments,
+        'isAvailable': isAvailable,
+      },
+    );
   }
 
   Future<List<ClinicExceptionDay>> getExceptions(int clinicId) async {
@@ -158,7 +180,9 @@ class DoctorService {
       },
     );
     return _listData(response.data)
-        .map((item) => ClinicExceptionDay.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) => ClinicExceptionDay.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -172,16 +196,20 @@ class DoctorService {
     String? endTime,
     int? maxAppointments,
   }) async {
-    await _client.dio.post('/ClinicException/my', data: {
-      if (id != null && id > 0) 'id': id,
-      'clinicId': clinicId,
-      'exceptionDate': _dateOnly(date),
-      'isClosed': isClosed,
-      if (reason?.trim().isNotEmpty == true) 'closureReason': reason!.trim(),
-      if (startTime?.trim().isNotEmpty == true) 'startTime': startTime!.trim(),
-      if (endTime?.trim().isNotEmpty == true) 'endTime': endTime!.trim(),
-      if (maxAppointments != null) 'maxAppointments': maxAppointments,
-    });
+    await _client.dio.post(
+      '/ClinicException/my',
+      data: {
+        if (id != null && id > 0) 'id': id,
+        'clinicId': clinicId,
+        'exceptionDate': _dateOnly(date),
+        'isClosed': isClosed,
+        if (reason?.trim().isNotEmpty == true) 'closureReason': reason!.trim(),
+        if (startTime?.trim().isNotEmpty == true)
+          'startTime': startTime!.trim(),
+        if (endTime?.trim().isNotEmpty == true) 'endTime': endTime!.trim(),
+        if (maxAppointments != null) 'maxAppointments': maxAppointments,
+      },
+    );
   }
 
   Future<void> deleteException(int id) async {
@@ -243,11 +271,7 @@ class DoctorService {
   ) async {
     final response = await _client.dio.get(
       '/DoctorSubscription',
-      queryParameters: {
-        'doctorId': doctorId,
-        'isActive': true,
-        'pageSize': 5,
-      },
+      queryParameters: {'doctorId': doctorId, 'isActive': true, 'pageSize': 5},
     );
     return _listData(response.data)
         .map(

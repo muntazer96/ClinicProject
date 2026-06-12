@@ -497,7 +497,12 @@ class SubscriptionPackage {
 class DoctorSubscriptionInfo {
   const DoctorSubscriptionInfo({
     required this.id,
+    required this.packageId,
     required this.packageName,
+    required this.packageArabicName,
+    required this.packageEnglishName,
+    required this.packageNormalizedName,
+    required this.package,
     required this.statusName,
     required this.startDate,
     required this.endDate,
@@ -505,7 +510,12 @@ class DoctorSubscriptionInfo {
   });
 
   final int id;
+  final int packageId;
   final String packageName;
+  final String packageArabicName;
+  final String packageEnglishName;
+  final String packageNormalizedName;
+  final SubscriptionPackage package;
   final String statusName;
   final DateTime? startDate;
   final DateTime? endDate;
@@ -513,12 +523,57 @@ class DoctorSubscriptionInfo {
 
   factory DoctorSubscriptionInfo.fromJson(Map<String, dynamic> json) {
     final package = json['package'] as Map<String, dynamic>?;
+    final packageJson = <String, dynamic>{
+      'id': json['packageId'] ?? package?['id'],
+      'name':
+          json['packageArabicName'] ??
+          json['packageName'] ??
+          package?['arabicName'] ??
+          package?['name'],
+      'normalizedName':
+          json['packageEnglishName'] ??
+          json['packageNormalizedName'] ??
+          package?['englishName'] ??
+          package?['normalizedName'],
+      'price': json['price'] ?? package?['price'],
+      'yearlyPrice': json['yearlyPrice'] ?? package?['yearlyPrice'],
+      'maxClinics': json['maxClinics'] ?? package?['maxClinics'],
+      'maxDailyAppointments':
+          json['maxDailyAppointments'] ?? package?['maxDailyAppointments'],
+      'maxWeeklyDays': json['maxWeeklyDays'] ?? package?['maxWeeklyDays'],
+      'showReviews': json['showReviews'] ?? package?['showReviews'],
+      'showMessages': json['showMessages'] ?? package?['showMessages'],
+      'eBooking': json['eBooking'] ?? package?['eBooking'],
+      'ePayments': json['ePayments'] ?? package?['ePayments'],
+      'makeOffers': json['makeOffers'] ?? package?['makeOffers'],
+      'maxActiveOffers': json['maxActiveOffers'] ?? package?['maxActiveOffers'],
+    };
+    final parsedPackage = SubscriptionPackage.fromJson(packageJson);
+
     return DoctorSubscriptionInfo(
       id: json['id'] as int? ?? 0,
+      packageId: json['packageId'] as int? ?? parsedPackage.id,
       packageName:
           json['packageName'] as String? ??
           package?['name'] as String? ??
           '',
+      packageArabicName:
+          json['packageArabicName'] as String? ??
+          package?['arabicName'] as String? ??
+          package?['name'] as String? ??
+          json['packageName'] as String? ??
+          '',
+      packageEnglishName:
+          json['packageEnglishName'] as String? ??
+          json['packageNormalizedName'] as String? ??
+          package?['englishName'] as String? ??
+          package?['normalizedName'] as String? ??
+          '',
+      packageNormalizedName:
+          json['packageNormalizedName'] as String? ??
+          package?['normalizedName'] as String? ??
+          '',
+      package: parsedPackage,
       statusName: json['statusName'] as String? ?? json['status'] as String? ?? '',
       startDate: json['startDate'] == null
           ? null

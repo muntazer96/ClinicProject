@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
 import '../../auth/auth_controller.dart';
+import '../services/doctor_service.dart';
 
-class DoctorScaffold extends StatelessWidget {
+class DoctorScaffold extends StatefulWidget {
   const DoctorScaffold({
     super.key,
     required this.title,
@@ -20,31 +21,65 @@ class DoctorScaffold extends StatelessWidget {
   final String backRoute;
 
   @override
+  State<DoctorScaffold> createState() => _DoctorScaffoldState();
+}
+
+class _DoctorScaffoldState extends State<DoctorScaffold> {
+  String? _doctorName;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDoctorName());
+  }
+
+  Future<void> _loadDoctorName() async {
+    final auth = context.read<AuthController>();
+    if (!auth.isDoctor) return;
+    try {
+      final profile = await DoctorService(auth.api).getProfile();
+      if (mounted) setState(() => _doctorName = profile.name);
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final path = GoRouterState.of(context).uri.path;
-    final selectedIndex = path == '/doctor/appointments'
+    final selectedIndex =
+        path == '/doctor/appointments' ||
+            path.startsWith('/doctor/appointments/')
         ? 1
-        : path == '/doctor/clinics' || path.startsWith('/doctor/clinics/')
+        : path == '/doctor/clinics' ||
+              path.startsWith('/doctor/clinics/') ||
+              path == '/doctor/schedule' ||
+              path.startsWith('/doctor/schedule/')
         ? 2
         : path == '/doctor/offers' || path.startsWith('/doctor/offers/')
         ? 3
-        : path == '/doctor/profile'
+        : path == '/doctor/profile' ||
+              path.startsWith('/doctor/profile/') ||
+              path == '/doctor/features' ||
+              path == '/doctor/subscription' ||
+              path == '/doctor/reviews'
         ? 4
         : 0;
+    final displayName = _doctorName?.isNotEmpty == true
+        ? _doctorName!
+        : auth.displayName;
 
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 76,
         titleSpacing: 16,
-        leading: showBackButton
+        leading: widget.showBackButton
             ? IconButton(
                 tooltip: 'رجوع',
                 onPressed: () {
                   if (context.canPop()) {
                     context.pop();
                   } else {
-                    context.go(backRoute);
+                    context.go(widget.backRoute);
                   }
                 },
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -78,7 +113,7 @@ class DoctorScaffold extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    title,
+                    widget.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -87,7 +122,7 @@ class DoctorScaffold extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    auth.displayName,
+                    displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -110,7 +145,7 @@ class DoctorScaffold extends StatelessWidget {
           const SizedBox(width: 4),
         ],
       ),
-      body: child,
+      body: widget.child,
       bottomNavigationBar: DecoratedBox(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -172,10 +207,7 @@ class DoctorSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: padding ?? const EdgeInsets.all(14),
-      child: child,
-    ),
+    child: Padding(padding: padding ?? const EdgeInsets.all(14), child: child),
   );
 }
 
@@ -330,7 +362,11 @@ class DoctorStatusPill extends StatelessWidget {
 }
 
 class DoctorEmptyState extends StatelessWidget {
-  const DoctorEmptyState({super.key, required this.icon, required this.message});
+  const DoctorEmptyState({
+    super.key,
+    required this.icon,
+    required this.message,
+  });
 
   final IconData icon;
   final String message;

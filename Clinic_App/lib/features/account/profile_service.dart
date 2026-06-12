@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+
 import '../../core/api_client.dart';
 
 class UserProfile {
@@ -9,6 +13,7 @@ class UserProfile {
     required this.phoneConfirmed,
     required this.emailConfirmed,
     this.roleName,
+    this.imageName,
     this.lastLoginDate,
   });
 
@@ -19,7 +24,14 @@ class UserProfile {
   final bool phoneConfirmed;
   final bool emailConfirmed;
   final String? roleName;
+  final String? imageName;
   final DateTime? lastLoginDate;
+
+  String? get imageUrl {
+    final value = imageName?.trim();
+    if (value == null || value.isEmpty || value == 'default.png') return null;
+    return ApiClient.userImageUrl(value);
+  }
 
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
@@ -38,6 +50,7 @@ class UserProfile {
     phoneConfirmed: json['phoneNumberConfirmed'] as bool? ?? false,
     emailConfirmed: json['emailConfirmed'] as bool? ?? false,
     roleName: json['roleName'] as String?,
+    imageName: json['imageName'] as String?,
     lastLoginDate: json['lastLoginDate'] == null
         ? null
         : DateTime.tryParse(json['lastLoginDate'] as String),
@@ -78,6 +91,18 @@ class ProfileService {
       name: name,
       phoneNumber: current.phoneNumber,
       email: current.email,
+    );
+  }
+
+  Future<void> updateProfileImage({
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    await _client.dio.put(
+      '/Profile/image',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+      }),
     );
   }
 

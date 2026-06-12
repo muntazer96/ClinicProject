@@ -513,6 +513,94 @@ namespace Clinic_Booking.Services.DoctorServices
             });
         }
 
+        public async Task<IActionResult> UpdateMyImageAsync(IFormFile file)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يجب تسجيل الدخول أولاً."
+                });
+            }
+
+            var doctor = await _context.Doctors
+                .FirstOrDefaultAsync(d => d.UserId == userId && !d.IsDeleted);
+
+            if (doctor == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "لا يوجد ملف طبيب مرتبط بهذا الحساب."
+                });
+            }
+
+            var imageValidation = ValidateDoctorImage(file);
+            if (imageValidation != null) return imageValidation;
+
+            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/DoctorImage");
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = Guid.NewGuid().ToString() + extension;
+            var filePath = Path.Combine(folderPath, fileName);
+            var oldImagePath = string.IsNullOrWhiteSpace(doctor.ImageName)
+                ? null
+                : Path.Combine(folderPath, Path.GetFileName(doctor.ImageName));
+
+            try
+            {
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                doctor.ImageName = fileName;
+                doctor.ModifierId = userId;
+                doctor.ModifiedAt = DateTime.Now;
+                _context.Doctors.Update(doctor);
+                await _context.SaveChangesAsync();
+
+                if (oldImagePath != null && System.IO.File.Exists(oldImagePath))
+                {
+                    System.IO.File.Delete(oldImagePath);
+                }
+
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تحديث صورة الطبيب بنجاح.",
+                    Data = fileName
+                });
+            }
+            catch (Exception ex)
+            {
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = ex.Message,
+                    Data = null
+                })
+                {
+                    StatusCode = 500
+                };
+            }
+        }
+
         public async Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form)
         {
             var doctor = await _context.Doctors

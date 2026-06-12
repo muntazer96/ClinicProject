@@ -101,6 +101,13 @@ namespace Clinic_Booking.Controllers
             return await _service.UploadImgAsync(file);
         }
 
+        [HttpPut("~/api/Profile/image")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfileImageAsync(IFormFile file)
+        {
+            return await _service.UploadImgAsync(file);
+        }
+
         [HttpPost("email-confirmation")]
         [EnableRateLimiting("AccountRecovery")]
         public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)

@@ -38,6 +38,7 @@ import '../features/doctor/pages/doctor_schedule_day_form_page.dart';
 import '../features/doctor/pages/doctor_schedule_exception_form_page.dart';
 import '../features/doctor/pages/doctor_schedule_screen.dart';
 import '../features/doctor/pages/doctor_subscription_screen.dart';
+import '../features/doctor/widgets/doctor_scaffold.dart';
 import '../features/home/home_screen.dart';
 import '../features/offers/offers_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
@@ -91,6 +92,17 @@ GoRouter createRouter(AuthController auth) => GoRouter(
           : const _MissingBookingData(),
     ),
     GoRoute(
+      path: '/doctor/profile/edit-name',
+      builder: (_, state) => DoctorScaffold(
+        title: 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø§Ø³Ù…',
+        showBackButton: true,
+        backRoute: '/doctor/profile',
+        child: EditNameScreen(
+          initialName: state.uri.queryParameters['name'] ?? '',
+        ),
+      ),
+    ),
+    GoRoute(
       path: '/doctor/features',
       builder: (_, state) => state.extra is DoctorProfile
           ? DoctorFeaturesPage(profile: state.extra! as DoctorProfile)
@@ -103,13 +115,17 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     GoRoute(
       path: '/doctor/clinics/form',
       builder: (_, state) => DoctorClinicFormPage(
-        clinic: state.extra is DoctorClinic ? state.extra! as DoctorClinic : null,
+        clinic: state.extra is DoctorClinic
+            ? state.extra! as DoctorClinic
+            : null,
       ),
     ),
     GoRoute(
       path: '/doctor/clinics/:clinicId/schedule',
       builder: (_, state) => DoctorScheduleScreen(
-        clinic: state.extra is DoctorClinic ? state.extra! as DoctorClinic : null,
+        clinic: state.extra is DoctorClinic
+            ? state.extra! as DoctorClinic
+            : null,
       ),
     ),
     GoRoute(
