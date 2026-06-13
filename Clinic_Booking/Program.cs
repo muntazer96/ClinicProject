@@ -233,6 +233,8 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<Clinic_Booking.Middleware.ExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();

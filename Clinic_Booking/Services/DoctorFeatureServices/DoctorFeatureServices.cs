@@ -130,8 +130,8 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = "خطأ في قاعدة البيانات!",
-                    Data = ex.InnerException?.Message ?? ex.Message
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 });
             }
             catch (Exception ex)
@@ -140,8 +140,8 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = "حدث خطأ غير متوقع!",
-                    Data = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 });
             }
         }

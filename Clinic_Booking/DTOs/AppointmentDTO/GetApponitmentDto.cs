@@ -6,7 +6,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
     public class GetApponitmentDto
     {
         public int Id { get; set; }
-        public GetUserReivew? User { get; set; } // فارغ عندما يكون الحجز لزائر
+        public GetUserReview? User { get; set; } // فارغ عندما يكون الحجز لزائر
         public GetDoctorReview Doctor { get; set; } // معرف الدكتور المحجوز
         public global::Clinic_Booking.DTOs.ClinicDTO.GetClinicDto Clinic { get; set; }
         public DateTime AppointmentDate { get; set; } // موعد الحجز

@@ -1,5 +1,6 @@
 using Clinic_Booking.DTOs.ClinicExceptionDTO;
 using Clinic_Booking.IServices.IClinicExceptionServices;
+using Clinic_Booking.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +16,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpGet("my/{clinicId}")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> GetMineAsync(
             int clinicId,
             [FromQuery] DateOnly? fromDate,
@@ -25,14 +26,14 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("my")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> UpsertMineAsync(UpsertClinicExceptionDto form)
         {
             return await _services.UpsertMineAsync(form);
         }
 
         [HttpDelete("my/{id}")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> DeleteMineAsync(int id)
         {
             return await _services.DeleteMineAsync(id);

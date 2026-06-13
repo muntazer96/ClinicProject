@@ -32,6 +32,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("signup")]
+        [EnableRateLimiting("Auth")]
         public async Task<IActionResult> SignUpAsync([FromBody] SignUpDto form)
         {
             return await _service.CreateUserAsync(form);
@@ -101,6 +102,7 @@ namespace Clinic_Booking.Controllers
 
         [HttpPost("profile-image")]
         [Authorize]
+        [RequestSizeLimit(5 * 1024 * 1024)]
         public async Task<IActionResult> UploadProfileImageAsync(IFormFile file)
         {
             return await _service.UploadImgAsync(file);
@@ -108,6 +110,7 @@ namespace Clinic_Booking.Controllers
 
         [HttpPut("~/api/Profile/image")]
         [Authorize]
+        [RequestSizeLimit(5 * 1024 * 1024)]
         public async Task<IActionResult> UpdateProfileImageAsync(IFormFile file)
         {
             return await _service.UploadImgAsync(file);

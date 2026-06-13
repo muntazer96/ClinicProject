@@ -168,7 +168,7 @@ namespace Clinic_Booking.Services.UserServices
                     Status = "Error",
                     Code = 500,
                     Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
-                    Data = ex.InnerException?.Message
+                    Data = null
                 });
             }
             catch (Exception ex)
@@ -178,7 +178,7 @@ namespace Clinic_Booking.Services.UserServices
                     Status = "Error",
                     Code = 500,
                     Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
-                    Data = ex.Message
+                    Data = null
                 });
             }
         }
@@ -234,7 +234,7 @@ namespace Clinic_Booking.Services.UserServices
                     });
                 }
 
-                if (phoneNumber != "superadmin" && await _userManager.IsLockedOutAsync(user))
+                if (await _userManager.IsLockedOutAsync(user))
                 {
                     return new UnauthorizedObjectResult(new ResponseDto<string>
                     {
@@ -249,44 +249,33 @@ namespace Clinic_Booking.Services.UserServices
 
                 if (!isPassValid)
                 {
-                    if (phoneNumber != "superadmin")
+                    await _userManager.AccessFailedAsync(user);
+
+                    var failedCount = await _userManager.GetAccessFailedCountAsync(user);
+
+                    if (failedCount >= 5)
                     {
-                        await _userManager.AccessFailedAsync(user);
-
-                        var failedCount = await _userManager.GetAccessFailedCountAsync(user);
-
-                        if (failedCount >= 5)
-                        {
-                            await _userManager.SetLockoutEndDateAsync(
-                                user,
-                                DateTimeOffset.UtcNow.AddMinutes(30)
-                            );
-
-                            return new UnauthorizedObjectResult(new ResponseDto<string>
-                            {
-                                Status = "Error",
-                                Code = 401,
-                                Message = "تم إيقاف الحساب مؤقتاً لمدة 30 دقيقة بسبب عدة محاولات خاطئة.",
-                                Data = null
-                            });
-                        }
-
-                        var remainingAttempts = 5 - failedCount;
+                        await _userManager.SetLockoutEndDateAsync(
+                            user,
+                            DateTimeOffset.UtcNow.AddMinutes(30)
+                        );
 
                         return new UnauthorizedObjectResult(new ResponseDto<string>
                         {
                             Status = "Error",
                             Code = 401,
-                            Message = $"رقم الهاتف أو كلمة المرور غير صحيحة. تبقت {remainingAttempts} محاولة.",
+                            Message = "تم إيقاف الحساب مؤقتاً لمدة 30 دقيقة بسبب عدة محاولات خاطئة.",
                             Data = null
                         });
                     }
+
+                    var remainingAttempts = 5 - failedCount;
 
                     return new UnauthorizedObjectResult(new ResponseDto<string>
                     {
                         Status = "Error",
                         Code = 401,
-                        Message = "رقم الهاتف أو كلمة المرور غير صحيحة.",
+                        Message = $"رقم الهاتف أو كلمة المرور غير صحيحة. تبقت {remainingAttempts} محاولة.",
                         Data = null
                     });
                 }
@@ -917,14 +906,14 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Database update exception: {ex.Message}");
-                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError(ex, "Database update exception: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message,
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)
@@ -934,13 +923,14 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+                _logger.LogError(ex, "An unexpected exception occurred: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)
@@ -1546,9 +1536,14 @@ namespace Clinic_Booking.Services.UserServices
                 CreatorId = userId
             }, rawToken);
         }
-        private static string HashRefreshToken(string token)
+        private string HashRefreshToken(string refreshToken)
         {
-            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+            var key = _configuration["JWT:Secret"] ?? "clinic-booking-default-pepper";
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            using var hmac = new HMACSHA256(keyBytes);
+            var tokenBytes = Encoding.UTF8.GetBytes(refreshToken);
+            var hash = hmac.ComputeHash(tokenBytes);
+            return Convert.ToHexString(hash).ToLower();
         }
         private static string MaskDeviceToken(string token)
         {

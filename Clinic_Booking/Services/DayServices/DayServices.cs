@@ -52,8 +52,8 @@ namespace Clinic_Booking.Services.DayServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = "حدث خطأ غير متوقع!",
-                    Data = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 })
                 {
                     StatusCode = 500

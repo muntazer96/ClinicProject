@@ -29,7 +29,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpGet("my")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> GetMineAsync()
         {
             return await _services.GetMineAsync();
@@ -42,21 +42,21 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("my")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> AddMineAsync(ClinicAddDto form)
         {
             return await _services.AddMineAsync(form);
         }
 
         [HttpPut("my")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> UpdateMineAsync(ClinicUpdateDto form)
         {
             return await _services.UpdateMineAsync(form);
         }
 
         [HttpDelete("my/{id}")]
-        [Authorize(Roles = "DoctorUser")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> DeleteMineAsync(int id)
         {
             return await _services.DeleteMineAsync(id);

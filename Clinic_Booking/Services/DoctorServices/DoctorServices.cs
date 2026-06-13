@@ -594,7 +594,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message,
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
                     Data = null
                 })
                 {
@@ -828,8 +828,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = "خطأ في قاعدة البيانات!",
-                    Data = ex.InnerException?.Message ?? ex.Message
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 });
             }
             catch (Exception ex)
@@ -838,8 +838,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = "حدث خطأ غير متوقع!",
-                    Data = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 });
             }
         }
@@ -915,7 +915,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message,
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)
@@ -931,7 +932,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)
@@ -1033,7 +1035,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message,
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse) { StatusCode = 500 };
@@ -1046,7 +1049,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse) { StatusCode = 500 };
@@ -1088,7 +1092,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message,
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)
@@ -1104,7 +1109,8 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     Status = "Error",
                     Code = 500,
-                    Message = ex.Message
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
                 };
 
                 return new ObjectResult(errorResponse)

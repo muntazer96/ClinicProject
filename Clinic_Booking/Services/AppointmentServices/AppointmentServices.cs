@@ -92,7 +92,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 {
                     Id = a.Id,
                     User = a.UserId.HasValue
-                        ? new DTOs.ReviewDTO.GetUserReivew
+                        ? new DTOs.ReviewDTO.GetUserReview
                         {
                             Id = a.UserId.Value,
                             Name = a.User.Name,

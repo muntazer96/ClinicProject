@@ -201,7 +201,7 @@ namespace Clinic_Booking.Services.ReviewServices
                 .Select(review => new GetReviewDto
                 {
                     Id = review.Id,
-                    User = new GetUserReivew
+                    User = new GetUserReview
                     {
                         Id = review.UserId,
                         Name = review.User.Name,
