@@ -6,6 +6,7 @@ class ApiClient {
     'API_BASE_URL',
 
     defaultValue: 'https://localhost:7136/api',
+    //defaultValue: 'http://localhost:81/api',
     //defaultValue: 'http://192.168.1.102:8082/api',
     //defaultValue: 'http://192.168.100.7:8082/api',
     //defaultValue: 'http://192.174.0.120:81/api',

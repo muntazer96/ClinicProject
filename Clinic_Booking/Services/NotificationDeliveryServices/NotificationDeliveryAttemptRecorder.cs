@@ -36,5 +36,35 @@ namespace Clinic_Booking.Services.NotificationDeliveryServices
                 AppointmentId = appointmentId
             });
         }
+
+        public static void AddWhatsAppAttempt(
+            ApplicationDbContext context,
+            bool sent,
+            string recipientAddress,
+            string title,
+            string body,
+            int? doctorId = null,
+            int? clinicId = null,
+            int? appointmentId = null,
+            string? error = null,
+            bool retryOnFailure = true)
+        {
+            var now = DateTime.UtcNow;
+            context.NotificationDeliveryAttempts.Add(new NotificationDeliveryAttempt
+            {
+                Channel = "WhatsApp",
+                Status = sent ? "Succeeded" : "Failed",
+                RecipientAddress = recipientAddress,
+                Title = title,
+                Body = body,
+                AttemptCount = 1,
+                LastAttemptAt = now,
+                NextAttemptAt = sent || !retryOnFailure ? null : now.AddMinutes(15),
+                LastError = sent ? null : error ?? "WhatsApp provider returned failure.",
+                DoctorId = doctorId,
+                ClinicId = clinicId,
+                AppointmentId = appointmentId
+            });
+        }
     }
 }

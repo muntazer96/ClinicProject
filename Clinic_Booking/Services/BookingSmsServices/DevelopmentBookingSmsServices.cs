@@ -1,6 +1,7 @@
+using Clinic_Booking.Data;
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
-using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
+using Clinic_Booking.Services.NotificationDeliveryServices;
 
 namespace Clinic_Booking.Services.BookingSmsServices
 {
@@ -8,16 +9,19 @@ namespace Clinic_Booking.Services.BookingSmsServices
     {
         private readonly ILogger<DevelopmentBookingSmsServices> _logger;
         private readonly IWhatsAppMessageServices _whatsAppMessageServices;
+        private readonly ApplicationDbContext _context;
 
         public DevelopmentBookingSmsServices(
             ILogger<DevelopmentBookingSmsServices> logger,
-            IWhatsAppMessageServices whatsAppMessageServices)
+            IWhatsAppMessageServices whatsAppMessageServices,
+            ApplicationDbContext context)
         {
             _logger = logger;
             _whatsAppMessageServices = whatsAppMessageServices;
+            _context = context;
         }
 
-        public async Task SendBookingOtpAsync(string phoneNumber, string code)
+        public async Task SendBookingOtpAsync(string phoneNumber, string code, int? appointmentId = null)
         {
             var message = $@"
             مرحباً 👋
@@ -34,6 +38,16 @@ namespace Clinic_Booking.Services.BookingSmsServices
             ";
 
             var sent = await _whatsAppMessageServices.SendMessageAsync(phoneNumber, message);
+            NotificationDeliveryAttemptRecorder.AddWhatsAppAttempt(
+                _context,
+                sent,
+                phoneNumber,
+                "Booking OTP",
+                message,
+                appointmentId: appointmentId,
+                retryOnFailure: false);
+            await _context.SaveChangesAsync();
+
             if (sent)
             {
                 return;

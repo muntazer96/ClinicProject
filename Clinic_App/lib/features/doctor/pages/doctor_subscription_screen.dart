@@ -18,6 +18,7 @@ class DoctorSubscriptionScreen extends StatefulWidget {
 class _DoctorSubscriptionScreenState extends State<DoctorSubscriptionScreen> {
   late final DoctorService _service;
   List<SubscriptionPackage> _items = [];
+  DoctorSubscriptionInfo? _current;
   bool _loading = true;
 
   @override
@@ -30,7 +31,13 @@ class _DoctorSubscriptionScreenState extends State<DoctorSubscriptionScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      _items = await _service.getSubscriptionPackages();
+      final results = await Future.wait<dynamic>([
+        _service.getSubscriptionPackages(),
+        _service.getCurrentSubscription(),
+      ]);
+      _items = (results[0] as List<SubscriptionPackage>).toList()
+        ..sort((a, b) => a.price.compareTo(b.price));
+      _current = results[1] as DoctorSubscriptionInfo?;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -45,20 +52,112 @@ class _DoctorSubscriptionScreenState extends State<DoctorSubscriptionScreen> {
               ? const Center(child: CircularProgressIndicator())
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
-                  itemCount: _items.length,
+                  itemCount: _items.length + 1,
                   separatorBuilder: (_, __) => const SizedBox(height: 14),
                   itemBuilder: (context, index) {
-                    return _SubscriptionBanner(item: _items[index]);
+                    if (index == 0) {
+                      return _SubscriptionOverview(subscription: _current);
+                    }
+                    final item = _items[index - 1];
+                    return _SubscriptionBanner(
+                      item: item,
+                      isCurrent: _current?.packageId == item.id,
+                    );
                   },
                 ),
         ),
       );
 }
 
+class _SubscriptionOverview extends StatelessWidget {
+  const _SubscriptionOverview({required this.subscription});
+
+  final DoctorSubscriptionInfo? subscription;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = subscription != null;
+    const color = AppColors.primary;
+    final packageName = subscription?.packageArabicName.isNotEmpty == true
+        ? subscription!.packageArabicName
+        : subscription?.packageName ?? 'لا يوجد اشتراك فعال';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.verified_outlined,
+              color: color,
+              size: 29,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  active ? 'اشتراكك الحالي' : 'حالة الاشتراك',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  packageName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _Badge(
+            text: active ? 'فعال' : 'غير مفعل',
+            color: color,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SubscriptionBanner extends StatelessWidget {
-  const _SubscriptionBanner({required this.item});
+  const _SubscriptionBanner({
+    required this.item,
+    required this.isCurrent,
+  });
 
   final SubscriptionPackage item;
+  final bool isCurrent;
 
   @override
   Widget build(BuildContext context) {
@@ -217,10 +316,14 @@ class _SubscriptionBanner extends StatelessWidget {
                 SizedBox(
                   height: 46,
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: isCurrent ? null : () {
                       // TODO: افتح صفحة الدفع او طلب الاشتراك
                     },
-                    icon: const Icon(Icons.arrow_back_rounded),
+                    icon: Icon(
+                      isCurrent
+                          ? Icons.check_circle_rounded
+                          : Icons.arrow_back_rounded,
+                    ),
                     label: Text(
                       item.price == 0 ? 'الباقة الحالية' : 'اختيار الاشتراك',
                       style: const TextStyle(
@@ -274,9 +377,9 @@ class _PackageStyle {
     if (key == 'basic') {
       return const _PackageStyle(
         gradient: [Color(0xFFFFFFFF), Color(0xFFF3F8F7)],
-        accent: Color(0xFF607D7A),
+        accent: AppColors.primary,
         borderColor: Color(0xFFDDE8E6),
-        shadowColor: Color(0xFF607D7A),
+        shadowColor: AppColors.primary,
         titleColor: Color(0xFF172524),
         icon: Icons.spa_outlined,
         subtitle: 'بداية بسيطة لإدارة عيادتك',
@@ -286,11 +389,11 @@ class _PackageStyle {
 
     if (key == 'gold') {
       return const _PackageStyle(
-        gradient: [Color(0xFFFFFCF3), Color(0xFFFFF1C7)],
-        accent: Color(0xFFD6A20B),
-        borderColor: Color(0xFFE8C866),
-        shadowColor: Color(0xFFD6A20B),
-        titleColor: Color(0xFF2B2415),
+        gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+        accent: AppColors.primary,
+        borderColor: Color(0xFFDDE9E7),
+        shadowColor: AppColors.primary,
+        titleColor: AppColors.primaryDark,
         icon: Icons.workspace_premium_rounded,
         subtitle: 'ظهور أفضل ومميزات أكثر',
         badge: 'ذهبي',
@@ -299,11 +402,11 @@ class _PackageStyle {
 
     if (key == 'diamond') {
       return const _PackageStyle(
-        gradient: [Color(0xFFF8FDFF), Color(0xFFE8F8FF)],
-        accent: Color(0xFF1697B7),
-        borderColor: Color(0xFF9DDDEA),
-        shadowColor: Color(0xFF1697B7),
-        titleColor: Color(0xFF10282E),
+        gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+        accent: AppColors.primary,
+        borderColor: Color(0xFFDDE9E7),
+        shadowColor: AppColors.primary,
+        titleColor: AppColors.primaryDark,
         icon: Icons.diamond_outlined,
         subtitle: 'حجز إلكتروني وعروض وميزات متقدمة',
         badge: 'ألماس',
@@ -311,11 +414,11 @@ class _PackageStyle {
     }
 
     return const _PackageStyle(
-      gradient: [Color(0xFFFFFBF0), Color(0xFFFFE8A8)],
-      accent: Color(0xFFC99500),
-      borderColor: Color(0xFFE0B530),
-      shadowColor: Color(0xFFC99500),
-      titleColor: Color(0xFF1E1A10),
+      gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+      accent: AppColors.primary,
+      borderColor: Color(0xFFDDE9E7),
+      shadowColor: AppColors.primary,
+      titleColor: AppColors.primaryDark,
       icon: Icons.emoji_events_rounded,
       subtitle: 'أعلى ظهور وأقوى مميزات للطبيب',
       badge: 'فاخر',

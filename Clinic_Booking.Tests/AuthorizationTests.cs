@@ -16,6 +16,8 @@ public class AuthorizationTests
     [InlineData(typeof(DoctorAvailabilityController), nameof(DoctorAvailabilityController.CreateOrUpdateWeeklyAvailabilityAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(ReviewController), nameof(ReviewController.GetMineForDoctorAsync), AppRoles.DoctorUser)]
     [InlineData(typeof(UserController), nameof(UserController.GetUsersAsync), AppRoles.SuperAdmin)]
+    [InlineData(typeof(AdminAuditController), nameof(AdminAuditController.GetAuditLogsAsync), AppRoles.SuperAdmin)]
+    [InlineData(typeof(AdminAuditController), nameof(AdminAuditController.GetNotificationDeliveriesAsync), AppRoles.SuperAdmin)]
     public void SensitiveEndpoint_RequiresExpectedRole(Type controller, string action, string expectedRole)
     {
         var method = controller.GetMethod(action)!;

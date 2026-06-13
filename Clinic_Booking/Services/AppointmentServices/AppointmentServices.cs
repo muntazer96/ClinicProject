@@ -1456,7 +1456,7 @@ Data = null
             await _context.SaveChangesAsync();
             try
             {
-                await _bookingSmsServices.SendBookingOtpAsync(phoneNumber, otpCode);
+                await _bookingSmsServices.SendBookingOtpAsync(phoneNumber, otpCode, appointment.Id);
             }
             catch
             {

@@ -1,7 +1,9 @@
 ﻿using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Data;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Authorization;
+using Clinic_Booking.Services.NotificationDeliveryServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Http;
@@ -14,15 +16,18 @@ namespace Clinic_Booking.Controllers
     {
         private readonly IUserServices _service;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<UserController> _logger;
 
         public UserController(
             IUserServices service,
             IPushNotificationServices pushNotificationServices,
+            ApplicationDbContext context,
             ILogger<UserController> logger)
         {
             _service = service;
             _pushNotificationServices = pushNotificationServices;
+            _context = context;
             _logger = logger;
         }
 
@@ -167,15 +172,20 @@ namespace Clinic_Booking.Controllers
             }
 
             _logger.LogInformation("Manual test push requested. UserId={UserId}", userId);
-            await _pushNotificationServices.SendToUserAsync(
+            const string title = "اختبار الإشعارات";
+            const string body = "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.";
+            var data = new Dictionary<string, string>
+            {
+                ["type"] = "test",
+                ["createdAt"] = DateTime.UtcNow.ToString("O")
+            };
+            var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,
-                "اختبار الإشعارات",
-                "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.",
-                new Dictionary<string, string>
-                {
-                    ["type"] = "test",
-                    ["createdAt"] = DateTime.UtcNow.ToString("O")
-                });
+                title,
+                body,
+                data);
+            NotificationDeliveryAttemptRecorder.AddPushAttempt(_context, sent, userId, title, body, data);
+            await _context.SaveChangesAsync();
 
             return Ok(new ResponseDto<string>
             {
@@ -190,15 +200,20 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> SendTestPushNotificationToUserAsync(Guid userId)
         {
             _logger.LogInformation("Manual admin test push requested. TargetUserId={UserId}", userId);
-            await _pushNotificationServices.SendToUserAsync(
+            const string title = "اختبار الإشعارات";
+            const string body = "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.";
+            var data = new Dictionary<string, string>
+            {
+                ["type"] = "test",
+                ["createdAt"] = DateTime.UtcNow.ToString("O")
+            };
+            var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,
-                "اختبار الإشعارات",
-                "إذا وصل هذا الإشعار فربط Firebase يعمل بشكل صحيح.",
-                new Dictionary<string, string>
-                {
-                    ["type"] = "test",
-                    ["createdAt"] = DateTime.UtcNow.ToString("O")
-                });
+                title,
+                body,
+                data);
+            NotificationDeliveryAttemptRecorder.AddPushAttempt(_context, sent, userId, title, body, data);
+            await _context.SaveChangesAsync();
 
             return Ok(new ResponseDto<string>
             {

@@ -147,18 +147,32 @@ namespace Clinic_Booking.Services.ReviewServices
                 return;
             }
 
-            await _pushNotificationServices.SendToUserAsync(
+            const string title = "وصل تقييم جديد";
+            var body = $"قام أحد المراجعين بتقييمك {review.Rating} من 5 بعد الحجز رقم {review.AppoinmentId}.";
+            var data = new Dictionary<string, string>
+            {
+                ["type"] = "review",
+                ["reviewId"] = review.Id.ToString(),
+                ["doctorId"] = review.DoctorId.ToString(),
+                ["appointmentId"] = review.AppoinmentId?.ToString() ?? string.Empty,
+                ["rating"] = review.Rating.ToString()
+            };
+
+            var sent = await _pushNotificationServices.SendToUserAsync(
                 doctorUserId.Value,
-                "وصل تقييم جديد",
-                $"قام أحد المراجعين بتقييمك {review.Rating} من 5 بعد الحجز رقم {review.AppoinmentId}.",
-                new Dictionary<string, string>
-                {
-                    ["type"] = "review",
-                    ["reviewId"] = review.Id.ToString(),
-                    ["doctorId"] = review.DoctorId.ToString(),
-                    ["appointmentId"] = review.AppoinmentId.ToString(),
-                    ["rating"] = review.Rating.ToString()
-                });
+                title,
+                body,
+                data);
+            NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                _context,
+                sent,
+                doctorUserId.Value,
+                title,
+                body,
+                data,
+                doctorId: review.DoctorId,
+                appointmentId: review.AppoinmentId);
+            await _context.SaveChangesAsync();
         }
 
         private Task<bool> IsReviewFeatureEnabledAsync(int doctorId)
