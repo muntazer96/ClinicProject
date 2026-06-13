@@ -19,7 +19,7 @@ class DoctorProfileScreen extends StatefulWidget {
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   late final DoctorService _service;
-  DoctorProfile? _profile;
+  DoctorManageProfile? _profile;
   DoctorSubscriptionInfo? _subscription;
   List<DoctorFeatureItem> _features = [];
   bool _loading = true;
@@ -177,7 +177,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 class _DoctorProfileCard extends StatelessWidget {
   const _DoctorProfileCard({required this.profile});
 
-  final DoctorProfile? profile;
+  final DoctorManageProfile? profile;
 
   @override
   Widget build(BuildContext context) {

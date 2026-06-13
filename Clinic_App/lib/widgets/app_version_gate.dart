@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api_client.dart';
@@ -22,7 +23,7 @@ class _AppVersionGateState extends State<AppVersionGate> {
   @override
   void initState() {
     super.initState();
-    _service = AppVersionService(ApiClient());
+    _service = AppVersionService(context.read<ApiClient>());
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkVersion());
   }
 

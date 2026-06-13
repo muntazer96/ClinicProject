@@ -29,13 +29,13 @@ class DoctorService {
         .toList();
   }
 
-  Future<DoctorProfile> getProfile() async {
+  Future<DoctorManageProfile> getProfile() async {
     final response = await _client.dio.get('/Doctor/my');
-    return DoctorProfile.fromJson(_mapData(response.data));
+    return DoctorManageProfile.fromJson(_mapData(response.data));
   }
 
   Future<void> updateProfile(
-    DoctorProfile profile, {
+    DoctorManageProfile profile, {
     required String name,
     required String description,
     required String phoneNumber,

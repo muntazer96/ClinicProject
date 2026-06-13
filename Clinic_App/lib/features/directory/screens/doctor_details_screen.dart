@@ -57,12 +57,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
   Future<void> _load() async {
     setState(() => _error = null);
+    final isAuthenticated = context.read<AuthController>().isAuthenticated;
     try {
       final results = await Future.wait([
         _service.getDoctor(widget.doctorId),
         _reviewService.getDoctorReviews(widget.doctorId),
       ]);
-      final isFavorite = context.read<AuthController>().isAuthenticated
+      final isFavorite = isAuthenticated
           ? await _service.isFavoriteDoctor(widget.doctorId)
           : false;
       if (mounted) {
@@ -557,36 +558,6 @@ class _MetricDivider extends StatelessWidget {
 //     ),
 //   );
 // }
-
-class _PremiumBenefit extends StatelessWidget {
-  const _PremiumBenefit({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Icon(icon, color: const Color(0xFFD49A00), size: 29),
-      const SizedBox(height: 8),
-      Text(
-        title,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 12, color: AppColors.text),
-      ),
-      Text(
-        subtitle,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-      ),
-    ],
-  );
-}
 
 class _DoctorMetric extends StatelessWidget {
   const _DoctorMetric({

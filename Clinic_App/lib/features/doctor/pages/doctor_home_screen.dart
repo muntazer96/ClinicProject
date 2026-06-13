@@ -18,7 +18,7 @@ class DoctorHomeScreen extends StatefulWidget {
 
 class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
   late final DoctorService _service;
-  DoctorProfile? _profile;
+  DoctorManageProfile? _profile;
   DoctorSubscriptionInfo? _subscription;
   List<DoctorAppointment> _appointments = [];
   bool _loading = true;
@@ -40,7 +40,7 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
       ]);
 
       if (!mounted) return;
-      _profile = result[0] as DoctorProfile;
+      _profile = result[0] as DoctorManageProfile;
       _appointments = result[1] as List<DoctorAppointment>;
       _subscription = result[2] as DoctorSubscriptionInfo?;
     } finally {
@@ -167,7 +167,7 @@ class _DoctorHero extends StatelessWidget {
     required this.todayCount,
   });
 
-  final DoctorProfile? profile;
+  final DoctorManageProfile? profile;
   final int todayCount;
 
   @override

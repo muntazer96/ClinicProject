@@ -18,7 +18,7 @@ class OffersScreen extends StatefulWidget {
 }
 
 class _OffersScreenState extends State<OffersScreen> {
-  final _service = DirectoryService();
+  late final DirectoryService _service;
   final _scrollController = ScrollController();
   late final AnalyticsService _analytics;
   final List<DoctorOffer> _offers = [];
@@ -34,7 +34,9 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   void initState() {
     super.initState();
-    _analytics = AnalyticsService(context.read<AuthController>().api);
+    final api = context.read<AuthController>().api;
+    _service = DirectoryService(api);
+    _analytics = AnalyticsService(api);
     _analytics.trackLater(eventType: 'page_viewed', page: 'offers');
     _scrollController.addListener(_onScroll);
     _loadOffers();

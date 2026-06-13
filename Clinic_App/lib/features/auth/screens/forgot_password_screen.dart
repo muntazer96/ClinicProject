@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../widgets/auth_shell.dart';
@@ -45,7 +46,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       error = null;
     });
     try {
-      await ApiClient().dio.post(
+      await context.read<ApiClient>().dio.post(
         '/User/password/reset-link',
         queryParameters: {'identifier': identifier.text.trim()},
       );

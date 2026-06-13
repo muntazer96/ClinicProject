@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
@@ -99,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await ApiClient().dio.post(
+      await context.read<ApiClient>().dio.post(
         '/User/signup',
         data: {
           'name': fullName,

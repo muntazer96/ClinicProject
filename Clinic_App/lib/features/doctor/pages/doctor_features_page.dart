@@ -12,7 +12,7 @@ import '../widgets/doctor_scaffold.dart';
 class DoctorFeaturesPage extends StatefulWidget {
   const DoctorFeaturesPage({super.key, required this.profile});
 
-  final DoctorProfile profile;
+  final DoctorManageProfile profile;
 
   @override
   State<DoctorFeaturesPage> createState() => _DoctorFeaturesPageState();

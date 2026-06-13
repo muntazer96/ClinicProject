@@ -96,14 +96,14 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/doctor/profile/edit',
-      builder: (_, state) => state.extra is DoctorProfile
-          ? DoctorProfileEditPage(profile: state.extra! as DoctorProfile)
+      builder: (_, state) => state.extra is DoctorManageProfile
+          ? DoctorProfileEditPage(profile: state.extra! as DoctorManageProfile)
           : const _MissingBookingData(),
     ),
     GoRoute(
       path: '/doctor/profile/edit-name',
       builder: (_, state) => DoctorScaffold(
-        title: 'ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø§Ø³Ù…',
+        title: 'تعديل الاسم',
         showBackButton: true,
         backRoute: '/doctor/profile',
         child: EditNameScreen(
@@ -113,8 +113,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/doctor/features',
-      builder: (_, state) => state.extra is DoctorProfile
-          ? DoctorFeaturesPage(profile: state.extra! as DoctorProfile)
+      builder: (_, state) => state.extra is DoctorManageProfile
+          ? DoctorFeaturesPage(profile: state.extra! as DoctorManageProfile)
           : const _MissingBookingData(),
     ),
     GoRoute(
@@ -180,29 +180,44 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/doctors/:doctorId',
-      builder: (_, state) => DoctorDetailsScreen(
-        doctorId: int.parse(state.pathParameters['doctorId']!),
-        source: state.uri.queryParameters['source'],
-        offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
-      ),
+      builder: (_, state) {
+        final doctorId = _tryParsePathParam(state, 'doctorId');
+        if (doctorId == null) return const _MissingBookingData();
+        return DoctorDetailsScreen(
+          doctorId: doctorId,
+          source: state.uri.queryParameters['source'],
+          offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
+        );
+      },
     ),
     GoRoute(
       path: '/doctors/:doctorId/reviews',
-      builder: (_, state) => DoctorReviewsScreen(
-        doctorId: int.parse(state.pathParameters['doctorId']!),
-        doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
-      ),
+      builder: (_, state) {
+        final doctorId = _tryParsePathParam(state, 'doctorId');
+        if (doctorId == null) return const _MissingBookingData();
+        return DoctorReviewsScreen(
+          doctorId: doctorId,
+          doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
+        );
+      },
     ),
     GoRoute(
       path: '/book/:doctorId/:clinicId',
-      builder: (_, state) => BookingScreen(
-        doctorId: int.parse(state.pathParameters['doctorId']!),
-        clinicId: int.parse(state.pathParameters['clinicId']!),
-        doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
-        clinicName: state.uri.queryParameters['clinicName'] ?? 'العيادة',
-        source: state.uri.queryParameters['source'] ?? 'profile',
-        offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
-      ),
+      builder: (_, state) {
+        final doctorId = _tryParsePathParam(state, 'doctorId');
+        final clinicId = _tryParsePathParam(state, 'clinicId');
+        if (doctorId == null || clinicId == null) {
+          return const _MissingBookingData();
+        }
+        return BookingScreen(
+          doctorId: doctorId,
+          clinicId: clinicId,
+          doctorName: state.uri.queryParameters['doctorName'] ?? 'الطبيب',
+          clinicName: state.uri.queryParameters['clinicName'] ?? 'العيادة',
+          source: state.uri.queryParameters['source'] ?? 'profile',
+          offerId: int.tryParse(state.uri.queryParameters['offerId'] ?? ''),
+        );
+      },
     ),
     GoRoute(
       path: '/booking/otp',
@@ -317,6 +332,9 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     return null;
   },
 );
+
+int? _tryParsePathParam(GoRouterState state, String key) =>
+    int.tryParse(state.pathParameters[key] ?? '');
 
 class _MissingBookingData extends StatelessWidget {
   const _MissingBookingData();

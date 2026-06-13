@@ -21,7 +21,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _service = DirectoryService();
+  late final DirectoryService _service;
   final _name = TextEditingController();
   final _scrollController = ScrollController();
   late final AnalyticsService _analytics;
@@ -42,7 +42,9 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _analytics = AnalyticsService(context.read<AuthController>().api);
+    final api = context.read<AuthController>().api;
+    _service = DirectoryService(api);
+    _analytics = AnalyticsService(api);
     _analytics.trackLater(eventType: 'page_viewed', page: 'search');
     _specialization = widget.initialSpecialization;
     _scrollController.addListener(_onScroll);

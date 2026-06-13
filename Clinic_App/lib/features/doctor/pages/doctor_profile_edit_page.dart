@@ -14,7 +14,7 @@ import '../widgets/doctor_scaffold.dart';
 class DoctorProfileEditPage extends StatefulWidget {
   const DoctorProfileEditPage({super.key, required this.profile});
 
-  final DoctorProfile profile;
+  final DoctorManageProfile profile;
 
   @override
   State<DoctorProfileEditPage> createState() => _DoctorProfileEditPageState();
@@ -26,7 +26,7 @@ class _DoctorProfileEditPageState extends State<DoctorProfileEditPage> {
   late final TextEditingController _description;
   late final TextEditingController _phone;
   late final TextEditingController _location;
-  late DoctorProfile _profile;
+  late DoctorManageProfile _profile;
   bool _saving = false;
   bool _uploadingImage = false;
 
@@ -277,7 +277,7 @@ class _DoctorEditHero extends StatelessWidget {
     required this.onChangeImage,
   });
 
-  final DoctorProfile profile;
+  final DoctorManageProfile profile;
   final bool uploadingImage;
   final VoidCallback onChangeImage;
 

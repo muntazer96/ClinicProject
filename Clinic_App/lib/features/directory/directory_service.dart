@@ -2,7 +2,7 @@ import '../../core/api_client.dart';
 import 'models/directory_models.dart';
 
 class DirectoryService {
-  DirectoryService([ApiClient? client]) : _client = client ?? ApiClient();
+  DirectoryService(this._client);
 
   final ApiClient _client;
   static const int pageSize = 15;

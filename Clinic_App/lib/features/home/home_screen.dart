@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/analytics_service.dart';
+import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
 import '../../widgets/app_scaffold.dart';
 import '../auth/auth_controller.dart';
@@ -20,7 +21,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _service = DirectoryService();
+  late final DirectoryService _service;
   late final AnalyticsService _analytics;
 
   static const _initialOfferPage = 1000;
@@ -35,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _loadingSpecializations = true;
   bool _loadingOffers = true;
+  String? _specializationsError;
+  String? _offersError;
 
   int _currentOfferPage = _initialOfferPage;
   Timer? _offersTimer;
@@ -42,7 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _analytics = AnalyticsService(context.read<AuthController>().api);
+    final api = context.read<AuthController>().api;
+    _service = DirectoryService(api);
+    _analytics = AnalyticsService(api);
     _analytics.trackLater(eventType: 'page_viewed', page: 'home');
     _loadSpecializations();
     _loadOffers();
@@ -56,16 +61,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSpecializations() async {
+    setState(() => _specializationsError = null);
     try {
       final items = await _service.getSpecializations();
       if (mounted) setState(() => _specializations = items);
-    } catch (_) {
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _specializationsError = ApiClient.errorMessage(error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loadingSpecializations = false);
     }
   }
 
   Future<void> _loadOffers() async {
+    setState(() => _offersError = null);
     try {
       final result = await _service.getOffers(pageSize: 5);
       if (!mounted) return;
@@ -81,7 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _trackOfferViewed(_initialOfferPage);
       _startOfferAutoScroll();
-    } catch (_) {
+    } catch (error) {
+      if (mounted) setState(() => _offersError = ApiClient.errorMessage(error));
     } finally {
       if (mounted) setState(() => _loadingOffers = false);
     }
@@ -141,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
             _OffersSection(
               loading: _loadingOffers,
+              error: _offersError,
               offers: _offers,
               controller: _offersController,
               onPageChanged: (index) {
@@ -177,7 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             _SpecializationPreview(
               loading: _loadingSpecializations,
+              error: _specializationsError,
               items: _specializations.take(4).toList(),
+              onRetry: _loadSpecializations,
             ),
             const SizedBox(height: 24),
             const _SectionTitle(title: 'خدمات سريعة'),
@@ -345,6 +361,7 @@ class _SearchCard extends StatelessWidget {
 class _OffersSection extends StatelessWidget {
   const _OffersSection({
     required this.loading,
+    this.error,
     required this.offers,
     required this.controller,
     required this.onPageChanged,
@@ -353,6 +370,7 @@ class _OffersSection extends StatelessWidget {
   });
 
   final bool loading;
+  final String? error;
   final List<DoctorOffer> offers;
   final PageController controller;
   final ValueChanged<int> onPageChanged;
@@ -371,6 +389,10 @@ class _OffersSection extends StatelessWidget {
         ),
         child: const Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (error != null) {
+      return _InlineErrorMessage(text: error!);
     }
 
     if (offers.isEmpty) return const SizedBox.shrink();
@@ -585,10 +607,17 @@ class _OfferBadge extends StatelessWidget {
 }
 
 class _SpecializationPreview extends StatelessWidget {
-  const _SpecializationPreview({required this.loading, required this.items});
+  const _SpecializationPreview({
+    required this.loading,
+    this.error,
+    required this.items,
+    this.onRetry,
+  });
 
   final bool loading;
+  final String? error;
   final List<Specialization> items;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -597,6 +626,10 @@ class _SpecializationPreview extends StatelessWidget {
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (error != null) {
+      return _InlineErrorMessage(text: error!, onRetry: onRetry);
     }
 
     if (items.isEmpty) {
@@ -724,6 +757,42 @@ class _EmptySpecializations extends StatelessWidget {
       'لا توجد اختصاصات متاحة حالياً.',
       textAlign: TextAlign.center,
       style: TextStyle(color: AppColors.muted),
+    ),
+  );
+}
+
+class _InlineErrorMessage extends StatelessWidget {
+  const _InlineErrorMessage({required this.text, this.onRetry});
+
+  final String text;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
+        ),
+        if (onRetry != null) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('إعادة المحاولة'),
+          ),
+        ],
+      ],
     ),
   );
 }

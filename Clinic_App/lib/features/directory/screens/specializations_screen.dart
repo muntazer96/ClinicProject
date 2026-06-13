@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
@@ -16,7 +17,7 @@ class SpecializationsScreen extends StatefulWidget {
 }
 
 class _SpecializationsScreenState extends State<SpecializationsScreen> {
-  final _service = DirectoryService();
+  late final DirectoryService _service;
 
   List<Specialization> _items = [];
   bool _loading = true;
@@ -25,6 +26,7 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
   @override
   void initState() {
     super.initState();
+    _service = DirectoryService(context.read<ApiClient>());
     _load();
   }
 
@@ -72,7 +74,10 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
               padding: const EdgeInsets.all(16),
               sliver: SliverFillRemaining(
                 hasScrollBody: false,
-                child: _Message(text: 'حدث خطأ أثناء تحميل الاختصاصات.'),
+                child: _Message(
+                  text: 'حدث خطأ أثناء تحميل الاختصاصات.',
+                  onRetry: _load,
+                ),
               ),
             )
           else if (_items.isEmpty)

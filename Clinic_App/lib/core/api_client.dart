@@ -148,8 +148,7 @@ class ApiClient {
     return error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
         error.type == DioExceptionType.sendTimeout ||
-        error.type == DioExceptionType.connectionError ||
-        error.type == DioExceptionType.unknown;
+        error.type == DioExceptionType.connectionError;
   }
 
   static String errorMessage(Object error) {

@@ -21,7 +21,16 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await PushNotificationService.initializeForegroundNotifications();
   }
-  final auth = AuthController(ApiClient());
+  final api = ApiClient();
+  final auth = AuthController(api);
   await auth.restoreSession();
-  runApp(ChangeNotifierProvider.value(value: auth, child: const ClinicApp()));
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<ApiClient>.value(value: api),
+        ChangeNotifierProvider<AuthController>.value(value: auth),
+      ],
+      child: const ClinicApp(),
+    ),
+  );
 }

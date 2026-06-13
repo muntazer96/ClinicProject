@@ -24,8 +24,8 @@ class ProvinceItem {
   );
 }
 
-class DoctorProfile {
-  const DoctorProfile({
+class DoctorManageProfile {
+  const DoctorManageProfile({
     required this.id,
     required this.name,
     required this.normalizedName,
@@ -60,9 +60,9 @@ class DoctorProfile {
   String? get imageUrl =>
       imageName.trim().isEmpty ? null : ApiClient.doctorImageUrl(imageName);
 
-  factory DoctorProfile.fromJson(Map<String, dynamic> json) {
+  factory DoctorManageProfile.fromJson(Map<String, dynamic> json) {
     final specialization = json['specialization'] as Map<String, dynamic>?;
-    return DoctorProfile(
+    return DoctorManageProfile(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       normalizedName: json['normalizedName'] as String? ?? '',

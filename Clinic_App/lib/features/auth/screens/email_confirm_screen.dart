@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../widgets/auth_shell.dart';
 import 'login_screen.dart';
@@ -28,7 +29,7 @@ class _EmailConfirmScreenState extends State<EmailConfirmScreen> {
   Future<void> confirm() async {
     setState(() => loading = true);
     try {
-      await ApiClient().dio.get(
+      await context.read<ApiClient>().dio.get(
         '/User/email-confirm',
         queryParameters: {'userId': widget.userId, 'token': widget.token},
       );
@@ -46,7 +47,7 @@ class _EmailConfirmScreenState extends State<EmailConfirmScreen> {
       error = null;
     });
     try {
-      await ApiClient().dio.post(
+      await context.read<ApiClient>().dio.post(
         '/User/email-confirmation',
         queryParameters: {'identifier': widget.identifier},
       );

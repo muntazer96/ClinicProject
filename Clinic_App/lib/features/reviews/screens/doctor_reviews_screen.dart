@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
@@ -21,7 +22,7 @@ class DoctorReviewsScreen extends StatefulWidget {
 }
 
 class _DoctorReviewsScreenState extends State<DoctorReviewsScreen> {
-  final _service = ReviewService(ApiClient());
+  late final ReviewService _service;
   DoctorReviews? _reviews;
   bool _loading = true;
   String? _error;
@@ -29,6 +30,7 @@ class _DoctorReviewsScreenState extends State<DoctorReviewsScreen> {
   @override
   void initState() {
     super.initState();
+    _service = ReviewService(context.read<ApiClient>());
     _load();
   }
 

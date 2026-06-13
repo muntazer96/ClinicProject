@@ -8,9 +8,13 @@ import 'package:provider/provider.dart';
 
 void main() {
   testWidgets('startup splash renders app logo', (tester) async {
+    final api = ApiClient();
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => AuthController(ApiClient()),
+      MultiProvider(
+        providers: [
+          Provider<ApiClient>.value(value: api),
+          ChangeNotifierProvider(create: (_) => AuthController(api)),
+        ],
         child: const ClinicApp(),
       ),
     );
