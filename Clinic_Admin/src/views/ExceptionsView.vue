@@ -28,7 +28,7 @@ const form = reactive({
   maxAppointments: '',
   startTime: '',
   endTime: '',
-  appointmentConflictAction: 'none',
+  appointmentConflictAction: 'cancel',
   moveAppointmentsToDate: '',
 })
 const selectedClinicName = computed(() => clinics.value.find((clinic) => clinic.id === Number(clinicId.value))?.name)
@@ -102,8 +102,8 @@ function openEditor(item?: ClinicExceptionItem) {
   Object.assign(form, item ? {
     id: item.id, exceptionDate: item.exceptionDate, isClosed: item.isClosed, closureReason: item.closureReason ?? '',
     maxAppointments: item.maxAppointments?.toString() ?? '', startTime: item.startTime?.slice(0, 5) ?? '', endTime: item.endTime?.slice(0, 5) ?? '',
-    appointmentConflictAction: 'none', moveAppointmentsToDate: '',
-  } : { id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '', appointmentConflictAction: 'none', moveAppointmentsToDate: '' })
+    appointmentConflictAction: 'cancel', moveAppointmentsToDate: '',
+  } : { id: 0, exceptionDate: '', isClosed: true, closureReason: '', maxAppointments: '', startTime: '', endTime: '', appointmentConflictAction: 'cancel', moveAppointmentsToDate: '' })
   editorOpen.value = true
 }
 async function saveException() {
@@ -114,7 +114,7 @@ async function saveException() {
       id: form.id || null, clinicId: Number(clinicId.value), exceptionDate: form.exceptionDate, isClosed: form.isClosed,
       closureReason: form.closureReason || null, maxAppointments: form.isClosed || form.maxAppointments === '' ? null : Number(form.maxAppointments),
       startTime: form.isClosed || !form.startTime ? null : `${form.startTime}:00`, endTime: form.isClosed || !form.endTime ? null : `${form.endTime}:00`,
-      appointmentConflictAction: form.isClosed && form.appointmentConflictAction !== 'none' ? form.appointmentConflictAction : null,
+      appointmentConflictAction: form.isClosed ? form.appointmentConflictAction : null,
       moveAppointmentsToDate: form.isClosed && form.appointmentConflictAction === 'move' ? form.moveAppointmentsToDate : null,
     })
     notifications.show(response.data.message); editorOpen.value = false; await loadExceptions()
@@ -168,8 +168,7 @@ onMounted(async () => {
         </template>
         <div v-if="form.isClosed" class="conflict-box">
           <span>معالجة حجوزات هذا اليوم</span>
-          <label><input v-model="form.appointmentConflictAction" type="radio" value="none" /> اترك الحجوزات بدون تغيير</label>
-          <label><input v-model="form.appointmentConflictAction" type="radio" value="move" /> نقل جميع الحجوزات إلى يوم آخر</label>
+          <label><input v-model="form.appointmentConflictAction" type="radio" value="move" /> نقل وتوزيع الحجوزات على الأيام المتاحة ابتداءً من تاريخ جديد</label>
           <label><input v-model="form.appointmentConflictAction" type="radio" value="cancel" /> إلغاء جميع الحجوزات وإرسال إشعار للمرضى</label>
           <label v-if="form.appointmentConflictAction === 'move'"><span>التاريخ الجديد</span><input v-model="form.moveAppointmentsToDate" type="date" :min="minMoveDate" :max="maxMoveDate" required /><small class="field-hint">{{ moveDateHint }}</small></label>
         </div>

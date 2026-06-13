@@ -1,6 +1,7 @@
 ﻿using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.AppVersion;
 using Clinic_Booking.Entities.Analytics;
+using Clinic_Booking.Entities.AuditLog;
 using Clinic_Booking.Entities.Clinic;
 using Clinic_Booking.Entities.ClinicException;
 using Clinic_Booking.Entities.BookingOtpRequest;
@@ -14,6 +15,7 @@ using Clinic_Booking.Entities.DeviceToken;
 using Clinic_Booking.Entities.Feature;
 using Clinic_Booking.Entities.Message;
 using Clinic_Booking.Entities.Notification;
+using Clinic_Booking.Entities.NotificationDeliveryAttempt;
 using Clinic_Booking.Entities.Payment;
 using Clinic_Booking.Entities.Referral;
 using Clinic_Booking.Entities.RefreshToken;
@@ -57,6 +59,7 @@ namespace Clinic_Booking.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationDeliveryAttempt> NotificationDeliveryAttempts { get; set; }
         public DbSet<Referral> Referrals { get; set; }
         public DbSet<Day> Days { get; set; }
         public DbSet<DoctorAvailability> DoctorAvailabilities { get; set; }
@@ -65,6 +68,7 @@ namespace Clinic_Booking.Data
         public DbSet<DoctorOffer> DoctorOffers { get; set; }
         public DbSet<AppVersionPolicy> AppVersionPolicies { get; set; }
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -85,6 +89,35 @@ namespace Clinic_Booking.Data
                 entity.HasIndex(e => new { e.DoctorId, e.EventType, e.OccurredAt });
                 entity.HasIndex(e => new { e.UserId, e.OccurredAt });
                 entity.HasIndex(e => new { e.SessionId, e.OccurredAt });
+            });
+
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.EntityId).HasMaxLength(80);
+                entity.Property(e => e.Details).HasMaxLength(1000);
+                entity.HasIndex(e => new { e.Action, e.OccurredAt });
+                entity.HasIndex(e => new { e.DoctorId, e.OccurredAt });
+                entity.HasIndex(e => new { e.ClinicId, e.OccurredAt });
+                entity.HasIndex(e => new { e.SubscriptionId, e.OccurredAt });
+            });
+
+            modelBuilder.Entity<NotificationDeliveryAttempt>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Channel).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.RecipientAddress).HasMaxLength(120);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.Body).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.PayloadJson).HasMaxLength(2000);
+                entity.Property(e => e.LastError).HasMaxLength(1000);
+                entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+                entity.HasIndex(e => new { e.Channel, e.Status });
+                entity.HasIndex(e => new { e.DoctorId, e.CreatedAt });
+                entity.HasIndex(e => new { e.ClinicId, e.CreatedAt });
             });
 
             modelBuilder.Entity<AppVersionPolicy>(entity =>

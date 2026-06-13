@@ -248,7 +248,7 @@ onMounted(() => Promise.all([loadClinics(), loadDays()]))
 
     <AppModal v-if="scheduleClinic" :title="`دوام ${scheduleClinic.name}`" wide @close="scheduleClinic = undefined">
       <p class="modal-copy">فعّل أيام الاستقبال وحدد وقت العرض والحد الأعلى للأدوار اليومية. تطبّق حدود باقتك عند الحفظ.</p>
-      <p class="schedule-warning">عند تعطيل يوم دوام لديه حجوزات مستقبلية، سينقل النظام الحجوزات إلى أول يوم دوام متاح ويرسل إشعاراً للمرضى.</p>
+      <p class="schedule-warning">عند تعطيل يوم دوام لديه حجوزات مستقبلية، سينقل النظام الحجوزات ويوزعها على الأيام المتاحة. إذا لم توجد سعة كافية، سيتم إلغاء الحجوزات المتبقية مع إشعار المرضى.</p>
       <div class="schedule-list">
         <div v-for="day in scheduleDays" :key="day.id" class="schedule-row" :class="{ disabled: !day.enabled }">
           <label class="schedule-check"><input v-model="day.enabled" type="checkbox" /><strong>{{ day.name }}</strong></label>

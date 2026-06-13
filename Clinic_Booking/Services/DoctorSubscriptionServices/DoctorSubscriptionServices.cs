@@ -3,6 +3,7 @@ using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.DoctorSubscriptionDTO;
 using Clinic_Booking.DTOs.SubscriptionPackagesDTO;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.AuditLog;
 using Clinic_Booking.Entities.DoctorFeature;
 using Clinic_Booking.Entities.DoctorSubscription;
 using Clinic_Booking.Enums;
@@ -374,6 +375,15 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 doctor.SubscriptionRank++;
             }
 
+            AddAuditLog(
+                form.Status == SubscriptionStatus.Active ? "SubscriptionCreatedAndActivated" : "SubscriptionCreated",
+                "DoctorSubscription",
+                null,
+                form.DoctorId,
+                null,
+                null,
+                null,
+                $"Created subscription with package {form.PackageId}; status: {form.Status}.");
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>
@@ -413,6 +423,15 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             subscription.ModifierId = _load.GetCurrentUserId();
             subscription.ModifiedAt = DateTime.UtcNow;
             await DisableDoctorFeaturesIfNoActiveSubscriptionAsync(subscription.DoctorId, subscription.Id);
+            AddAuditLog(
+                "SubscriptionCancelled",
+                "DoctorSubscription",
+                subscription.Id.ToString(),
+                subscription.DoctorId,
+                null,
+                null,
+                subscription.Id,
+                $"Cancelled subscription package {subscription.PackageId}.");
 
             await _context.SaveChangesAsync();
 
@@ -455,6 +474,15 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             subscription.ModifiedAt = now;
             await SyncDoctorFeaturesAsync(subscription.DoctorId, subscription.Package);
             await IncrementSubscriptionRankAsync(subscription.DoctorId);
+            AddAuditLog(
+                "SubscriptionActivated",
+                "DoctorSubscription",
+                subscription.Id.ToString(),
+                subscription.DoctorId,
+                null,
+                null,
+                subscription.Id,
+                $"Activated subscription until {subscription.EndDate:yyyy-MM-dd}.");
             await _context.SaveChangesAsync();
 
             return Ok("تم تفعيل الاشتراك بنجاح.", new { subscription.Id, subscription.EndDate });
@@ -490,6 +518,15 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             subscription.ModifiedAt = now;
             await SyncDoctorFeaturesAsync(subscription.DoctorId, subscription.Package);
             await IncrementSubscriptionRankAsync(subscription.DoctorId);
+            AddAuditLog(
+                "SubscriptionRenewed",
+                "DoctorSubscription",
+                subscription.Id.ToString(),
+                subscription.DoctorId,
+                null,
+                null,
+                subscription.Id,
+                $"Renewed subscription until {subscription.EndDate:yyyy-MM-dd}.");
             await _context.SaveChangesAsync();
 
             return Ok("تم تجديد الاشتراك بنجاح.", new { subscription.Id, subscription.EndDate });
@@ -529,13 +566,48 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 return BadRequest("الباقة المحددة ليست ترقية للباقة الحالية.");
             }
 
+            var previousPackageId = subscription.PackageId;
             subscription.PackageId = package.Id;
             subscription.ModifierId = _load.GetCurrentUserId();
             subscription.ModifiedAt = DateTime.UtcNow;
             await SyncDoctorFeaturesAsync(subscription.DoctorId, package);
+            AddAuditLog(
+                "SubscriptionUpgraded",
+                "DoctorSubscription",
+                subscription.Id.ToString(),
+                subscription.DoctorId,
+                null,
+                null,
+                subscription.Id,
+                $"Upgraded subscription from package {previousPackageId} to package {package.Id}.");
             await _context.SaveChangesAsync();
 
             return Ok("تمت ترقية الاشتراك بنجاح.", new { subscription.Id, subscription.PackageId });
+        }
+
+        private void AddAuditLog(
+            string action,
+            string entityType,
+            string? entityId,
+            int? doctorId,
+            int? clinicId,
+            int? appointmentId,
+            int? subscriptionId,
+            string? details)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Action = action,
+                EntityType = entityType,
+                EntityId = entityId,
+                UserId = _load.GetCurrentUserId(),
+                DoctorId = doctorId,
+                ClinicId = clinicId,
+                AppointmentId = appointmentId,
+                SubscriptionId = subscriptionId,
+                Details = details,
+                OccurredAt = DateTime.UtcNow
+            });
         }
 
         private async Task SyncDoctorFeaturesAsync(int doctorId, Entities.SubscriptionPackage.SubscriptionPackage package)

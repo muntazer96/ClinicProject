@@ -202,6 +202,42 @@ class _DoctorScheduleDayFormPageState extends State<DoctorScheduleDayFormPage> {
               ),
             ),
 
+            if (!_available) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7E6),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF2D49C)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFFB45309),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'عند تعطيل هذا اليوم، سينقل النظام الحجوزات المستقبلية '
+                        'ويوزعها على الأيام المتاحة. إذا لم توجد سعة كافية، '
+                        'سيتم إلغاء الحجوزات المتبقية مع إشعار المرضى.',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 18),
 
             SizedBox(

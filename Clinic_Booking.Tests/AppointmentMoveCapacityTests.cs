@@ -11,6 +11,7 @@ using Clinic_Booking.Entities.SubscriptionPackage;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.Services.AppointmentReschedulingServices;
 using Clinic_Booking.Services.ClinicExceptionServices;
 using Clinic_Booking.Services.DoctorAvailabilityServices;
@@ -37,6 +38,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
         var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
         {
@@ -54,6 +56,72 @@ public class AppointmentMoveCapacityTests
         Assert.Equal(0, await context.Appointments.CountAsync(a => a.Status == AppointmentStatus.Cancelled));
         Assert.Equal([10, 11, 12, 13, 14, 15], await QueueNumbersAsync(context, dates.TargetDate, skipExisting: 9));
         Assert.Equal([1, 2, 3, 4], await QueueNumbersAsync(context, dates.NextDate));
+        Assert.True(await context.AuditLogs.AnyAsync(log =>
+            log.Action == "ClinicExceptionClosed" &&
+            log.DoctorId == 1 &&
+            log.ClinicId == 1));
+    }
+
+    [Fact]
+    public async Task ClinicExceptionMove_SendsWhatsAppToGuestAppointment()
+    {
+        await using var context = CreateContext();
+        var dates = SeedSchedule(context);
+        SeedGuestAppointment(context, dates.ExceptionDate, queueNumber: 1);
+        await context.SaveChangesAsync();
+
+        var pushNotifications = new StubPushNotificationServices();
+        var whatsApp = new StubWhatsAppMessageServices();
+        var service = new ClinicExceptionServices(
+            context,
+            new StubLoadServices(CurrentUserId),
+            pushNotifications,
+            whatsApp,
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
+        {
+            ClinicId = 1,
+            ExceptionDate = DateOnly.FromDateTime(dates.ExceptionDate),
+            IsClosed = true,
+            AppointmentConflictAction = "move",
+            MoveAppointmentsToDate = DateOnly.FromDateTime(dates.TargetDate)
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(0, await ActiveCountAsync(context, dates.ExceptionDate));
+        Assert.Equal(1, await ActiveCountAsync(context, dates.TargetDate));
+        Assert.Equal(0, pushNotifications.SentCount);
+        Assert.Single(whatsApp.Messages);
+        Assert.Equal("07700000000", whatsApp.Messages[0].PhoneNumber);
+        Assert.Contains(dates.TargetDate.ToString("yyyy/MM/dd"), whatsApp.Messages[0].Message);
+    }
+
+    [Fact]
+    public async Task ClinicExceptionClose_RejectsLeavingExistingAppointmentsUnchanged()
+    {
+        await using var context = CreateContext();
+        var dates = SeedSchedule(context);
+        SeedAppointments(context, dates.ExceptionDate, 1, queueStart: 1);
+        await context.SaveChangesAsync();
+
+        var service = new ClinicExceptionServices(
+            context,
+            new StubLoadServices(CurrentUserId),
+            new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
+        {
+            ClinicId = 1,
+            ExceptionDate = DateOnly.FromDateTime(dates.ExceptionDate),
+            IsClosed = true
+        });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(1, await ActiveCountAsync(context, dates.ExceptionDate));
+        Assert.Equal(0, await context.Notifications.CountAsync());
     }
 
     [Fact]
@@ -69,6 +137,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
         var result = await service.UpdateSingleDayAvailabilityAsync(new UpdateSingleDayAvailabilityDto
         {
@@ -85,6 +154,62 @@ public class AppointmentMoveCapacityTests
         Assert.Equal(4, await ActiveCountAsync(context, dates.NextDate));
         Assert.Equal(0, await ActiveCountAsync(context, dates.ExceptionDate));
         Assert.Equal(0, await context.Appointments.CountAsync(a => a.Status == AppointmentStatus.Cancelled));
+        Assert.True(await context.AuditLogs.AnyAsync(log =>
+            log.Action == "WorkingDayDisabled" &&
+            log.DoctorId == 1 &&
+            log.ClinicId == 1));
+    }
+
+    [Fact]
+    public async Task UpdatingWeeklySchedule_DistributesAppointmentsFromRemovedWorkingDay()
+    {
+        await using var context = CreateContext();
+        var dates = SeedSchedule(context);
+        SeedAppointments(context, dates.ExceptionDate, 10, queueStart: 1);
+        SeedAppointments(context, dates.TargetDate, 9, queueStart: 1);
+        await context.SaveChangesAsync();
+
+        var service = new DoctorAvailabilityService(
+            context,
+            new StubLoadServices(CurrentUserId),
+            new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
+            new AppointmentReschedulingServices(context));
+        var result = await service.UpsertWeeklyAvailabilityAsync(new AddDoctorAvailabilityDto
+        {
+            ClinicId = 1,
+            Days =
+            [
+                new DailyAvailabilityDto
+                {
+                    DayId = 2,
+                    StartTime = TimeSpan.FromHours(9),
+                    EndTime = TimeSpan.FromHours(17),
+                    MaxAppointments = 15
+                },
+                new DailyAvailabilityDto
+                {
+                    DayId = 3,
+                    StartTime = TimeSpan.FromHours(9),
+                    EndTime = TimeSpan.FromHours(17),
+                    MaxAppointments = 15
+                }
+            ]
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(15, await ActiveCountAsync(context, dates.TargetDate));
+        Assert.Equal(4, await ActiveCountAsync(context, dates.NextDate));
+        Assert.Equal(0, await ActiveCountAsync(context, dates.ExceptionDate));
+        Assert.False(await context.DoctorAvailabilities
+            .Where(availability => availability.DayId == 1)
+            .Select(availability => availability.IsAvailable)
+            .SingleAsync());
+        Assert.Equal(0, await context.Appointments.CountAsync(a => a.Status == AppointmentStatus.Cancelled));
+        Assert.True(await context.AuditLogs.AnyAsync(log =>
+            log.Action == "WorkingDayDisabledFromWeeklySchedule" &&
+            log.DoctorId == 1 &&
+            log.ClinicId == 1));
     }
 
     [Fact]
@@ -101,6 +226,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             pushNotifications,
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
 
         var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
@@ -133,6 +259,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             pushNotifications,
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
 
         var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
@@ -172,6 +299,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             pushNotifications,
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
 
         var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
@@ -204,6 +332,7 @@ public class AppointmentMoveCapacityTests
             context,
             new StubLoadServices(CurrentUserId),
             pushNotifications,
+            new StubWhatsAppMessageServices(),
             new AppointmentReschedulingServices(context));
 
         var result = await service.UpdateSingleDayAvailabilityAsync(new UpdateSingleDayAvailabilityDto
@@ -221,6 +350,76 @@ public class AppointmentMoveCapacityTests
         Assert.Equal(0, await ActiveCountAsync(context, dates.ExceptionDate));
         Assert.Equal(3, await context.Notifications.CountAsync());
         Assert.Equal(3, pushNotifications.SentCount);
+    }
+
+    [Fact]
+    public async Task DisablingWorkingDay_SendsWhatsAppToCancelledGuestAppointment()
+    {
+        await using var context = CreateContext();
+        var dates = SeedSchedule(context);
+        SetFutureAvailabilityCapacity(context, maxAppointments: 0);
+        SeedGuestAppointment(context, dates.ExceptionDate, queueNumber: 1);
+        await context.SaveChangesAsync();
+
+        var pushNotifications = new StubPushNotificationServices();
+        var whatsApp = new StubWhatsAppMessageServices();
+        var service = new DoctorAvailabilityService(
+            context,
+            new StubLoadServices(CurrentUserId),
+            pushNotifications,
+            whatsApp,
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpdateSingleDayAvailabilityAsync(new UpdateSingleDayAvailabilityDto
+        {
+            ClinicId = 1,
+            DayId = 1,
+            StartTime = TimeSpan.FromHours(9),
+            EndTime = TimeSpan.FromHours(17),
+            MaxAppointments = 15,
+            IsAvailable = false
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(1, await context.Appointments.CountAsync(a => a.Status == AppointmentStatus.Cancelled));
+        Assert.Equal(0, pushNotifications.SentCount);
+        Assert.Single(whatsApp.Messages);
+        Assert.Equal("07700000000", whatsApp.Messages[0].PhoneNumber);
+        Assert.Contains(dates.ExceptionDate.ToString("yyyy/MM/dd"), whatsApp.Messages[0].Message);
+    }
+
+    [Fact]
+    public async Task ClinicExceptionMove_RecordsFailedGuestWhatsAppForRetry()
+    {
+        await using var context = CreateContext();
+        var dates = SeedSchedule(context);
+        SeedGuestAppointment(context, dates.ExceptionDate, queueNumber: 1);
+        await context.SaveChangesAsync();
+
+        var whatsApp = new StubWhatsAppMessageServices(sendResult: false);
+        var service = new ClinicExceptionServices(
+            context,
+            new StubLoadServices(CurrentUserId),
+            new StubPushNotificationServices(),
+            whatsApp,
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpsertMineAsync(new UpsertClinicExceptionDto
+        {
+            ClinicId = 1,
+            ExceptionDate = DateOnly.FromDateTime(dates.ExceptionDate),
+            IsClosed = true,
+            AppointmentConflictAction = "move",
+            MoveAppointmentsToDate = DateOnly.FromDateTime(dates.TargetDate)
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        var deliveryAttempt = await context.NotificationDeliveryAttempts.SingleAsync();
+        Assert.Equal("WhatsApp", deliveryAttempt.Channel);
+        Assert.Equal("Failed", deliveryAttempt.Status);
+        Assert.Equal(1, deliveryAttempt.AttemptCount);
+        Assert.NotNull(deliveryAttempt.NextAttemptAt);
+        Assert.Equal("07700000000", deliveryAttempt.RecipientAddress);
     }
 
     private static ApplicationDbContext CreateContext()
@@ -295,6 +494,26 @@ public class AppointmentMoveCapacityTests
         {
             availability.MaxAppointments = maxAppointments;
         }
+    }
+
+    private static void SeedGuestAppointment(
+        ApplicationDbContext context,
+        DateTime date,
+        int queueNumber,
+        string phoneNumber = "07700000000")
+    {
+        context.Appointments.Add(new Appointment
+        {
+            DoctorId = 1,
+            ClinicId = 1,
+            AppointmentDate = date.Date,
+            QueueNumber = queueNumber,
+            Status = AppointmentStatus.Pending,
+            Code = $"{date:yyyyMMdd}-G{queueNumber}",
+            GuestName = "Guest",
+            GuestPhoneNumber = phoneNumber,
+            IsPhoneConfirmed = true
+        });
     }
 
     private static Day CreateDay(int id, DayOfWeek dayOfWeek)
@@ -379,7 +598,7 @@ public class AppointmentMoveCapacityTests
     {
         public int SentCount { get; private set; }
 
-        public Task SendToUserAsync(
+        public Task<bool> SendToUserAsync(
             Guid userId,
             string title,
             string body,
@@ -387,7 +606,21 @@ public class AppointmentMoveCapacityTests
             CancellationToken cancellationToken = default)
         {
             SentCount++;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
+        }
+    }
+
+    private sealed class StubWhatsAppMessageServices(bool sendResult = true) : IWhatsAppMessageServices
+    {
+        public List<(string PhoneNumber, string Message)> Messages { get; } = [];
+
+        public Task<bool> SendMessageAsync(
+            string phoneNumber,
+            string message,
+            CancellationToken cancellationToken = default)
+        {
+            Messages.Add((phoneNumber, message));
+            return Task.FromResult(sendResult);
         }
     }
 }

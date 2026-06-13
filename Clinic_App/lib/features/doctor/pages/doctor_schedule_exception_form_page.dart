@@ -33,7 +33,7 @@ class _DoctorScheduleExceptionFormPageState
 
   DateTime _date = DateTime.now();
   DateTime? _moveDate;
-  String _conflictAction = 'none';
+  String _conflictAction = 'cancel';
   bool _closed = true;
   bool _saving = false;
 
@@ -175,10 +175,9 @@ class _DoctorScheduleExceptionFormPageState
         date: _date,
         isClosed: _closed,
         reason: _reason.text.trim(),
-        appointmentConflictAction:
-            _conflictAction == 'none' ? null : _conflictAction,
+        appointmentConflictAction: _closed ? _conflictAction : null,
         moveAppointmentsToDate:
-            _conflictAction == 'move' ? _moveDate : null,
+            _closed && _conflictAction == 'move' ? _moveDate : null,
       );
 
       if (!mounted) return;
@@ -253,11 +252,6 @@ class _DoctorScheduleExceptionFormPageState
                     SegmentedButton<String>(
                       segments: const [
                         ButtonSegment(
-                          value: 'none',
-                          icon: Icon(Icons.do_not_disturb_on_outlined),
-                          label: Text('لاحقاً'),
-                        ),
-                        ButtonSegment(
                           value: 'move',
                           icon: Icon(Icons.redo_rounded),
                           label: Text('نقل'),
@@ -280,8 +274,9 @@ class _DoctorScheduleExceptionFormPageState
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'تاريخ النقل يجب أن يكون بعد تاريخ الاستثناء وضمن '
-                        'نافذة الحجز (${widget.clinic.bookingWindowDays} يوم).',
+                        'سيتم نقل وتوزيع الحجوزات على الأيام المتاحة ابتداءً '
+                        'من التاريخ المختار وضمن نافذة الحجز '
+                        '(${widget.clinic.bookingWindowDays} يوم).',
                         style: TextStyle(
                           color: Colors.grey.shade700,
                           fontSize: 12,

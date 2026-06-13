@@ -2,14 +2,18 @@ using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.ClinicExceptionDTO;
 using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Entities.AuditLog;
 using Clinic_Booking.Entities.ClinicException;
+using Clinic_Booking.Entities.NotificationDeliveryAttempt;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IAppointmentReschedulingServices;
 using Clinic_Booking.IServices.IClinicExceptionServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Clinic_Booking.Services.ClinicExceptionServices
 {
@@ -18,17 +22,20 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly IWhatsAppMessageServices _whatsAppMessageServices;
         private readonly IAppointmentReschedulingServices _appointmentReschedulingServices;
 
         public ClinicExceptionServices(
             ApplicationDbContext context,
             ILoadServices load,
             IPushNotificationServices pushNotificationServices,
+            IWhatsAppMessageServices whatsAppMessageServices,
             IAppointmentReschedulingServices appointmentReschedulingServices)
         {
             _context = context;
             _load = load;
             _pushNotificationServices = pushNotificationServices;
+            _whatsAppMessageServices = whatsAppMessageServices;
             _appointmentReschedulingServices = appointmentReschedulingServices;
         }
 
@@ -141,6 +148,17 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 {
                     await _context.SaveChangesAsync();
                     pendingNotifications = await HandleConflictingAppointmentsAsync(form, doctorId.Value, exceptionDate);
+                    AddAuditLog(
+                        form.IsClosed ? "ClinicExceptionClosed" : "ClinicExceptionUpdated",
+                        "ClinicException",
+                        exception.Id.ToString(),
+                        doctorId.Value,
+                        exception.ClinicId,
+                        null,
+                        null,
+                        form.IsClosed
+                            ? $"Closed exception date {exceptionDate:yyyy-MM-dd}; affected appointments: {pendingNotifications.Count}; action: {NormalizeConflictAction(form.AppointmentConflictAction) ?? "none"}."
+                            : $"Updated exception date {exceptionDate:yyyy-MM-dd}.");
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
@@ -178,6 +196,15 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             exception.IsDeleted = true;
             exception.DeleterId = _load.GetCurrentUserId();
             exception.DeletedAt = DateTime.UtcNow;
+            AddAuditLog(
+                "ClinicExceptionDeleted",
+                "ClinicException",
+                exception.Id.ToString(),
+                doctorId.Value,
+                exception.ClinicId,
+                null,
+                null,
+                $"Deleted exception date {exception.ExceptionDate:yyyy-MM-dd}.");
             await _context.SaveChangesAsync();
 
             return Ok<object>(null, "تم حذف يوم الاستثناء بنجاح.");
@@ -233,6 +260,23 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             }
 
             var action = NormalizeConflictAction(form.AppointmentConflictAction);
+            if (form.IsClosed && action == null)
+            {
+                var exceptionDate = form.ExceptionDate.ToDateTime(TimeOnly.MinValue);
+                var hasConflictingAppointments = await _context.Appointments.AnyAsync(appointment =>
+                    appointment.ClinicId == form.ClinicId &&
+                    appointment.DoctorId == doctorId &&
+                    appointment.AppointmentDate.Date == exceptionDate.Date &&
+                    appointment.Status != AppointmentStatus.Cancelled &&
+                    appointment.Status != AppointmentStatus.Completed &&
+                    !appointment.IsDeleted);
+
+                if (hasConflictingAppointments)
+                {
+                    return BadRequest("عند إغلاق يوم يحتوي حجوزات يجب اختيار نقل الحجوزات أو إلغائها.");
+                }
+            }
+
             if (action == "move")
             {
                 if (!form.MoveAppointmentsToDate.HasValue)
@@ -421,6 +465,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 appointment.ClinicId,
                 appointment.Id,
                 appointment.UserId,
+                appointment.GuestPhoneNumber,
                 appointment.Status,
                 title,
                 body);
@@ -445,19 +490,101 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             foreach (var notification in notifications.Where(item => item.UserId.HasValue))
             {
-                await _pushNotificationServices.SendToUserAsync(
+                var data = new Dictionary<string, string>
+                {
+                    ["type"] = "booking",
+                    ["appointmentId"] = notification.AppointmentId.ToString(),
+                    ["doctorId"] = notification.DoctorId.ToString(),
+                    ["clinicId"] = notification.ClinicId.ToString(),
+                    ["status"] = notification.Status.ToString()
+                };
+                var sent = await _pushNotificationServices.SendToUserAsync(
                     notification.UserId!.Value,
                     notification.Title,
                     notification.Body,
-                    new Dictionary<string, string>
-                    {
-                        ["type"] = "booking",
-                        ["appointmentId"] = notification.AppointmentId.ToString(),
-                        ["doctorId"] = notification.DoctorId.ToString(),
-                        ["clinicId"] = notification.ClinicId.ToString(),
-                        ["status"] = notification.Status.ToString()
-                    });
+                    data);
+                AddDeliveryAttempt(
+                    "Push",
+                    sent,
+                    notification,
+                    notification.UserId,
+                    null,
+                    data,
+                    sent ? null : "Push provider returned failure.");
             }
+
+            foreach (var notification in notifications.Where(item =>
+                         !item.UserId.HasValue &&
+                         !string.IsNullOrWhiteSpace(item.GuestPhoneNumber)))
+            {
+                var sent = await _whatsAppMessageServices.SendMessageAsync(
+                    notification.GuestPhoneNumber!,
+                    notification.Body);
+                AddDeliveryAttempt(
+                    "WhatsApp",
+                    sent,
+                    notification,
+                    null,
+                    notification.GuestPhoneNumber,
+                    null,
+                    sent ? null : "WhatsApp provider returned failure.");
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        private void AddDeliveryAttempt(
+            string channel,
+            bool sent,
+            PendingAppointmentNotification notification,
+            Guid? recipientUserId,
+            string? recipientAddress,
+            IDictionary<string, string>? data,
+            string? error)
+        {
+            var now = DateTime.UtcNow;
+            _context.NotificationDeliveryAttempts.Add(new NotificationDeliveryAttempt
+            {
+                Channel = channel,
+                Status = sent ? "Succeeded" : "Failed",
+                RecipientUserId = recipientUserId,
+                RecipientAddress = recipientAddress,
+                Title = notification.Title,
+                Body = notification.Body,
+                PayloadJson = data == null ? null : JsonSerializer.Serialize(data),
+                AttemptCount = 1,
+                LastAttemptAt = now,
+                NextAttemptAt = sent ? null : now.AddMinutes(15),
+                LastError = error,
+                DoctorId = notification.DoctorId,
+                ClinicId = notification.ClinicId,
+                AppointmentId = notification.AppointmentId
+            });
+        }
+
+        private void AddAuditLog(
+            string action,
+            string entityType,
+            string? entityId,
+            int? doctorId,
+            int? clinicId,
+            int? appointmentId,
+            int? subscriptionId,
+            string? details)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Action = action,
+                EntityType = entityType,
+                EntityId = entityId,
+                UserId = _load.GetCurrentUserId(),
+                DoctorId = doctorId,
+                ClinicId = clinicId,
+                AppointmentId = appointmentId,
+                SubscriptionId = subscriptionId,
+                Details = details,
+                OccurredAt = DateTime.UtcNow
+            });
         }
 
         private static string? NormalizeConflictAction(string? action)
@@ -467,7 +594,8 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 return null;
             }
 
-            return action.Trim().ToLowerInvariant();
+            var normalized = action.Trim().ToLowerInvariant();
+            return normalized == "none" ? null : normalized;
         }
 
         private async Task<int?> GetCurrentDoctorIdAsync()
@@ -538,6 +666,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             int ClinicId,
             int AppointmentId,
             Guid? UserId,
+            string? GuestPhoneNumber,
             AppointmentStatus Status,
             string Title,
             string Body);

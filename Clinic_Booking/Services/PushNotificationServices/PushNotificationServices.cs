@@ -37,7 +37,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             _logger = logger;
         }
 
-        public async Task SendToUserAsync(
+        public async Task<bool> SendToUserAsync(
             Guid userId,
             string title,
             string body,
@@ -53,7 +53,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             if (!_options.Enabled)
             {
                 _logger.LogInformation("Push notification skipped for user {UserId}: provider disabled.", userId);
-                return;
+                return false;
             }
 
             var tokens = await _context.DeviceTokens
@@ -81,7 +81,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
                     tokenStats?.Total ?? 0,
                     tokenStats?.Active ?? 0,
                     tokenStats?.Deleted ?? 0);
-                return;
+                return false;
             }
 
             _logger.LogInformation(
@@ -89,13 +89,19 @@ namespace Clinic_Booking.Services.PushNotificationServices
                 tokens.Count,
                 userId);
 
+            var sentCount = 0;
             foreach (var token in tokens)
             {
-                await SendFirebaseAsync(token, title, body, data, cancellationToken);
+                if (await SendFirebaseAsync(token, title, body, data, cancellationToken))
+                {
+                    sentCount++;
+                }
             }
+
+            return sentCount > 0;
         }
 
-        private async Task SendFirebaseAsync(
+        private async Task<bool> SendFirebaseAsync(
             string token,
             string title,
             string body,
@@ -106,7 +112,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             if (serviceAccount == null)
             {
                 _logger.LogWarning("Firebase push skipped for token {Token}: service account unavailable.", MaskToken(token));
-                return;
+                return false;
             }
 
             var projectId = _options.ProjectId?.Trim();
@@ -118,14 +124,14 @@ namespace Clinic_Booking.Services.PushNotificationServices
             if (string.IsNullOrWhiteSpace(projectId))
             {
                 _logger.LogWarning("Firebase push skipped: project id is missing.");
-                return;
+                return false;
             }
 
             var accessToken = await GetAccessTokenAsync(serviceAccount, cancellationToken);
             if (string.IsNullOrWhiteSpace(accessToken))
             {
                 _logger.LogWarning("Firebase push skipped for token {Token}: access token unavailable.", MaskToken(token));
-                return;
+                return false;
             }
 
             var endpoint = _options.FcmEndpoint.Replace("{projectId}", projectId);
@@ -158,7 +164,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
                         MaskToken(token),
                         response.StatusCode,
                         responseBody);
-                    return;
+                    return false;
                 }
 
                 _logger.LogInformation(
@@ -166,10 +172,12 @@ namespace Clinic_Booking.Services.PushNotificationServices
                     MaskToken(token),
                     response.StatusCode,
                     responseBody);
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Firebase push failed with exception. Token={Token}", MaskToken(token));
+                return false;
             }
         }
 

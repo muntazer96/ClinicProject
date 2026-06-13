@@ -16,11 +16,16 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
             _scopeFactory = scopeFactory;
         }
 
+        public Task RunOnceAsync(CancellationToken cancellationToken = default)
+        {
+            return ExpireSubscriptionsAsync(cancellationToken);
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await ExpireSubscriptionsAsync(stoppingToken);
+                await RunOnceAsync(stoppingToken);
                 await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
             }
         }

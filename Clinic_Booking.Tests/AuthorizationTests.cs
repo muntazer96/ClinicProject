@@ -26,11 +26,17 @@ public class AuthorizationTests
         Assert.Equal(expectedRole, authorize.Roles);
     }
 
-    [Fact]
-    public void SubscriptionController_RequiresSuperAdmin()
+    [Theory]
+    [InlineData(nameof(DoctorSubscriptionController.GetDoctorSubscriptionsAsync))]
+    [InlineData(nameof(DoctorSubscriptionController.CreateDoctorSubscriptionAsync))]
+    [InlineData(nameof(DoctorSubscriptionController.DeleteDoctorSubscriptionAsync))]
+    [InlineData(nameof(DoctorSubscriptionController.ActivateDoctorSubscriptionAsync))]
+    [InlineData(nameof(DoctorSubscriptionController.RenewDoctorSubscriptionAsync))]
+    [InlineData(nameof(DoctorSubscriptionController.UpgradeDoctorSubscriptionAsync))]
+    public void SubscriptionAdminEndpoint_RequiresSuperAdmin(string action)
     {
-        var authorize = typeof(DoctorSubscriptionController)
-            .GetCustomAttributes(typeof(AuthorizeAttribute), true)
+        var method = typeof(DoctorSubscriptionController).GetMethod(action)!;
+        var authorize = method.GetCustomAttributes(typeof(AuthorizeAttribute), true)
             .Cast<AuthorizeAttribute>()
             .Single();
 
