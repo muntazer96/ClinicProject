@@ -14,6 +14,7 @@ using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Clinic_Booking.Utilities;
 
 namespace Clinic_Booking.Services.DoctorAvailabilityServices
 {
@@ -566,7 +567,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             int doctorId,
             string disabledDayName)
         {
-            var today = DateTime.Today;
+            var today = BusinessClock.Today();
             var appointments = await _context.Appointments
                 .Where(appointment =>
                     appointment.ClinicId == clinicId &&

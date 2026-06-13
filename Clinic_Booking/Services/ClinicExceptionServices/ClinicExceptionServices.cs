@@ -14,6 +14,7 @@ using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Clinic_Booking.Utilities;
 
 namespace Clinic_Booking.Services.ClinicExceptionServices
 {
@@ -217,7 +218,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 return BadRequest("العيادة وتاريخ الاستثناء مطلوبان.");
             }
 
-            if (form.ExceptionDate < DateOnly.FromDateTime(DateTime.Today))
+            if (form.ExceptionDate < BusinessClock.TodayDateOnly())
             {
                 return BadRequest("لا يمكن إضافة يوم استثناء بتاريخ سابق.");
             }
@@ -285,7 +286,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 }
 
                 if (form.MoveAppointmentsToDate.Value <= form.ExceptionDate ||
-                    form.MoveAppointmentsToDate.Value < DateOnly.FromDateTime(DateTime.Today))
+                    form.MoveAppointmentsToDate.Value < BusinessClock.TodayDateOnly())
                 {
                     return BadRequest("تاريخ النقل يجب أن يكون تاريخاً لاحقاً بعد تاريخ الاستثناء.");
                 }
@@ -295,7 +296,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                     .Select(clinic => clinic.BookingWindowDays)
                     .FirstOrDefaultAsync();
                 bookingWindowDays = bookingWindowDays <= 0 ? 7 : bookingWindowDays;
-                var maxBookableDate = DateOnly.FromDateTime(DateTime.Today.AddDays(bookingWindowDays - 1));
+                var maxBookableDate = DateOnly.FromDateTime(BusinessClock.Today().AddDays(bookingWindowDays - 1));
                 if (form.MoveAppointmentsToDate.Value > maxBookableDate)
                 {
                     return BadRequest($"تاريخ النقل يجب أن يكون ضمن نافذة الحجز الخاصة بالعيادة ({bookingWindowDays} يوم).");

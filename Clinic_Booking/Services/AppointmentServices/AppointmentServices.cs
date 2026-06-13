@@ -11,6 +11,8 @@ using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.Services.NotificationDeliveryServices;
+using Clinic_Booking.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -265,8 +267,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            var startDate = fromDate ?? DateOnly.FromDateTime(DateTime.Today);
-            if (startDate < DateOnly.FromDateTime(DateTime.Today))
+            var today = BusinessClock.TodayDateOnly();
+            var startDate = fromDate ?? today;
+            if (startDate < today)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -531,7 +534,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
-            if (form.AppointmentDate.Date < DateTime.Today)
+            if (form.AppointmentDate.Date < BusinessClock.Today())
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -831,7 +834,7 @@ Data = null
             }
 
             var appointmentDate = form.AppointmentDate.Date;
-            if (appointmentDate < DateTime.Today)
+            if (appointmentDate < BusinessClock.Today())
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -1538,11 +1541,23 @@ Data = null
                 return;
             }
 
-            await _pushNotificationServices.SendToUserAsync(
+            var data = BookingNotificationData(appointment);
+            var sent = await _pushNotificationServices.SendToUserAsync(
                 doctorUserId.Value,
                 title,
                 body,
-                BookingNotificationData(appointment));
+                data);
+            NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                _context,
+                sent,
+                doctorUserId.Value,
+                title,
+                body,
+                data,
+                doctorId: appointment.DoctorId,
+                clinicId: appointment.ClinicId,
+                appointmentId: appointment.Id);
+            await _context.SaveChangesAsync();
         }
 
         private async Task NotifyPatientAsync(Appointment appointment, string title, string body)
@@ -1562,11 +1577,23 @@ Data = null
                 appointment.UserId,
                 title);
 
-            await _pushNotificationServices.SendToUserAsync(
+            var data = BookingNotificationData(appointment);
+            var sent = await _pushNotificationServices.SendToUserAsync(
                 appointment.UserId.Value,
                 title,
                 body,
-                BookingNotificationData(appointment));
+                data);
+            NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                _context,
+                sent,
+                appointment.UserId.Value,
+                title,
+                body,
+                data,
+                doctorId: appointment.DoctorId,
+                clinicId: appointment.ClinicId,
+                appointmentId: appointment.Id);
+            await _context.SaveChangesAsync();
         }
 
         private async Task NotifyBookingCancelledAsync(Appointment appointment, bool includeDoctor)
@@ -1610,11 +1637,22 @@ Data = null
 
             if (doctorUserId.HasValue && notifiedUsers.Add(doctorUserId.Value))
             {
-                await _pushNotificationServices.SendToUserAsync(
+                var data = BookingNotificationData(appointment);
+                var sent = await _pushNotificationServices.SendToUserAsync(
                     doctorUserId.Value,
                     title,
                     body,
-                    BookingNotificationData(appointment));
+                    data);
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent,
+                    doctorUserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
             }
             else
             {
@@ -1626,11 +1664,22 @@ Data = null
 
             if (includePatient && appointment.UserId.HasValue && notifiedUsers.Add(appointment.UserId.Value))
             {
-                await _pushNotificationServices.SendToUserAsync(
+                var data = BookingNotificationData(appointment);
+                var sent = await _pushNotificationServices.SendToUserAsync(
                     appointment.UserId.Value,
                     title,
                     body,
-                    BookingNotificationData(appointment));
+                    data);
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent,
+                    appointment.UserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
             }
             else if (includePatient)
             {
@@ -1638,6 +1687,11 @@ Data = null
                     "Booking notification did not send to patient. AppointmentId={AppointmentId}, PatientUserId={PatientUserId}. Guest bookings cannot receive push notifications unless linked to an app user.",
                     appointment.Id,
                     appointment.UserId);
+            }
+
+            if (_context.ChangeTracker.HasChanges())
+            {
+                await _context.SaveChangesAsync();
             }
         }
 
@@ -1658,7 +1712,7 @@ Data = null
         private static DateTime GetMaxBookableDate(int bookingWindowDays)
         {
             var days = bookingWindowDays <= 0 ? 7 : bookingWindowDays;
-            return DateTime.Today.AddDays(days - 1);
+            return BusinessClock.Today().AddDays(days - 1);
         }
 
         private static Dictionary<string, string> BookingNotificationData(Appointment appointment)

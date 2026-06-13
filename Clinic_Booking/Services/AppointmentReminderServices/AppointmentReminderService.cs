@@ -3,6 +3,8 @@ using Clinic_Booking.Data;
 using Clinic_Booking.Entities.Notification;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.Services.NotificationDeliveryServices;
+using Clinic_Booking.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -32,7 +34,7 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
                 if (_options.Enabled && ShouldRunNow())
                 {
                     await SendTodayRemindersAsync(stoppingToken);
-                    _lastRunDate = DateOnly.FromDateTime(DateTime.Today);
+                    _lastRunDate = BusinessClock.TodayDateOnly();
                 }
 
                 var delayHours = Math.Max(1, _options.RepeatEveryHoursWhenMissed);
@@ -42,7 +44,7 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
 
         private bool ShouldRunNow()
         {
-            var now = DateTime.Now;
+            var now = BusinessClock.Now();
             var today = DateOnly.FromDateTime(now);
             if (_lastRunDate == today)
             {
@@ -59,7 +61,7 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationServices>();
-            var today = DateTime.Today;
+            var today = BusinessClock.Today();
             var tomorrow = today.AddDays(1);
 
             var appointments = await context.Appointments
@@ -89,17 +91,28 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
 
                 var title = "تذكير بالحجز";
                 var body = $"لديك حجز اليوم عند {appointment.Doctor?.Name ?? "الطبيب"} في {appointment.Clinic?.Name ?? "العيادة"}. رقم الدور: {appointment.QueueNumber}";
-                await push.SendToUserAsync(
+                var data = new Dictionary<string, string>
+                {
+                    ["type"] = "appointment_reminder",
+                    ["appointmentId"] = appointment.Id.ToString(),
+                    ["appointmentDate"] = appointment.AppointmentDate.ToString("yyyy-MM-dd")
+                };
+                var sent = await push.SendToUserAsync(
                     appointment.UserId.Value,
                     title,
                     body,
-                    new Dictionary<string, string>
-                    {
-                        ["type"] = "appointment_reminder",
-                        ["appointmentId"] = appointment.Id.ToString(),
-                        ["appointmentDate"] = appointment.AppointmentDate.ToString("yyyy-MM-dd")
-                    },
+                    data,
                     cancellationToken);
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    context,
+                    sent,
+                    appointment.UserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
 
                 context.Notifications.Add(new Notification
                 {

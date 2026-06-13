@@ -76,96 +76,94 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'إدارة الحجوزات',
-        child: Stack(
+    title: 'إدارة الحجوزات',
+    child: Stack(
+      children: [
+        Column(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: _pickDateRange,
-                      icon: const Icon(Icons.calendar_month_rounded),
-                      label: Text(
-                        _fromDate == null
-                            ? 'فلترة حسب التاريخ'
-                            : '${DateFormat('yyyy/MM/dd').format(_fromDate!)} - ${DateFormat('yyyy/MM/dd').format(_toDate ?? _fromDate!)}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: Color(0xFFDDE9E7)),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _pickDateRange,
+                  icon: const Icon(Icons.calendar_month_rounded),
+                  label: Text(
+                    _fromDate == null
+                        ? 'فلترة حسب التاريخ'
+                        : '${DateFormat('yyyy/MM/dd').format(_fromDate!)} - ${DateFormat('yyyy/MM/dd').format(_toDate ?? _fromDate!)}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: Color(0xFFDDE9E7)),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                 ),
-
-                Padding(
-  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-  child: Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    alignment: WrapAlignment.center,
-    children: [
-      _StatusChip('الكل', null, _status, _setStatus),
-      _StatusChip('قيد الانتظار', 0, _status, _setStatus),
-      _StatusChip('مؤكد', 1, _status, _setStatus),
-      _StatusChip('ملغي', 2, _status, _setStatus),
-      _StatusChip('مكتمل', 3, _status, _setStatus),
-    ],
-  ),
-),
-
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _load,
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _items.isEmpty
-                            ? const DoctorEmptyState(
-                                icon: Icons.event_busy_rounded,
-                                message: 'لا توجد حجوزات بهذه الحالة.',
-                              )
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 4, 16, 88),
-                                itemCount: _items.length,
-                                itemBuilder: (context, index) =>
-                                    _AppointmentCard(
-                                  item: _items[index],
-                                  onToggle: _toggle,
-                                  onComplete: _complete,
-                                ),
-                              ),
-                  ),
-                ),
-              ],
+              ),
             ),
 
-            PositionedDirectional(
-              start: 18,
-              bottom: 16,
-              child: FloatingActionButton.small(
-                heroTag: 'doctor-add-appointment',
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                onPressed: () async {
-                  await context.push('/doctor/appointments/manual');
-                  await _load();
-                },
-                child: const Icon(Icons.add_rounded),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  _StatusChip('الكل', null, _status, _setStatus),
+                  _StatusChip('قيد الانتظار', 0, _status, _setStatus),
+                  _StatusChip('مؤكد', 1, _status, _setStatus),
+                  _StatusChip('ملغي', 2, _status, _setStatus),
+                  _StatusChip('مكتمل', 3, _status, _setStatus),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _items.isEmpty
+                    ? const DoctorEmptyState(
+                        icon: Icons.event_busy_rounded,
+                        message: 'لا توجد حجوزات بهذه الحالة.',
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                        itemCount: _items.length,
+                        itemBuilder: (context, index) => _AppointmentCard(
+                          item: _items[index],
+                          onToggle: _toggle,
+                          onComplete: _complete,
+                        ),
+                      ),
               ),
             ),
           ],
         ),
-      );
+
+        PositionedDirectional(
+          start: 18,
+          bottom: 16,
+          child: FloatingActionButton.small(
+            heroTag: 'doctor-add-appointment',
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            onPressed: () async {
+              await context.push('/doctor/appointments/manual');
+              await _load();
+            },
+            child: const Icon(Icons.add_rounded),
+          ),
+        ),
+      ],
+    ),
+  );
 
   void _setStatus(int? value) {
     setState(() => _status = value);
@@ -209,15 +207,16 @@ class _AppointmentCard extends StatelessWidget {
     final statusColor = item.status == 2
         ? AppColors.danger
         : item.status == 3
-            ? AppColors.success
-            : item.status == 1
-                ? AppColors.primary
-                : const Color(0xFFB7791F);
+        ? AppColors.success
+        : item.status == 1
+        ? AppColors.primary
+        : const Color(0xFFB7791F);
 
     final isGuest = item.isGuestBooking;
     final sourceColor = isGuest ? const Color(0xFFD6A20B) : AppColors.primary;
-    final sourceBg =
-        isGuest ? const Color(0xFFFFF7DF) : const Color(0xFFEAF7F5);
+    final sourceBg = isGuest
+        ? const Color(0xFFFFF7DF)
+        : const Color(0xFFEAF7F5);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -343,8 +342,9 @@ class _AppointmentCard extends StatelessWidget {
                   child: _InfoTile(
                     icon: Icons.calendar_month_rounded,
                     title: 'التاريخ',
-                    value: DateFormat('yyyy/MM/dd')
-                        .format(item.appointmentDate),
+                    value: DateFormat(
+                      'yyyy/MM/dd',
+                    ).format(item.appointmentDate),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -528,10 +528,7 @@ class _InfoTile extends StatelessWidget {
 }
 
 class _InfoLine extends StatelessWidget {
-  const _InfoLine({
-    required this.icon,
-    required this.text,
-  });
+  const _InfoLine({required this.icon, required this.text});
 
   final IconData icon;
   final String text;

@@ -3,6 +3,7 @@ using Clinic_Booking.Entities.DoctorSubscription;
 using Clinic_Booking.Entities.Notification;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.Services.NotificationDeliveryServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clinic_Booking.Services.SubscriptionExpirationServices
@@ -184,16 +185,26 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
                 .FirstOrDefaultAsync(cancellationToken);
             if (doctorUserId.HasValue)
             {
-                await push.SendToUserAsync(
+                var data = new Dictionary<string, string>
+                {
+                    ["type"] = "subscription",
+                    ["doctorId"] = doctorId.ToString()
+                };
+                var sent = await push.SendToUserAsync(
                     doctorUserId.Value,
                     title,
                     body,
-                    new Dictionary<string, string>
-                    {
-                        ["type"] = "subscription",
-                        ["doctorId"] = doctorId.ToString()
-                    },
+                    data,
                     cancellationToken);
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    context,
+                    sent,
+                    doctorUserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: doctorId);
+                await context.SaveChangesAsync(cancellationToken);
             }
         }
     }
