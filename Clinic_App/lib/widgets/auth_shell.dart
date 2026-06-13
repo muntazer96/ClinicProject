@@ -70,17 +70,10 @@ class AuthShell extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Container(
+                            SizedBox(
                               width: 38,
                               height: 38,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: .15),
-                                borderRadius: BorderRadius.circular(13),
-                              ),
-                              child: const Icon(
-                                Icons.local_hospital_outlined,
-                                color: Colors.white,
-                              ),
+                              child: Image.asset('assets/app_logo.png'),
                             ),
                           ],
                         ),

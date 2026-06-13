@@ -94,24 +94,10 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
             : null,
         title: Row(
           children: [
-            Container(
+            SizedBox(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x22155E75),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Image.asset('assets/app_logo.png'),
-              ),
+              child: Image.asset('assets/app_logo.png'),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -165,7 +151,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           ],
         ),
         child: NavigationBar(
-          indicatorColor: premiumColor.withOpacity(.14),
+          indicatorColor: premiumColor.withValues(alpha: .14),
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             if (index == 0) context.go('/doctor');

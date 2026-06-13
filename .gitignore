@@ -381,6 +381,9 @@ appsettings.json
 !Clinic_Admin/src/assets/godev_logo.png
 !Clinic_App/android/app/src/main/res/mipmap*/ic_launcher*.png
 !Clinic_App/ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png
+!Clinic_App/web/favicon.png
+!Clinic_App/web/icons/
+!Clinic_App/web/icons/*.png
 *.gif
 *.tiff
 /Clinic_Booking/wwwroot

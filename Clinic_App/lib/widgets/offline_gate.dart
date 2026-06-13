@@ -61,22 +61,9 @@ class _OfflineScreenState extends State<_OfflineScreen> {
           child: Column(
             children: [
               const Spacer(),
-              Container(
+              SizedBox(
                 width: 92,
                 height: 92,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x16155E75),
-                      blurRadius: 22,
-                      offset: Offset(0, 12),
-                    ),
-                  ],
-                ),
                 child: Image.asset('assets/app_logo.png'),
               ),
               const SizedBox(height: 28),
