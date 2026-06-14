@@ -91,6 +91,7 @@ class DoctorService {
 
   Future<List<DoctorAppointment>> getAppointments({
     int? status,
+    int? clinicId,
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
@@ -98,6 +99,7 @@ class DoctorService {
       '/Appointment/doctor/my',
       queryParameters: {
         if (status != null) 'status': status,
+        if (clinicId != null) 'clinicId': clinicId,
         if (fromDate != null) 'fromDate': _dateOnly(fromDate),
         if (toDate != null) 'toDate': _dateOnly(toDate),
       },

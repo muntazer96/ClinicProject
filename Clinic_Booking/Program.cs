@@ -267,6 +267,23 @@ app.MapControllers();
 
 app.UseStaticFiles();
 
+//app.Use(async (context, next) =>
+//{
+//context.Response.Headers["Content-Security-Policy"] =
+//    "default-src 'self'; " +
+//    "script-src 'self'; " +
+//    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+//    "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+//    "font-src 'self' https://fonts.gstatic.com data:; " +
+//    "img-src 'self' data:; " +
+//    "connect-src 'self' http://localhost:* https://*; " +
+//    "form-action 'self'; " +
+//    "base-uri 'self'; " +
+//    "frame-ancestors 'none';";
+
+//    await next();
+//});
+
 if (app.Configuration.GetValue("Database:AutoMigrate", app.Environment.IsDevelopment()))
 {
     using var scope = app.Services.CreateScope();

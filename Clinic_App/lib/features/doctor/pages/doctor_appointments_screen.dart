@@ -24,8 +24,10 @@ class DoctorAppointmentsScreen extends StatefulWidget {
 class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   late final DoctorService _service;
   List<DoctorAppointment> _items = [];
+  List<DoctorClinic> _clinics = [];
   bool _loading = true;
   int? _status;
+  int? _clinicId;
   DateTime? _fromDate;
   DateTime? _toDate;
 
@@ -36,21 +38,34 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     final today = DateTime.now();
     _fromDate = DateTime(today.year, today.month, today.day);
     _toDate = _fromDate;
-    _load();
+    _loadInitial();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadInitial() async {
     setState(() => _loading = true);
+    try {
+      _clinics = await _service.getClinics();
+      await _load(setLoading: false);
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _load({bool setLoading = true}) async {
+    if (setLoading) setState(() => _loading = true);
     try {
       _items = await _service.getAppointments(
         status: _status,
+        clinicId: _clinicId,
         fromDate: _fromDate,
         toDate: _toDate,
       );
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && setLoading) setState(() => _loading = false);
     }
   }
 
@@ -106,6 +121,31 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                 ),
               ),
             ),
+
+            if (_clinics.length > 1)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _ClinicChip('الكل', null, _clinicId, _setClinic),
+                      const SizedBox(width: 8),
+                      ..._clinics.expand(
+                        (clinic) => [
+                          _ClinicChip(
+                            clinic.name,
+                            clinic.id,
+                            _clinicId,
+                            _setClinic,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
@@ -167,6 +207,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
 
   void _setStatus(int? value) {
     setState(() => _status = value);
+    _load();
+  }
+
+  void _setClinic(int? value) {
+    setState(() => _clinicId = value);
     _load();
   }
 
@@ -582,6 +627,48 @@ class _WarningBox extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClinicChip extends StatelessWidget {
+  const _ClinicChip(this.label, this.value, this.selected, this.onSelected);
+
+  final String label;
+  final int? value;
+  final int? selected;
+  final ValueChanged<int?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = selected == value;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => onSelected(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        constraints: const BoxConstraints(minWidth: 76, maxWidth: 170),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryDark : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryDark : const Color(0xFFDDE9E7),
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: isSelected ? Colors.white : AppColors.primaryDark,
+          ),
+        ),
       ),
     );
   }
