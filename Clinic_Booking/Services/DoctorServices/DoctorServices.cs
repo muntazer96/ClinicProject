@@ -9,6 +9,7 @@ using Clinic_Booking.Entities.User;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Clinic_Booking.Authorization;
 
 namespace Clinic_Booking.Services.DoctorServices
 {
@@ -607,70 +608,65 @@ namespace Clinic_Booking.Services.DoctorServices
 
         public async Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form)
         {
+            await using var tx = await _context.Database.BeginTransactionAsync();
+
             var doctor = await _context.Doctors
                 .FirstOrDefaultAsync(d => d.Id == doctorId && !d.IsDeleted);
+
             if (doctor == null)
-            {
                 return new NotFoundObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 404,
                     Message = "الدكتور غير موجود."
                 });
-            }
 
             var user = await _userManager.FindByIdAsync(form.UserId.ToString());
+
             if (user == null || user.IsDeleted)
-            {
                 return new NotFoundObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 404,
                     Message = "حساب المستخدم غير موجود."
                 });
-            }
 
-            if (user.IsLocked || await _userManager.IsInRoleAsync(user, "SuperAdmin"))
-            {
+            if (user.IsLocked || await _userManager.IsInRoleAsync(user, AppRoles.SuperAdmin))
                 return new BadRequestObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 400,
                     Message = "لا يمكن ربط هذا الحساب بطبيب."
                 });
-            }
 
             var accountAlreadyLinked = await _context.Doctors
                 .AnyAsync(d => d.Id != doctorId && d.UserId == form.UserId && !d.IsDeleted);
+
             if (accountAlreadyLinked)
-            {
                 return new BadRequestObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 400,
                     Message = "هذا الحساب مرتبط بطبيب آخر."
                 });
-            }
 
             doctor.UserId = form.UserId;
             doctor.ModifierId = _load.GetCurrentUserId();
             doctor.ModifiedAt = DateTime.UtcNow;
 
-            if (!await _userManager.IsInRoleAsync(user, "DoctorUser"))
-            {
-                var roleResult = await _userManager.AddToRoleAsync(user, "DoctorUser");
-                if (!roleResult.Succeeded)
+            var roleResult = await ReplaceUserRolesAsync(user, AppRoles.DoctorUser);
+
+            if (!roleResult.Succeeded)
+                return new BadRequestObjectResult(new ResponseDto<string>
                 {
-                    return new BadRequestObjectResult(new ResponseDto<string>
-                    {
-                        Status = "Error",
-                        Code = 400,
-                        Message = string.Join(" ", roleResult.Errors.Select(e => e.Description))
-                    });
-                }
-            }
+                    Status = "Error",
+                    Code = 400,
+                    Message = string.Join(" ", roleResult.Errors.Select(e => e.Description))
+                });
 
             await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+
             return new OkObjectResult(new ResponseDto<string>
             {
                 Status = "Success",
@@ -678,25 +674,46 @@ namespace Clinic_Booking.Services.DoctorServices
                 Message = "تم ربط حساب الطبيب بنجاح."
             });
         }
-
         public async Task<IActionResult> UnlinkAccountAsync(int doctorId)
         {
+            await using var tx = await _context.Database.BeginTransactionAsync();
+
             var doctor = await _context.Doctors
                 .FirstOrDefaultAsync(d => d.Id == doctorId && !d.IsDeleted);
+
             if (doctor == null)
-            {
                 return new NotFoundObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
                     Code = 404,
                     Message = "الدكتور غير موجود."
                 });
+
+            if (doctor.UserId != null)
+            {
+                var user = await _userManager.FindByIdAsync(doctor.UserId.Value.ToString());
+
+                if (user != null && !user.IsDeleted &&
+                    !await _userManager.IsInRoleAsync(user, AppRoles.SuperAdmin))
+                {
+                    var roleResult = await ReplaceUserRolesAsync(user, AppRoles.NormalUser);
+
+                    if (!roleResult.Succeeded)
+                        return new BadRequestObjectResult(new ResponseDto<string>
+                        {
+                            Status = "Error",
+                            Code = 400,
+                            Message = string.Join(" ", roleResult.Errors.Select(e => e.Description))
+                        });
+                }
             }
 
             doctor.UserId = null;
             doctor.ModifierId = _load.GetCurrentUserId();
             doctor.ModifiedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
+            await tx.CommitAsync();
 
             return new OkObjectResult(new ResponseDto<string>
             {
@@ -705,7 +722,6 @@ namespace Clinic_Booking.Services.DoctorServices
                 Message = "تم فصل حساب الطبيب بنجاح."
             });
         }
-
         public async Task<IActionResult> UpdateVisibilityAsync(int doctorId, DoctorVisibilityUpdateDto form)
         {
             var doctor = await _context.Doctors
@@ -1062,8 +1078,8 @@ namespace Clinic_Booking.Services.DoctorServices
         {
             try
             {
-                var doctor = await _context.Doctors.Where(d=>d.Id == id && !d.IsDeleted).FirstOrDefaultAsync();
-                if(doctor != null)
+                var doctor = await _context.Doctors.Where(d => d.Id == id && !d.IsDeleted).FirstOrDefaultAsync();
+                if (doctor != null)
                 {
                     doctor.IsDeleted = true;
                     doctor.DeleterId = _load.GetCurrentUserId();
@@ -1151,6 +1167,19 @@ namespace Clinic_Booking.Services.DoctorServices
             }
 
             return null;
+        }
+        private async Task<IdentityResult> ReplaceUserRolesAsync(AspNetUsers user, string newRole)
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            if (currentRoles.Any())
+            {
+                var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                    return removeResult;
+            }
+
+            return await _userManager.AddToRoleAsync(user, newRole);
         }
     }
 }

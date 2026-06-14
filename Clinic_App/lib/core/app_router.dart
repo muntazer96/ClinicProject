@@ -294,8 +294,17 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/profile/confirm-phone',
-      builder: (_, __) =>
-          const AppScaffold(title: 'تأكيد الهاتف', child: ConfirmPhoneScreen()),
+      builder: (_, __) => auth.isDoctor
+          ? const DoctorScaffold(
+              title: 'تأكيد الهاتف',
+              showBackButton: true,
+              backRoute: '/doctor/profile',
+              child: ConfirmPhoneScreen(),
+            )
+          : const AppScaffold(
+              title: 'تأكيد الهاتف',
+              child: ConfirmPhoneScreen(),
+            ),
     ),
     GoRoute(
       path: '/guest-booking',
@@ -317,6 +326,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     };
     final doctorPage =
         state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');
+    final phoneConfirmationPage = state.uri.path == '/profile/confirm-phone';
     if ((protectedPages.contains(state.uri.path) || doctorPage) &&
         !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
@@ -324,7 +334,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     if (doctorPage && !auth.isDoctor) return '/';
     if (auth.isDoctor &&
         (state.uri.path == '/' ||
-            protectedPages.contains(state.uri.path) ||
+            (protectedPages.contains(state.uri.path) &&
+                !phoneConfirmationPage) ||
             authPages.contains(state.uri.path))) {
       return '/doctor';
     }
@@ -337,7 +348,9 @@ int? _tryParsePathParam(GoRouterState state, String key) =>
     int.tryParse(state.pathParameters[key] ?? '');
 
 class _MissingBookingData extends StatelessWidget {
-  const _MissingBookingData();
+  const _MissingBookingData({this.redirectTo = '/search'});
+
+  final String redirectTo;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -352,8 +365,8 @@ class _MissingBookingData extends StatelessWidget {
             const SizedBox(height: 10),
             const Text('لا توجد بيانات حجز لعرضها.'),
             TextButton(
-              onPressed: () => context.go('/search'),
-              child: const Text('العودة إلى البحث'),
+              onPressed: () => context.go(redirectTo),
+              child: const Text('عودة'),
             ),
           ],
         ),

@@ -387,44 +387,39 @@ class _AppointmentCard extends StatelessWidget {
 
             if (item.canToggle || item.canComplete) ...[
               const SizedBox(height: 14),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (item.patientPhoneNumber.trim().isNotEmpty)
-                    Expanded(
-                      child: DoctorActionButton(
-                        label: 'اتصال',
-                        icon: Icons.phone_rounded,
-                        onPressed: () =>
-                            openPhone(context, item.patientPhoneNumber),
-                      ),
+                    DoctorActionButton(
+                      label: 'اتصال',
+                      icon: Icons.phone_rounded,
+                      onPressed: () =>
+                          openPhone(context, item.patientPhoneNumber),
                     ),
                   if (item.patientPhoneNumber.trim().isNotEmpty &&
                       (item.canToggle || item.canComplete))
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 8),
                   if (item.canToggle)
-                    Expanded(
-                      child: item.status == 0
-                          ? DoctorActionButton(
-                              label: 'قبول / تأكيد',
-                              icon: Icons.check_circle_outline_rounded,
-                              onPressed: () => onToggle(item),
-                            )
-                          : LongPressButton(
-                              danger: true,
-                              onLongPress: () => onToggle(item),
-                              icon: const Icon(Icons.cancel_outlined),
-                              label: const Text('رفض / إلغاء'),
-                            ),
-                    ),
+                    item.status == 0
+                        ? DoctorActionButton(
+                            label: 'قبول / تأكيد',
+                            icon: Icons.check_circle_outline_rounded,
+                            onPressed: () => onToggle(item),
+                          )
+                        : LongPressButton(
+                            danger: true,
+                            onLongPress: () => onToggle(item),
+                            icon: const Icon(Icons.cancel_outlined),
+                            label: const Text('رفض / إلغاء'),
+                          ),
                   if (item.canToggle && item.canComplete)
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 8),
                   if (item.canComplete)
-                    Expanded(
-                      child: DoctorActionButton(
-                        label: 'إكمال',
-                        icon: Icons.task_alt_rounded,
-                        onPressed: () => onComplete(item),
-                      ),
+                    DoctorActionButton(
+                      label: 'إكمال',
+                      icon: Icons.task_alt_rounded,
+                      onPressed: () => onComplete(item),
                     ),
                 ],
               ),

@@ -554,9 +554,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
-Code = 400,
-Message = $"لا يمكن الحجز بعد تاريخ {maxBookableDate:yyyy/MM/dd}.",
-Data = null
+                    Code = 400,
+                    Message = $"لا يمكن الحجز بعد تاريخ {maxBookableDate:yyyy/MM/dd}.",
+                    Data = null
                 });
             }
 
@@ -612,7 +612,8 @@ Data = null
                 ? bookingUser?.PhoneNumber
                 : form.GuestPhoneNumber?.Trim();
 
-            var requiresOtp = !userId.HasValue || _bookingOtpOptions.Enabled;
+            var requiresOtp = _bookingOtpOptions.Enabled &&
+                (!userId.HasValue || bookingUser?.PhoneNumberConfirmed != true);
 
             if (requiresOtp && string.IsNullOrWhiteSpace(bookingPhoneNumber))
             {
@@ -745,6 +746,7 @@ Data = null
                     {
                         appointment.Status = AppointmentStatus.Cancelled;
                         appointment.CancellationReason = "OTP delivery failed.";
+                        appointment.IsDeleted = true;
                         appointment.CancelledAt = DateTime.UtcNow;
                         appointment.ModifiedAt = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
@@ -768,7 +770,7 @@ Data = null
                 "حجز جديد",
                 requiresOtp
                     ? "تم إنشاء حجز جديد وينتظر تأكيد رقم الهاتف."
-                    : "تم استلام حجز جديد بتأريخ "+appointmentDate +".",
+                    : "تم استلام حجز جديد بتأريخ " + appointmentDate + ".",
                 appointment);
 
             if (!requiresOtp)

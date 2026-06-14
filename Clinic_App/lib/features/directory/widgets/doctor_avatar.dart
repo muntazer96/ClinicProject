@@ -29,6 +29,10 @@ class DoctorAvatar extends StatelessWidget {
           : Image.network(
               ApiClient.doctorImageUrl(imageName),
               fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+              },
               errorBuilder: (_, __, ___) => _fallback(),
             ),
     ),

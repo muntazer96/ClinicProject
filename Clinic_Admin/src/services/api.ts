@@ -14,6 +14,48 @@ const api = axios.create({
   timeout: 15000,
 })
 
+interface RefreshResponse {
+  data?: {
+    token?: string
+    refreshToken?: string
+  }
+}
+
+let refreshPromise: Promise<string | null> | null = null
+
+export function clearAuthStorage() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
+export async function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise
+
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+  if (!refreshToken) return null
+
+  refreshPromise = axios
+    .post<RefreshResponse>(`${api.defaults.baseURL}/User/refresh`, { refreshToken })
+    .then((response) => {
+      const data = response.data?.data
+      if (!data?.token || !data.refreshToken) return null
+
+      localStorage.setItem(ACCESS_TOKEN_KEY, data.token)
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
+      window.dispatchEvent(new CustomEvent('clinic-auth-refreshed', { detail: data }))
+      return data.token
+    })
+    .catch(() => {
+      clearAuthStorage()
+      return null
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(ACCESS_TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -25,29 +67,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config as any
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-      if (refreshToken) {
-        originalRequest._retry = true
-        try {
-          const response = await axios.post(`${api.defaults.baseURL}/User/refresh`, { refreshToken })
-          const data = response.data?.data
-          if (data?.token && data?.refreshToken) {
-            localStorage.setItem(ACCESS_TOKEN_KEY, data.token)
-            localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
-            window.dispatchEvent(new CustomEvent('clinic-auth-refreshed', { detail: data }))
-            originalRequest.headers.Authorization = `Bearer ${data.token}`
-            return api(originalRequest)
-          }
-        } catch {
-          localStorage.removeItem(ACCESS_TOKEN_KEY)
-          localStorage.removeItem(REFRESH_TOKEN_KEY)
-        }
+      originalRequest._retry = true
+      const token = await refreshAccessToken()
+      if (token) {
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        return api(originalRequest)
       }
     }
 
     if (error.response?.status === 401) {
-      localStorage.removeItem(ACCESS_TOKEN_KEY)
-      localStorage.removeItem(REFRESH_TOKEN_KEY)
+      clearAuthStorage()
       if (window.location.pathname !== '/login') window.location.assign('/login')
     }
     return Promise.reject(error)

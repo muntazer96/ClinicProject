@@ -1,13 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/app_theme.dart';
 import 'app_logo.dart';
 
-class OfflineGate extends StatelessWidget {
+class OfflineGate extends StatefulWidget {
   const OfflineGate({super.key, required this.child});
 
   final Widget child;
+
+  @override
+  State<OfflineGate> createState() => _OfflineGateState();
+}
+
+class _OfflineGateState extends State<OfflineGate> {
+  Timer? _connectivityTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectivityTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) async {
+        if (!ApiClient.connectionAvailable.value) {
+          await ApiClient.checkServerAvailability();
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _connectivityTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +44,7 @@ class OfflineGate extends StatelessWidget {
       builder: (context, available, _) {
         return Stack(
           children: [
-            child,
+            widget.child,
             if (!available) const Positioned.fill(child: _OfflineScreen()),
           ],
         );

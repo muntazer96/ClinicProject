@@ -5,6 +5,9 @@ import 'api_client.dart';
 class AnalyticsService {
   AnalyticsService(this._client);
 
+  static const int _maxTrackedKeys = 500;
+  static bool consentGiven = false;
+
   final ApiClient _client;
   static final String _sessionId = _createSessionId();
   static final Set<String> _viewedOnce = <String>{};
@@ -21,6 +24,7 @@ class AnalyticsService {
     String? province,
     String? searchText,
   }) async {
+    if (!consentGiven) return;
     try {
       await _client.dio.post(
         '/Analytics/track',
@@ -86,6 +90,9 @@ class AnalyticsService {
     String? searchText,
   }) {
     if (!_viewedOnce.add(key)) return;
+    if (_viewedOnce.length > _maxTrackedKeys) {
+      _viewedOnce.remove(_viewedOnce.first);
+    }
     trackLater(
       eventType: eventType,
       doctorId: doctorId,

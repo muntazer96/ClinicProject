@@ -68,8 +68,17 @@ class BookingService {
     );
   }
 
-  Future<List<BookingDetails>> getMyBookings() async {
-    final response = await _client.dio.get('/Appointment/my');
+  Future<List<BookingDetails>> getMyBookings({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final response = await _client.dio.get(
+      '/Appointment/my',
+      queryParameters: {
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
     final data = response.data['data'] as List? ?? const [];
     return data
         .map((item) => BookingDetails.fromJson(item as Map<String, dynamic>))

@@ -22,9 +22,12 @@ class AuthController extends ChangeNotifier {
   String? _phoneNumber;
   UserProfile? _profile;
   bool loading = false;
+  String? profileError;
+  bool _restoring = false;
 
   bool get isAuthenticated => _token?.isNotEmpty == true;
   bool get isDoctor => _profile?.roleName == 'DoctorUser';
+  bool get isRestoring => _restoring;
   String? get phoneNumber => _phoneNumber;
   UserProfile? get profile => _profile;
   String get displayName => _profile?.name.isNotEmpty == true
@@ -32,6 +35,7 @@ class AuthController extends ChangeNotifier {
       : _phoneNumber ?? 'زائر';
 
   Future<void> restoreSession() async {
+    _restoring = true;
     _token = await _storage.read(key: _tokenKey);
     _refreshToken = await _storage.read(key: _refreshTokenKey);
     _phoneNumber = await _storage.read(key: _phoneKey);
@@ -40,10 +44,13 @@ class AuthController extends ChangeNotifier {
       await refreshProfile(silent: true);
       await _registerPushToken();
     }
+    _restoring = false;
   }
 
   Future<void> login(String phoneNumber, String password) async {
+    if (loading) return;
     loading = true;
+    profileError = null;
     notifyListeners();
     try {
       final response = await api.dio.post(
@@ -111,8 +118,9 @@ class AuthController extends ChangeNotifier {
       if (_phoneNumber?.isNotEmpty == true) {
         await _storage.write(key: _phoneKey, value: _phoneNumber);
       }
-    } catch (_) {
-      // Keep the session usable even if profile details fail to load.
+      profileError = null;
+    } catch (e) {
+      profileError = 'تعذر تحميل بيانات الملف الشخصي.';
     } finally {
       if (!silent) loading = false;
       notifyListeners();

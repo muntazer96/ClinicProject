@@ -1,6 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import api, { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '../services/api'
+import api, {
+  ACCESS_TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  clearAuthStorage,
+  refreshAccessToken,
+} from '../services/api'
 
 const TOKEN_KEY = ACCESS_TOKEN_KEY
 
@@ -55,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value || !payload.value) return false
     return !payload.value.exp || payload.value.exp * 1000 > Date.now()
   })
+  const hasRefreshToken = computed(() => Boolean(refreshToken.value || localStorage.getItem(REFRESH_TOKEN_KEY)))
   const primaryRole = computed(() => roles.value[0] ?? '')
 
   function hasAnyRole(allowedRoles: string[]) {
@@ -81,12 +87,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function ensureSession() {
+    if (isAuthenticated.value) return true
+    if (!hasRefreshToken.value) return false
+
+    const newToken = await refreshAccessToken()
+    if (!newToken) {
+      token.value = ''
+      refreshToken.value = ''
+      return false
+    }
+
+    token.value = newToken
+    refreshToken.value = localStorage.getItem(REFRESH_TOKEN_KEY) ?? ''
+    return isAuthenticated.value
+  }
+
   function logout() {
     const currentRefreshToken = refreshToken.value
     token.value = ''
     refreshToken.value = ''
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    clearAuthStorage()
     if (currentRefreshToken) {
       api.post('/User/logout', { refreshToken: currentRefreshToken }).catch(() => {})
     }
@@ -99,5 +120,17 @@ export const useAuthStore = defineStore('auth', () => {
     }) as EventListener)
   }
 
-  return { token, refreshToken, roles, primaryRole, isAuthenticated, loading, error, login, logout, hasAnyRole }
+  return {
+    token,
+    refreshToken,
+    roles,
+    primaryRole,
+    isAuthenticated,
+    loading,
+    error,
+    login,
+    logout,
+    ensureSession,
+    hasAnyRole,
+  }
 })

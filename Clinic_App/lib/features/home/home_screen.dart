@@ -24,11 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late final DirectoryService _service;
   late final AnalyticsService _analytics;
 
-  static const _initialOfferPage = 1000;
-
   final _offersController = PageController(
     viewportFraction: .90,
-    initialPage: _initialOfferPage,
   );
 
   List<Specialization> _specializations = [];
@@ -39,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _specializationsError;
   String? _offersError;
 
-  int _currentOfferPage = _initialOfferPage;
+  int _currentOfferPage = 0;
   Timer? _offersTimer;
 
   @override
@@ -84,14 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _offers = result.items;
-        _currentOfferPage = _initialOfferPage;
+        _currentOfferPage = 0;
       });
 
       if (_offersController.hasClients && result.items.isNotEmpty) {
-        _offersController.jumpToPage(_initialOfferPage);
+        _offersController.jumpToPage(0);
       }
 
-      _trackOfferViewed(_initialOfferPage);
+      _trackOfferViewed(0);
       _startOfferAutoScroll();
     } catch (error) {
       if (mounted) setState(() => _offersError = ApiClient.errorMessage(error));
@@ -108,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _offersTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (!mounted || !_offersController.hasClients || _offers.isEmpty) return;
 
-      final nextPage = _currentOfferPage + 1;
+      final nextPage = (_currentOfferPage + 1) % _offers.length;
 
       _offersController.animateToPage(
         nextPage,

@@ -337,9 +337,8 @@ onMounted(async () => {
         <h2>{{ isAdmin ? 'كل الحجوزات' : 'الحجوزات اليومية' }}</h2>
         <p>{{ isAdmin ? 'اعرض حجوزات النظام حسب الطبيب والعيادة والتاريخ والحالة.' : 'اعرض حجوزات عياداتك حسب التاريخ والحالة وحدّث مسار كل حجز.' }}</p>
       </div>
-      <div class="heading-actions">
+      <div v-if="isAdmin" class="heading-actions">
         <button class="secondary-button" type="button" :disabled="loading" @click="loadAppointments"><RefreshCw :size="17" /> تحديث</button>
-        <button v-if="!isAdmin" class="compact-primary" type="button" :disabled="!clinics.length" @click="openManualBooking"><Plus :size="17" /> حجز يدوي</button>
       </div>
     </div>
 
@@ -357,7 +356,11 @@ onMounted(async () => {
       <select v-model="filters.status">
         <option v-for="status in statusOptions" :key="status.value" :value="status.value">{{ status.label }}</option>
       </select>
-      <button class="compact-primary" type="submit"><Search :size="16" /> بحث</button>
+      <div class="appointment-filter-actions">
+        <button class="compact-primary" type="submit"><Search :size="16" /> بحث</button>
+        <button v-if="!isAdmin" class="secondary-button" type="button" :disabled="loading" @click="loadAppointments"><RefreshCw :size="17" /> تحديث</button>
+        <button v-if="!isAdmin" class="compact-primary" type="button" :disabled="!clinics.length" @click="openManualBooking"><Plus :size="17" /> حجز يدوي</button>
+      </div>
     </form>
 
     <section class="table-card">
@@ -437,6 +440,8 @@ onMounted(async () => {
 
 <style scoped>
 .admin-appointment-filters { grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 150px 150px 140px auto; }
+.appointment-filter-actions { display: grid; gap: 8px; align-self: end; }
+.appointment-filter-actions button { width: 100%; }
 .queue-box { display: grid; gap: 4px; padding: 11px; color: #167163; border: 1px solid #c8eadf; border-radius: 9px; background: #f0faf6; font-size: 13px; }
 .queue-box.unavailable { color: #a23d3d; border-color: #ffd6d6; background: #fff3f3; }
 @media (max-width: 760px) { .admin-appointment-filters { grid-template-columns: 1fr; } }

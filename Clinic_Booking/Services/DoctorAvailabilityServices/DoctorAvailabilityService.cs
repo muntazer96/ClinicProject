@@ -92,7 +92,23 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
             var package = activeSub.Package;
 
-            if (dto.Days.Count > package.MaxWeeklyDays)
+            if (dto.Days == null)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يجب تحديد أيام الدوام.",
+                    Data = null
+                });
+            }
+
+            var selectedWeeklyDayCount = await CountWeeklyDaysAfterBulkUpdateAsync(
+                clinic.DoctorId,
+                dto.ClinicId,
+                dto.Days.Select(day => day.DayId));
+
+            if (selectedWeeklyDayCount > package.MaxWeeklyDays)
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -357,6 +373,23 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 });
             }
 
+            var selectedWeeklyDayCount = await CountWeeklyDaysAfterSingleDayUpdateAsync(
+                clinic.DoctorId,
+                dto.ClinicId,
+                dto.DayId,
+                dto.IsAvailable);
+
+            if (selectedWeeklyDayCount > package.MaxWeeklyDays)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = $"عدد الأيام المحددة أكبر من الحد المسموح به ({package.MaxWeeklyDays}) في هذه الباقة.",
+                    Data = null
+                });
+            }
+
             var day = await _context.Days
                 .Where(d => d.Id == dto.DayId && !d.IsDeleted)
                 .FirstOrDefaultAsync();
@@ -547,6 +580,50 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 appointment.Status,
                 title,
                 body);
+        }
+
+        private async Task<int> CountWeeklyDaysAfterBulkUpdateAsync(
+            int doctorId,
+            int clinicId,
+            IEnumerable<int> incomingDayIds)
+        {
+            var activeDayIds = await _context.DoctorAvailabilities
+                .Where(availability =>
+                    availability.Clinic.DoctorId == doctorId &&
+                    availability.ClinicId != clinicId &&
+                    availability.IsAvailable &&
+                    !availability.IsDeleted &&
+                    !availability.Clinic.IsDeleted)
+                .Select(availability => availability.DayId)
+                .ToListAsync();
+
+            activeDayIds.AddRange(incomingDayIds);
+            return activeDayIds.Distinct().Count();
+        }
+
+        private async Task<int> CountWeeklyDaysAfterSingleDayUpdateAsync(
+            int doctorId,
+            int clinicId,
+            int dayId,
+            bool isAvailable)
+        {
+            var activeDayIds = await _context.DoctorAvailabilities
+                .Where(availability =>
+                    availability.Clinic.DoctorId == doctorId &&
+                    !(availability.ClinicId == clinicId &&
+                      availability.DayId == dayId) &&
+                    availability.IsAvailable &&
+                    !availability.IsDeleted &&
+                    !availability.Clinic.IsDeleted)
+                .Select(availability => availability.DayId)
+                .ToListAsync();
+
+            if (isAvailable)
+            {
+                activeDayIds.Add(dayId);
+            }
+
+            return activeDayIds.Distinct().Count();
         }
 
         private async Task SendPendingNotificationsAsync(List<PendingAppointmentNotification> notifications)

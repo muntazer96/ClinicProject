@@ -59,10 +59,12 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore(pinia)
-  if (to.meta.guestOnly && auth.isAuthenticated) return { name: 'dashboard' }
-  if (to.meta.requiresAuth && !auth.isAuthenticated) return { name: 'login' }
+  const hasSession = await auth.ensureSession()
+
+  if (to.meta.guestOnly && hasSession) return { name: 'dashboard' }
+  if (to.meta.requiresAuth && !hasSession) return { name: 'login' }
 
   const roles = (to.meta.roles as string[] | undefined) ?? []
   if (roles.length && !auth.hasAnyRole(roles)) return { name: 'dashboard' }

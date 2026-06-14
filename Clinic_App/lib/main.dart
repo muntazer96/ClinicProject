@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +25,12 @@ Future<void> main() async {
   }
   final api = ApiClient();
   final auth = AuthController(api);
-  await auth.restoreSession();
+
+  await auth.restoreSession().timeout(
+    const Duration(seconds: 10),
+    onTimeout: () {},
+  );
+
   runApp(
     MultiProvider(
       providers: [

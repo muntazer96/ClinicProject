@@ -24,12 +24,42 @@ class _ClinicAppState extends State<ClinicApp> {
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       locale: const Locale('ar'),
-      builder: (context, child) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: OfflineGate(
-          child: AppVersionGate(child: child ?? const SizedBox.shrink()),
-        ),
-      ),
+      builder: (context, child) {
+        ErrorWidget.builder = (details) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: Material(
+            color: Colors.white,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'حدث خطأ غير متوقع',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      details.exceptionAsString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: OfflineGate(
+            child: AppVersionGate(child: child ?? const SizedBox.shrink()),
+          ),
+        );
+      },
       theme: buildAppTheme(),
     );
   }

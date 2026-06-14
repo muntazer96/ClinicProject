@@ -213,6 +213,105 @@ public class AppointmentMoveCapacityTests
     }
 
     [Fact]
+    public async Task EnablingSingleDay_RejectsMoreThanSubscriptionWeeklyDays()
+    {
+        await using var context = CreateContext();
+        SeedSchedule(context);
+        await context.SaveChangesAsync();
+        context.SubscriptionPackages.Single().MaxWeeklyDays = 4;
+        context.Days.AddRange(
+            CreateDay(4, DayOfWeek.Thursday),
+            CreateDay(5, DayOfWeek.Friday));
+        context.DoctorAvailabilities.Add(CreateAvailability(
+            4,
+            4,
+            isAvailable: true,
+            maxAppointments: 15));
+        await context.SaveChangesAsync();
+
+        var service = new DoctorAvailabilityService(
+            context,
+            new StubLoadServices(CurrentUserId),
+            new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpdateSingleDayAvailabilityAsync(
+            new UpdateSingleDayAvailabilityDto
+            {
+                ClinicId = 1,
+                DayId = 5,
+                StartTime = TimeSpan.FromHours(9),
+                EndTime = TimeSpan.FromHours(17),
+                MaxAppointments = 15,
+                IsAvailable = true
+            });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.False(await context.DoctorAvailabilities.AnyAsync(availability =>
+            availability.ClinicId == 1 &&
+            availability.DayId == 5 &&
+            availability.IsAvailable));
+    }
+
+    [Fact]
+    public async Task UpdatingWeeklySchedule_RejectsMoreThanSubscriptionWeeklyDaysAcrossClinics()
+    {
+        await using var context = CreateContext();
+        SeedSchedule(context);
+        await context.SaveChangesAsync();
+        context.SubscriptionPackages.Single().MaxWeeklyDays = 4;
+        context.Days.AddRange(
+            CreateDay(4, DayOfWeek.Thursday),
+            CreateDay(5, DayOfWeek.Friday));
+        context.Clinics.Add(new Clinic
+        {
+            Id = 2,
+            DoctorId = 1,
+            Name = "Second clinic",
+            Address = "Second address",
+            BookingWindowDays = 31
+        });
+        context.DoctorAvailabilities.Add(new DoctorAvailability
+        {
+            Id = 4,
+            ClinicId = 2,
+            DayId = 4,
+            StartTime = TimeSpan.FromHours(9),
+            EndTime = TimeSpan.FromHours(17),
+            MaxAppointments = 15,
+            IsAvailable = true
+        });
+        await context.SaveChangesAsync();
+
+        var service = new DoctorAvailabilityService(
+            context,
+            new StubLoadServices(CurrentUserId),
+            new StubPushNotificationServices(),
+            new StubWhatsAppMessageServices(),
+            new AppointmentReschedulingServices(context));
+
+        var result = await service.UpsertWeeklyAvailabilityAsync(
+            new AddDoctorAvailabilityDto
+            {
+                ClinicId = 1,
+                Days =
+                [
+                    CreateDailyAvailability(1),
+                    CreateDailyAvailability(2),
+                    CreateDailyAvailability(3),
+                    CreateDailyAvailability(5)
+                ]
+            });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.False(await context.DoctorAvailabilities.AnyAsync(availability =>
+            availability.ClinicId == 1 &&
+            availability.DayId == 5 &&
+            availability.IsAvailable));
+    }
+
+    [Fact]
     public async Task ClinicExceptionMove_CancelsAppointmentsWhenNoCapacityIsAvailable()
     {
         await using var context = CreateContext();
@@ -537,6 +636,17 @@ public class AppointmentMoveCapacityTests
             EndTime = TimeSpan.FromHours(17),
             MaxAppointments = maxAppointments,
             IsAvailable = isAvailable
+        };
+    }
+
+    private static DailyAvailabilityDto CreateDailyAvailability(int dayId)
+    {
+        return new DailyAvailabilityDto
+        {
+            DayId = dayId,
+            StartTime = TimeSpan.FromHours(9),
+            EndTime = TimeSpan.FromHours(17),
+            MaxAppointments = 15
         };
     }
 
