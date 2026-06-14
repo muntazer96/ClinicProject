@@ -1778,6 +1778,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 IsGuestBooking = !appointment.UserId.HasValue,
                 BookingSource = appointment.UserId.HasValue ? "Registered" : "Guest",
                 HasReview = appointment.Reviews.Any(review => !review.IsDeleted),
+                PatientUserId = appointment.UserId,
                 CancellationReason = appointment.CancellationReason,
                 CancelledAt = appointment.CancelledAt,
                 DoctorId = appointment.DoctorId,

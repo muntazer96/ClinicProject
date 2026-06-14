@@ -43,6 +43,34 @@ class PushNotificationService {
     _foregroundNotificationsInitialized = true;
   }
 
+  static Future<void> showLocalNotification({
+    required String title,
+    required String body,
+  }) async {
+    if (!isSupported) return;
+    if (title.trim().isEmpty && body.trim().isEmpty) return;
+
+    try {
+      await _localNotifications.show(
+        id: title.hashCode ^ body.hashCode,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'clinic_app_notifications',
+            'Clinic notifications',
+            channelDescription: 'Booking updates and account notifications.',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(),
+          macOS: DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {}
+  }
+
   static Future<void> _showForegroundNotification(RemoteMessage message) async {
     final notification = message.notification;
     final title = notification?.title ?? message.data['title']?.toString();
@@ -52,23 +80,7 @@ class PushNotificationService {
       return;
     }
 
-    await _localNotifications.show(
-      id: message.hashCode,
-      title: title,
-      body: body,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'clinic_app_notifications',
-          'Clinic notifications',
-          channelDescription: 'Booking updates and account notifications.',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: DarwinNotificationDetails(),
-        macOS: DarwinNotificationDetails(),
-      ),
-    );
+    await showLocalNotification(title: title ?? '', body: body ?? '');
   }
 
   Future<void> registerCurrentDevice() async {

@@ -44,6 +44,8 @@ import '../features/home/home_screen.dart';
 import '../features/offers/offers_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/startup_splash_screen.dart';
+import '../features/messages/screens/chat_screen.dart';
+import '../features/messages/screens/conversations_screen.dart';
 import '../features/reviews/screens/doctor_reviews_screen.dart';
 import '../widgets/app_scaffold.dart';
 import 'app_theme.dart';
@@ -158,10 +160,47 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       builder: (_, __) => const DoctorSubscriptionScreen(),
     ),
     GoRoute(
+      path: '/doctor/messages',
+      builder: (_, __) => const DoctorScaffold(
+        title: 'الرسائل',
+        showBackButton: true,
+        child: ConversationsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/messages/:otherUserId',
+      builder: (_, state) {
+        final otherUserId = state.pathParameters['otherUserId'] ?? '';
+        final otherUserName = state.extra as String? ?? 'المستخدم';
+        return ChatScreen(
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        );
+      },
+    ),
+    GoRoute(
       path: '/doctor/notifications',
       builder: (_, __) => const DoctorNotificationsScreen(),
     ),
     GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
+    GoRoute(
+      path: '/messages',
+      builder: (_, __) => const AppScaffold(
+        title: 'الرسائل',
+        child: ConversationsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/messages/:otherUserId',
+      builder: (_, state) {
+        final otherUserId = state.pathParameters['otherUserId'] ?? '';
+        final otherUserName = state.extra as String? ?? 'المستخدم';
+        return ChatScreen(
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        );
+      },
+    ),
     GoRoute(
       path: '/favorites',
       builder: (_, __) => const FavoriteDoctorsScreen(),
@@ -323,6 +362,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/profile/change-password',
       '/profile/edit-name',
       '/profile/confirm-phone',
+      '/messages',
     };
     final doctorPage =
         state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');

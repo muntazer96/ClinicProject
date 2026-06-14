@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/app_router.dart';
 import 'core/app_theme.dart';
 import 'features/auth/auth_controller.dart';
+import 'features/messages/message_hub_service.dart';
 import 'widgets/app_version_gate.dart';
 import 'widgets/offline_gate.dart';
 
@@ -55,12 +56,39 @@ class _ClinicAppState extends State<ClinicApp> {
         );
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: OfflineGate(
-            child: AppVersionGate(child: child ?? const SizedBox.shrink()),
+          child: _SignalRConnector(
+            child: OfflineGate(
+              child: AppVersionGate(child: child ?? const SizedBox.shrink()),
+            ),
           ),
         );
       },
       theme: buildAppTheme(),
     );
+  }
+}
+
+class _SignalRConnector extends StatefulWidget {
+  const _SignalRConnector({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SignalRConnector> createState() => _SignalRConnectorState();
+}
+
+class _SignalRConnectorState extends State<_SignalRConnector> {
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    final hub = context.read<MessageHubService>();
+
+    if (auth.isAuthenticated && !hub.isConnected) {
+      hub.connect();
+    } else if (!auth.isAuthenticated && hub.isConnected) {
+      hub.disconnect();
+    }
+
+    return widget.child;
   }
 }

@@ -3,6 +3,7 @@ using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.MessageDTO;
 using Clinic_Booking.Entities.Message;
 using Clinic_Booking.IServices.IMessageServices;
+using Clinic_Booking.Services.MessageServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,16 @@ namespace Clinic_Booking.Hubs
     {
         private readonly IMessageServices _messageServices;
         private readonly ApplicationDbContext _context;
+        private readonly OnlineUserTracker _onlineTracker;
 
         public MessageHub(
             IMessageServices messageServices,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            OnlineUserTracker onlineTracker)
         {
             _messageServices = messageServices;
             _context = context;
+            _onlineTracker = onlineTracker;
         }
 
         private Guid? GetUserId()
@@ -33,13 +37,20 @@ namespace Clinic_Booking.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            var userId = GetUserId();
-            if (userId.HasValue && userId.Value != Guid.Empty)
+            try
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
+                var userId = GetUserId();
+                if (userId.HasValue && userId.Value != Guid.Empty)
+                {
+                    _onlineTracker.UserConnected(userId.Value);
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
 
-                var unreadCount = await _messageServices.GetUnreadCountForUserAsync(userId.Value);
-                await Clients.Caller.SendAsync("UnreadCount", unreadCount);
+                    var unreadCount = await _messageServices.GetUnreadCountForUserAsync(userId.Value);
+                    await Clients.Caller.SendAsync("UnreadCount", unreadCount);
+                }
+            }
+            catch
+            {
             }
 
             await base.OnConnectedAsync();
@@ -47,9 +58,18 @@ namespace Clinic_Booking.Hubs
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var userId = GetUserId();
-            if (userId.HasValue && userId.Value != Guid.Empty)
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
+            try
+            {
+                var userId = GetUserId();
+                if (userId.HasValue && userId.Value != Guid.Empty)
+                {
+                    _onlineTracker.UserDisconnected(userId.Value);
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId.Value}");
+                }
+            }
+            catch
+            {
+            }
 
             await base.OnDisconnectedAsync(exception);
         }
@@ -76,6 +96,13 @@ namespace Clinic_Booking.Hubs
                 return;
             }
 
+            var canReceive = await _messageServices.ReceiverCanReceiveMessagesAsync(form.ReceiverId);
+            if (!canReceive)
+            {
+                await Clients.Caller.SendAsync("Error", "المستخدم لا يدعم خاصية الرسائل حالياً.");
+                return;
+            }
+
             var message = new Message
             {
                 SenderId = userId.Value,
@@ -89,11 +116,17 @@ namespace Clinic_Booking.Hubs
             var saved = await _messageServices.SaveAndReturnAsync(message);
             var dto = await _messageServices.GetMessageDtoAsync(saved.Id);
 
-            await Clients.Caller.SendAsync("MessageSent", dto);
-            await Clients.User(form.ReceiverId.ToString()).SendAsync("ReceiveMessage", dto);
+            try
+            {
+                await Clients.Caller.SendAsync("MessageSent", dto);
+                await Clients.User(form.ReceiverId.ToString()).SendAsync("ReceiveMessage", dto);
 
-            var unreadCount = await _messageServices.GetUnreadCountForUserAsync(form.ReceiverId);
-            await Clients.User(form.ReceiverId.ToString()).SendAsync("UnreadCount", unreadCount);
+                var unreadCount = await _messageServices.GetUnreadCountForUserAsync(form.ReceiverId);
+                await Clients.User(form.ReceiverId.ToString()).SendAsync("UnreadCount", unreadCount);
+            }
+            catch
+            {
+            }
         }
 
         public async Task MarkRead(Guid otherUserId)
@@ -104,8 +137,14 @@ namespace Clinic_Booking.Hubs
 
             await _messageServices.MarkConversationReadAsync(otherUserId, userId.Value);
 
-            await Clients.User(otherUserId.ToString()).SendAsync("MessagesRead", userId.Value);
-            await Clients.Caller.SendAsync("UnreadCount", 0);
+            try
+            {
+                await Clients.User(otherUserId.ToString()).SendAsync("MessagesRead", userId.Value);
+                await Clients.Caller.SendAsync("UnreadCount", 0);
+            }
+            catch
+            {
+            }
         }
 
         public async Task Typing(Guid otherUserId)
@@ -114,7 +153,13 @@ namespace Clinic_Booking.Hubs
             if (userId == null || userId == Guid.Empty)
                 return;
 
-            await Clients.User(otherUserId.ToString()).SendAsync("UserTyping", userId.Value);
+            try
+            {
+                await Clients.User(otherUserId.ToString()).SendAsync("UserTyping", userId.Value);
+            }
+            catch
+            {
+            }
         }
 
         public async Task StopTyping(Guid otherUserId)
@@ -123,7 +168,13 @@ namespace Clinic_Booking.Hubs
             if (userId == null || userId == Guid.Empty)
                 return;
 
-            await Clients.User(otherUserId.ToString()).SendAsync("UserStopTyping", userId.Value);
+            try
+            {
+                await Clients.User(otherUserId.ToString()).SendAsync("UserStopTyping", userId.Value);
+            }
+            catch
+            {
+            }
         }
     }
 }

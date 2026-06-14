@@ -14,5 +14,6 @@ namespace Clinic_Booking.IServices.IMessageServices
         Task<DTOs.MessageDTO.MessageDto?> GetMessageDtoAsync(int messageId);
         Task<int> GetUnreadCountForUserAsync(Guid userId);
         Task MarkConversationReadAsync(Guid senderId, Guid receiverId);
+        Task<bool> ReceiverCanReceiveMessagesAsync(Guid userId);
     }
 }

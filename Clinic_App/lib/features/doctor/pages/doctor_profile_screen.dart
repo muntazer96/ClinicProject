@@ -151,6 +151,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
 
                             const SizedBox(height: 14),
 
+                            _QuickTile(
+                              icon: Icons.chat_bubble_rounded,
+                              title: 'الرسائل',
+                              subtitle: 'عرض واستعراض الرسائل مع المرضى',
+                              color: AppColors.primary,
+                              onTap: () => context.push('/doctor/messages'),
+                            ),
+
+                            const SizedBox(height: 14),
+
                             _SubscriptionCard(subscription: _subscription),
 
                             const SizedBox(height: 14),

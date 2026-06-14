@@ -16,7 +16,7 @@ namespace Clinic_Booking.Controllers
         }
 
         [HttpPost("send")]
-        public async Task<IActionResult> SendAsync(SendMessageDto form)
+        public async Task<IActionResult> SendAsync([FromBody] SendMessageDto form)
         {
             return await _services.SendAsync(form);
         }
@@ -43,6 +43,13 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> GetUnreadCountAsync()
         {
             return await _services.GetUnreadCountAsync();
+        }
+
+        [HttpGet("can-send/{userId}")]
+        public async Task<IActionResult> CanSendAsync(Guid userId)
+        {
+            var canSend = await _services.ReceiverCanReceiveMessagesAsync(userId);
+            return Ok(new { CanSend = canSend });
         }
     }
 }

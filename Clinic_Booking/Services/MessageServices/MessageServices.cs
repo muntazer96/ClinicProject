@@ -19,17 +19,20 @@ namespace Clinic_Booking.Services.MessageServices
         private readonly ILoadServices _load;
         private readonly IPushNotificationServices _pushNotificationServices;
         private readonly IHubContext<MessageHub> _hubContext;
+        private readonly OnlineUserTracker _onlineTracker;
 
         public MessageServices(
             ApplicationDbContext context,
             ILoadServices load,
             IPushNotificationServices pushNotificationServices,
-            IHubContext<MessageHub> hubContext)
+            IHubContext<MessageHub> hubContext,
+            OnlineUserTracker onlineTracker)
         {
             _context = context;
             _load = load;
             _pushNotificationServices = pushNotificationServices;
             _hubContext = hubContext;
+            _onlineTracker = onlineTracker;
         }
 
         public async Task<IActionResult> SendAsync(SendMessageDto form)
@@ -44,6 +47,10 @@ namespace Clinic_Booking.Services.MessageServices
             var receiverExists = await _context.Users.AnyAsync(u => u.Id == form.ReceiverId);
             if (!receiverExists)
                 return NotFound("Receiver not found.");
+
+            var canReceive = await ReceiverCanReceiveMessagesAsync(form.ReceiverId);
+            if (!canReceive)
+                return BadRequest("المستخدم لا يدعم خاصية الرسائل حالياً.");
 
             var message = new Message
             {
@@ -63,7 +70,8 @@ namespace Clinic_Booking.Services.MessageServices
             await _hubContext.Clients.User(message.ReceiverId.ToString())
                 .SendAsync("ReceiveMessage", dto);
 
-            NotifyReceiverPushAsync(message);
+            if (!_onlineTracker.IsUserOnline(message.ReceiverId))
+                NotifyReceiverPushAsync(message);
 
             return Ok(dto, "Message sent successfully.");
         }
@@ -254,6 +262,29 @@ namespace Clinic_Booking.Services.MessageServices
             catch
             {
             }
+        }
+
+        public async Task<bool> ReceiverCanReceiveMessagesAsync(Guid userId)
+        {
+            var now = DateTime.UtcNow;
+            var doctor = await _context.Doctors
+                .Include(d => d.DoctorSubscriptions).ThenInclude(s => s.Package)
+                .Include(d => d.DoctorFeatures).ThenInclude(f => f.Feature)
+                .FirstOrDefaultAsync(d => d.UserId == userId);
+            if (doctor == null) return true;
+
+            var hasSubscription = doctor.DoctorSubscriptions.Any(s =>
+                s.Status == Enums.SubscriptionStatus.Active &&
+                s.StartDate <= now &&
+                s.EndDate >= now &&
+                s.Package.ShowMessages);
+
+            var hasFeature = doctor.DoctorFeatures.Any(f =>
+                !f.IsDeleted &&
+                f.IsEnabled &&
+                f.Feature.NormalizedName == "ShowMessages");
+
+            return hasSubscription && hasFeature;
         }
 
         private async Task<MessageDto> MapToDtoAsync(Entities.Message.Message message)

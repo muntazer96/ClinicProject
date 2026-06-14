@@ -178,8 +178,9 @@ class DoctorAppointment {
     required this.isGuestBooking,
     required this.isPhoneConfirmed,
     required this.patientPhoneNumber,
-required this.hasReview,
-this.cancelledAt,
+    required this.hasReview,
+    this.cancelledAt,
+    this.patientUserId,
   });
 
   final int id;
@@ -195,8 +196,9 @@ this.cancelledAt,
   final bool isGuestBooking;
   final bool isPhoneConfirmed;
   final String patientPhoneNumber;
-final bool hasReview;
-final DateTime? cancelledAt;
+  final bool hasReview;
+  final DateTime? cancelledAt;
+  final String? patientUserId;
 
   bool get canToggle => status == 0 || status == 1;
   bool get canComplete => status == 1;
@@ -232,10 +234,11 @@ final DateTime? cancelledAt;
       isGuestBooking: json['isGuestBooking'] as bool? ?? false,
       isPhoneConfirmed: json['isPhoneConfirmed'] as bool? ?? false,
       patientPhoneNumber: json['patientPhoneNumber'] ?? '',
-hasReview: json['hasReview'] ?? false,
-cancelledAt: json['cancelledAt'] == null
-    ? null
-    : DateTime.parse(json['cancelledAt']),
+      hasReview: json['hasReview'] ?? false,
+      cancelledAt: json['cancelledAt'] == null
+          ? null
+          : DateTime.parse(json['cancelledAt']),
+      patientUserId: json['patientUserId'] as String?,
     );
   }
 }

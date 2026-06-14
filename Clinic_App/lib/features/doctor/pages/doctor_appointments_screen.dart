@@ -442,6 +442,19 @@ class _AppointmentCard extends StatelessWidget {
                       onPressed: () =>
                           openPhone(context, item.patientPhoneNumber),
                     ),
+                  if (!item.isGuestBooking &&
+                      item.patientUserId != null) ...[
+                    if (item.patientPhoneNumber.trim().isNotEmpty)
+                      const SizedBox(height: 8),
+                    DoctorActionButton(
+                      label: 'إرسال رسالة',
+                      icon: Icons.chat_outlined,
+                      onPressed: () => context.push(
+                        '/doctor/messages/${item.patientUserId}'
+                        '?otherUserName=${Uri.encodeComponent(item.patientName)}',
+                      ),
+                    ),
+                  ],
                   if (item.patientPhoneNumber.trim().isNotEmpty &&
                       (item.canToggle || item.canComplete))
                     const SizedBox(height: 8),

@@ -116,9 +116,13 @@ class DoctorProfile extends DoctorSummary {
     required super.activeSubscriptionNormalizedName,
     required super.activeSubscriptionWeight,
     required super.clinics,
+    this.userId,
+    this.canMessage = true,
     required this.clinicDetails,
   });
 
+  final String? userId;
+  final bool canMessage;
   final List<ClinicDetails> clinicDetails;
 
   factory DoctorProfile.fromJson(Map<String, dynamic> json) {
@@ -142,6 +146,8 @@ class DoctorProfile extends DoctorSummary {
           json['activeSubscriptionNormalizedName'] as String?,
       activeSubscriptionWeight:
           (json['activeSubscriptionWeight'] as num?)?.toDouble() ?? 0,
+      userId: json['userId'] as String?,
+      canMessage: json['canMessage'] as bool? ?? true,
       clinics: clinics,
       clinicDetails: clinics,
     );

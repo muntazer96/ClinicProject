@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../core/app_theme.dart';
 import '../features/auth/auth_controller.dart';
+import '../features/messages/message_hub_service.dart';
 import 'app_logo.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -23,13 +24,17 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
+    final hub = context.watch<MessageHubService>();
+    final unreadCount = hub.unreadCount;
     final path = GoRouterState.of(context).uri.path;
     final fallbackInitial = auth.displayName.trim().isEmpty
         ? 'م'
         : String.fromCharCode(auth.displayName.trim().runes.first);
     final selectedIndex = path == '/profile'
-        ? 3
+        ? 4
         : path == '/bookings'
+        ? 3
+        : path == '/messages' || path.startsWith('/messages/')
         ? 2
         : path == '/search' || path.startsWith('/doctors/')
         ? 1
@@ -136,32 +141,54 @@ class AppScaffold extends StatelessWidget {
             if (index == 2) {
               context.go(
                 auth.isAuthenticated
+                    ? '/messages'
+                    : '/login?redirect=/messages',
+              );
+            }
+            if (index == 3) {
+              context.go(
+                auth.isAuthenticated
                     ? '/bookings'
                     : '/login?redirect=/bookings',
               );
             }
-            if (index == 3) {
+            if (index == 4) {
               context.go(
                 auth.isAuthenticated ? '/profile' : '/login?redirect=/profile',
               );
             }
           },
-          destinations: const [
-            NavigationDestination(
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: 'الرئيسية',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.search_rounded),
               label: 'الأطباء',
             ),
             NavigationDestination(
+              icon: unreadCount > 0
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      child: const Icon(Icons.chat_bubble_outline_rounded),
+                    )
+                  : const Icon(Icons.chat_bubble_outline_rounded),
+              selectedIcon: unreadCount > 0
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      child: const Icon(Icons.chat_bubble_rounded),
+                    )
+                  : const Icon(Icons.chat_bubble_rounded),
+              label: 'الرسائل',
+            ),
+            const NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month_rounded),
               label: 'حجوزاتي',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded),
               label: 'حسابي',

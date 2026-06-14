@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_logo.dart';
 import '../../auth/auth_controller.dart';
+import '../../messages/message_hub_service.dart';
 import '../services/doctor_service.dart';
 
 class DoctorScaffold extends StatefulWidget {
@@ -56,20 +57,25 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
         path == '/doctor/appointments' ||
             path.startsWith('/doctor/appointments/')
         ? 1
+        : path == '/doctor/messages' ||
+              path.startsWith('/doctor/messages/')
+        ? 2
         : path == '/doctor/clinics' ||
               path.startsWith('/doctor/clinics/') ||
               path == '/doctor/schedule' ||
               path.startsWith('/doctor/schedule/')
-        ? 2
-        : path == '/doctor/offers' || path.startsWith('/doctor/offers/')
         ? 3
+        : path == '/doctor/offers' || path.startsWith('/doctor/offers/')
+        ? 4
         : path == '/doctor/profile' ||
               path.startsWith('/doctor/profile/') ||
               path == '/doctor/features' ||
               path == '/doctor/subscription' ||
               path == '/doctor/reviews'
-        ? 4
+        ? 5
         : 0;
+    final hub = context.watch<MessageHubService>();
+    final unreadCount = hub.unreadCount;
     final displayName = _doctorName?.isNotEmpty == true
         ? _doctorName!
         : auth.displayName;
@@ -153,32 +159,48 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           onDestinationSelected: (index) {
             if (index == 0) context.go('/doctor');
             if (index == 1) context.go('/doctor/appointments');
-            if (index == 2) context.go('/doctor/clinics');
-            if (index == 3) context.go('/doctor/offers');
-            if (index == 4) context.go('/doctor/profile');
+            if (index == 2) context.go('/doctor/messages');
+            if (index == 3) context.go('/doctor/clinics');
+            if (index == 4) context.go('/doctor/offers');
+            if (index == 5) context.go('/doctor/profile');
           },
-          destinations: const [
-            NavigationDestination(
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: 'الرئيسية',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month_rounded),
               label: 'الحجوزات',
             ),
             NavigationDestination(
+              icon: unreadCount > 0
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      child: const Icon(Icons.chat_outlined),
+                    )
+                  : const Icon(Icons.chat_outlined),
+              selectedIcon: unreadCount > 0
+                  ? Badge(
+                      label: Text('$unreadCount'),
+                      child: const Icon(Icons.chat_rounded),
+                    )
+                  : const Icon(Icons.chat_rounded),
+              label: 'الرسائل',
+            ),
+            const NavigationDestination(
               icon: Icon(Icons.local_hospital_outlined),
               selectedIcon: Icon(Icons.local_hospital_rounded),
               label: 'عياداتي',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.local_offer_outlined),
               selectedIcon: Icon(Icons.local_offer_rounded),
               label: 'العروض',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded),
               label: 'الملف',

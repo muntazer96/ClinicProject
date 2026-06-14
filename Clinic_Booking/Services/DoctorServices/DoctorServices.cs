@@ -234,6 +234,17 @@ namespace Clinic_Booking.Services.DoctorServices
                             subscription.EndDate >= now)
                         .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
                         .Max() ?? 0,
+                    CanMessage =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowMessages) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowMessages"),
+                    UserId = d.UserId,
                     Clinics = d.Clinics
                         .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
                         .OrderBy(clinic => clinic.Id)

@@ -121,6 +121,26 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 isFavorite: _isFavorite,
                 onFavoriteTap: _toggleFavorite,
               ),
+              if (context.read<AuthController>().isAuthenticated &&
+                  _doctor!.userId != null) ...[
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push(
+                          '/messages/${_doctor!.userId}'
+                          '?otherUserName=${Uri.encodeComponent(_doctor!.name)}',
+                        ),
+                        icon: const Icon(Icons.chat_outlined),
+                        label: const Text('إرسال رسالة'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               if (_doctor!.description.isNotEmpty) ...[
                 const _Title('نبذة عن الطبيب'),

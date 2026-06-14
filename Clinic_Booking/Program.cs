@@ -89,6 +89,7 @@ builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
 builder.Services.AddScoped<IReviewServices, ReviewServices>();
 builder.Services.AddScoped<IMessageServices, MessageServices>();
+builder.Services.AddSingleton<OnlineUserTracker>();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServices>();
 builder.Services.AddHttpClient<IWhatsAppMessageServices, WhatsAppMessageServices>();
@@ -183,6 +184,19 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = configuration["JWT:ValidAudience"],
         ValidIssuer = configuration["JWT:ValidIssuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"])),
+    };
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 

@@ -27,13 +27,24 @@ namespace Clinic_Booking.Migrations
                 name: "FK_Payments_Appointments_AppointmentId",
                 table: "Payments");
 
-            migrationBuilder.AlterColumn<Guid>(
+            //migrationBuilder.AlterColumn<Guid>(
+            //    name: "ReceiverId",
+            //    table: "Messages",
+            //    type: "uuid",
+            //    nullable: false,
+            //    oldClrType: typeof(int),
+            //    oldType: "integer");
+
+            migrationBuilder.DropColumn(
+    name: "ReceiverId",
+    table: "Messages");
+
+            migrationBuilder.AddColumn<Guid>(
                 name: "ReceiverId",
                 table: "Messages",
                 type: "uuid",
                 nullable: false,
-                oldClrType: typeof(int),
-                oldType: "integer");
+                defaultValue: Guid.Empty);
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsRead",
