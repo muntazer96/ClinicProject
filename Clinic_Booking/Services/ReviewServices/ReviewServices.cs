@@ -104,7 +104,7 @@ namespace Clinic_Booking.Services.ReviewServices
             }
 
             if (await _context.Reviews.AnyAsync(review =>
-                review.AppoinmentId == form.AppointmentId &&
+                review.AppointmentId == form.AppointmentId &&
                 !review.IsDeleted))
             {
                 return BadRequest("This booking has already been reviewed.");
@@ -116,7 +116,7 @@ namespace Clinic_Booking.Services.ReviewServices
                 UserId = userId.Value,
                 Rating = form.Rating,
                 Comment = form.Comment?.Trim() ?? string.Empty,
-                AppoinmentId = appointment.Id,
+                AppointmentId = appointment.Id,
                 CreatorId = userId
             };
 
@@ -148,13 +148,13 @@ namespace Clinic_Booking.Services.ReviewServices
             }
 
             const string title = "وصل تقييم جديد";
-            var body = $"قام أحد المراجعين بتقييمك {review.Rating} من 5 بعد الحجز رقم {review.AppoinmentId}.";
+            var body = $"قام أحد المراجعين بتقييمك {review.Rating} من 5 بعد الحجز رقم {review.AppointmentId}.";
             var data = new Dictionary<string, string>
             {
                 ["type"] = "review",
                 ["reviewId"] = review.Id.ToString(),
                 ["doctorId"] = review.DoctorId.ToString(),
-                ["appointmentId"] = review.AppoinmentId?.ToString() ?? string.Empty,
+                ["appointmentId"] = review.AppointmentId?.ToString() ?? string.Empty,
                 ["rating"] = review.Rating.ToString()
             };
 
@@ -171,7 +171,7 @@ namespace Clinic_Booking.Services.ReviewServices
                 body,
                 data,
                 doctorId: review.DoctorId,
-                appointmentId: review.AppoinmentId);
+                appointmentId: review.AppointmentId);
             await _context.SaveChangesAsync();
         }
 
@@ -198,6 +198,7 @@ namespace Clinic_Booking.Services.ReviewServices
                 .AsNoTracking()
                 .Where(review => review.DoctorId == doctorId && !review.IsDeleted)
                 .OrderByDescending(review => review.CreatedAt)
+                .Take(100)
                 .Select(review => new GetReviewDto
                 {
                     Id = review.Id,
@@ -215,7 +216,7 @@ namespace Clinic_Booking.Services.ReviewServices
                     },
                     Rating = review.Rating,
                     Comment = review.Comment,
-                    AppoinmentId = review.AppoinmentId,
+                    AppointmentId = review.AppointmentId,
                     Appointment = review.Appointment == null
                         ? null
                         : new GetAppointmentReview

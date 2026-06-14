@@ -16,13 +16,11 @@ namespace Clinic_Booking.Services.LoadServices
         public Guid? GetCurrentUserId()
         {
             var userId = _accessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userGuid = Guid.TryParse(userId, out var guid) ? guid : Guid.Empty;
-            var user = _context.AspNetUsers.Where(us => us.Id == userGuid && !us.IsDeleted).FirstOrDefault();
-            if (user != null)
+            if (Guid.TryParse(userId, out var userGuid))
             {
                 return userGuid;
             }
-            return Guid.Empty;
+            return null;
         }
         public string SandEmailHTMLTemplate(string confirmationLink)
         {

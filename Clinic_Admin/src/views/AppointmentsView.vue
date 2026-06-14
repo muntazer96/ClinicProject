@@ -30,7 +30,7 @@ interface AppointmentRow {
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = auth.hasAnyRole(['SuperAdmin'])
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
 const appointments = ref<AppointmentRow[]>([])
 const clinics = ref<ClinicItem[]>([])
 const doctors = ref<DoctorItem[]>([])

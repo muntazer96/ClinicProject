@@ -58,36 +58,36 @@ namespace Clinic_Booking.Controllers
         }
         [HttpPost]
         [EnableRateLimiting("Booking")]
-        public async Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form)
+        public async Task<IActionResult> CreateAppointmentAsync([FromBody] AddAppointmentDto form)
         {
             return await _service.CreateAppointmentAsync(form);
         }
         [HttpPost("manual")]
         [Authorize(Roles = AppRoles.DoctorUser)]
-        public async Task<IActionResult> CreateManualAppointmentAsync(ManualAppointmentDto form)
+        public async Task<IActionResult> CreateManualAppointmentAsync([FromBody] ManualAppointmentDto form)
         {
             return await _service.CreateManualAppointmentAsync(form);
         }
         [HttpPost("otp/resend")]
         [EnableRateLimiting("Otp")]
-        public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
+        public async Task<IActionResult> ResendBookingOtpAsync([FromBody] ResendBookingOtpDto form)
         {
             return await _service.ResendBookingOtpAsync(form);
         }
         [HttpPost("otp/confirm")]
         [EnableRateLimiting("Otp")]
-        public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
+        public async Task<IActionResult> ConfirmBookingOtpAsync([FromBody] BookingOtpDto form)
         {
             return await _service.ConfirmBookingOtpAsync(form);
         }
         [HttpPost("guest/cancel")]
-        public async Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form)
+        public async Task<IActionResult> CancelGuestAppointmentAsync([FromBody] CancelGuestAppointmentDto form)
         {
             return await _service.CancelGuestAppointmentAsync(form);
         }
         [HttpPost("my/cancel")]
         [Authorize]
-        public async Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form)
+        public async Task<IActionResult> CancelMyAppointmentAsync([FromBody] CancelMyAppointmentDto form)
         {
             return await _service.CancelMyAppointmentAsync(form);
         }
@@ -99,7 +99,7 @@ namespace Clinic_Booking.Controllers
         }
         [HttpPost("complete")]
         [Authorize(Roles = AppRoles.DoctorUser)]
-        public async Task<IActionResult> CompleteAppointmentAsync(int appointmentId)
+        public async Task<IActionResult> CompleteAppointmentAsync([FromQuery] int appointmentId)
         {
             return await _service.CompleteAppointmentAsync(appointmentId);
         }

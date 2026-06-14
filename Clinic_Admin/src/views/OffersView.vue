@@ -30,7 +30,7 @@ type OfferForm = {
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = auth.hasAnyRole(['SuperAdmin'])
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
 const offers = ref<DoctorOfferItem[]>([])
 const doctors = ref<DoctorItem[]>([])
 const clinics = ref<ClinicItem[]>([])

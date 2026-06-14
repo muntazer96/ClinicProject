@@ -159,6 +159,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             var appointments = await query
                 .OrderByDescending(a => a.AppointmentDate)
                 .ThenBy(a => a.QueueNumber)
+                .Take(200)
                 .Select(a => new
                 {
                     a.Id,
@@ -215,6 +216,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                         (form.Status == null || appointment.Status == form.Status)))
                 .OrderBy(appointment => appointment.AppointmentDate)
                 .ThenBy(appointment => appointment.QueueNumber)
+                .Take(200)
                 .ToListAsync();
 
             return new OkObjectResult(new ResponseDto<List<BookingDetailsDto>>
@@ -426,6 +428,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                     _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId))
                 .OrderByDescending(a => a.AppointmentDate)
                 .ThenBy(a => a.QueueNumber)
+                .Take(100)
                 .ToListAsync();
 
             return new OkObjectResult(new ResponseDto<List<BookingDetailsDto>>

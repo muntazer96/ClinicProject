@@ -13,7 +13,7 @@ namespace Clinic_Booking.Entities.User
         public DateTime? DeletedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int? CreatorId { get; set; }
-        public DateTime? CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
         public int? ModifierId { get; set; }
         public DateTime? ModifiedAt { get; set; }
     }

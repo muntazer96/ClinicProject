@@ -17,11 +17,13 @@ namespace Clinic_Booking.Services.DoctorServices
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly UserManager<AspNetUsers> _userManager;
-        public DoctorServices(ApplicationDbContext context, ILoadServices load, UserManager<AspNetUsers> userManager)
+        private readonly ILogger<DoctorServices> _logger;
+        public DoctorServices(ApplicationDbContext context, ILoadServices load, UserManager<AspNetUsers> userManager, ILogger<DoctorServices> logger)
         {
             _context = context;
             _load = load;
             _userManager = userManager;
+            _logger = logger;
         }
 
         public async Task<ActionResult<PaginationDto.PageResult<PublicDoctorListDto>>> SearchPublicAsync(
@@ -566,7 +568,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
                 doctor.ImageName = fileName;
                 doctor.ModifierId = userId;
-                doctor.ModifiedAt = DateTime.Now;
+                doctor.ModifiedAt = DateTime.UtcNow;
                 _context.Doctors.Update(doctor);
                 await _context.SaveChangesAsync();
 
@@ -908,8 +910,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Database update exception: {ex.Message}");
-                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError(ex, "Database update exception: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
@@ -926,7 +927,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+                _logger.LogError(ex, "An unexpected exception occurred: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
@@ -985,7 +986,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 doctor.PhoneNumber = form.PhoneNumber;
                 doctor.Location = form.Location;
                 doctor.ModifierId = _load.GetCurrentUserId();
-                doctor.ModifiedAt = DateTime.Now;
+                doctor.ModifiedAt = DateTime.UtcNow;
 
                 if (form.ImageName != null)
                 {
@@ -1029,7 +1030,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Database update exception: {ex.Message}");
+                _logger.LogError(ex, "Database update exception: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
@@ -1043,7 +1044,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected exception: {ex.Message}");
+                _logger.LogError(ex, "Unexpected exception: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
@@ -1066,7 +1067,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     doctor.IsDeleted = true;
                     doctor.DeleterId = _load.GetCurrentUserId();
-                    doctor.DeletedAt = DateTime.Now;
+                    doctor.DeletedAt = DateTime.UtcNow;
                     _context.Doctors.Update(doctor);
                     await _context.SaveChangesAsync();
                     return new OkObjectResult(new ResponseDto<string>
@@ -1085,8 +1086,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Database update exception: {ex.Message}");
-                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError(ex, "Database update exception: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {
@@ -1103,7 +1103,7 @@ namespace Clinic_Booking.Services.DoctorServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An unexpected exception occurred: {ex.Message}");
+                _logger.LogError(ex, "An unexpected exception occurred: {Message}", ex.Message);
 
                 var errorResponse = new ResponseDto<string>
                 {

@@ -10,7 +10,7 @@ namespace Clinic_Booking.DTOs.ReviewDTO
 
         public int Rating { get; set; } // التقييم من 1 إلى 5
         public string Comment { get; set; } // تعليق المستخدم
-        public int? AppoinmentId { get; set; }
+        public int? AppointmentId { get; set; }
         public GetAppointmentReview? Appointment { get; set; }
     }
     public class GetDoctorReview

@@ -23,7 +23,9 @@ function decodePayload(token: string): JwtPayload | null {
     const [, payload] = token.split('.')
     if (!payload) return null
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
-    return JSON.parse(decodeURIComponent(escape(atob(normalized)))) as JwtPayload
+    const decoded = atob(normalized)
+    const utf8Bytes = Uint8Array.from(decoded, (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(utf8Bytes)) as JwtPayload
   } catch {
     return null
   }

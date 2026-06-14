@@ -185,25 +185,25 @@ namespace Clinic_Booking.Data
                 entity.HasData(new AspNetRoles()
                 {
                     Id = Guid.Parse("f6efb588-1fd1-4df4-a453-eb11f69f9046"),
-                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7316),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7316),
                     Name = "SuperAdmin",
                     NormalizedName = "SUPERADMIN",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("5ca230af-a98f-4d9e-b99d-0b58d33a4379"),
-                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7335),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7335),
                     Name = "NormalUser",
                     NormalizedName = "NORMALUSER",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("99f94c2e-be3b-4f90-b59f-81ac294980bf"),
-                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7338),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7338),
                     Name = "DoctorUser",
                     NormalizedName = "DOCTORUSER",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("6f03ef0f-c1ac-43f6-9df2-2be6d5385b72"),
-                    CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7347),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7347),
                     Name = AppRoles.ClinicStaff,
                     NormalizedName = "CLINICSTAFF",
                 });
@@ -365,7 +365,7 @@ namespace Clinic_Booking.Data
                 {
                     Id = 3,
                     Name = "ألماس",
-                    NormalizedName = "Diamond ",
+                    NormalizedName = "Diamond",
                     MaxClinics = 3,
                     MaxWeeklyDays = 6,
                     MaxDailyAppointments = 35,
@@ -405,11 +405,13 @@ namespace Clinic_Booking.Data
 
                 entity.HasOne(ds => ds.Doctor)
                     .WithMany(d => d.DoctorSubscriptions)
-                    .HasForeignKey(ds => ds.DoctorId);
+                    .HasForeignKey(ds => ds.DoctorId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(ds => ds.Package)
                     .WithMany()
-                    .HasForeignKey(ds => ds.PackageId);
+                    .HasForeignKey(ds => ds.PackageId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Appointment
@@ -462,7 +464,8 @@ namespace Clinic_Booking.Data
 
                 entity.HasOne(p => p.Appointment)
                     .WithMany()
-                    .HasForeignKey(p => p.AppointmentId);
+                    .HasForeignKey(p => p.AppointmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // RefreshToken
@@ -537,7 +540,7 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Comment).IsRequired().HasMaxLength(1000);
-                entity.HasIndex(e => e.AppoinmentId)
+                entity.HasIndex(e => e.AppointmentId)
                     .IsUnique()
                     .HasFilter("\"AppoinmentId\" IS NOT NULL AND \"IsDeleted\" = false");
                 entity.ToTable(table => table.HasCheckConstraint(
@@ -556,7 +559,7 @@ namespace Clinic_Booking.Data
 
                 entity.HasOne(r => r.Appointment)
                 .WithMany(a => a.Reviews)
-                .HasForeignKey(r=>r.AppoinmentId)
+                .HasForeignKey(r => r.AppointmentId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
             });
@@ -728,6 +731,25 @@ namespace Clinic_Booking.Data
                 .WithMany(d => d.DoctorFeatures)
                 .HasForeignKey(df => df.FeatureId);
             });
+
+            modelBuilder.Entity<Doctor>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Clinic>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<ClinicException>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Appointment>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Review>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Message>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<DoctorSubscription>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<DoctorFeature>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<DoctorOffer>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<DoctorAvailability>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<DeviceToken>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<RefreshToken>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Referral>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<BookingOtpRequest>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<UserPhoneOtpRequest>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<NotificationDeliveryAttempt>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<UserFavoriteDoctor>().HasQueryFilter(e => !e.IsDeleted);
         }
     }
 }

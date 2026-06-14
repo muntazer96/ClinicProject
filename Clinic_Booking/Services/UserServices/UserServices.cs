@@ -19,6 +19,7 @@ using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
+using Clinic_Booking.Authorization;
 
 namespace Clinic_Booking.Services.UserServices
 {
@@ -116,7 +117,7 @@ namespace Clinic_Booking.Services.UserServices
                     });
                 }
 
-                var role = await _roleManager.FindByNameAsync("NormalUser");
+                var role = await _roleManager.FindByNameAsync(AppRoles.NormalUser);
 
                 if (role == null)
                 {
@@ -284,7 +285,7 @@ namespace Clinic_Booking.Services.UserServices
                 await _userManager.SetLockoutEndDateAsync(user, null);
 
                 var userRoles = await _userManager.GetRolesAsync(user);
-                var authClaims = BuildUserClaims(user, userRoles);
+                var authClaims = await BuildUserClaimsAsync(user, userRoles);
 
                 var token = GetToken(authClaims);
                 var refreshToken = CreateRefreshToken(user.Id);
@@ -376,7 +377,7 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             var userRoles = await _userManager.GetRolesAsync(storedToken.User);
-            var authClaims = BuildUserClaims(storedToken.User, userRoles);
+            var authClaims = await BuildUserClaimsAsync(storedToken.User, userRoles);
             var accessToken = GetToken(authClaims);
             var replacement = CreateRefreshToken(storedToken.UserId);
             storedToken.RevokedAt = DateTime.UtcNow;
@@ -640,7 +641,7 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error while soft-deleting user: {Message}", ex.Message);
 
                 return new ObjectResult(new ResponseDto<string>
                 {
@@ -654,7 +655,6 @@ namespace Clinic_Booking.Services.UserServices
         {
             try
             {
-                // البحث عن المستخدم
                 var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
                 {
@@ -667,10 +667,8 @@ namespace Clinic_Booking.Services.UserServices
                     });
                 }
 
-                // التبديل بين القفل والفتح
                 if (user.IsLocked)
                 {
-                    // فتح الحساب
                     user.IsLocked = false;
                     await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MinValue);
 
@@ -688,9 +686,8 @@ namespace Clinic_Booking.Services.UserServices
                 }
                 else
                 {
-                    // قفل الحساب
                     user.IsLocked = true;
-                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.Now.AddYears(100)); // قفل دائم أو مؤقت حسب ما تريد
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
 
                     var result = await _userManager.UpdateAsync(user);
                     if (result.Succeeded)
@@ -715,7 +712,7 @@ namespace Clinic_Booking.Services.UserServices
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Unexpected error: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error while toggling lock status: {Message}", ex.Message);
 
                 return new ObjectResult(new ResponseDto<string>
                 {
@@ -771,11 +768,25 @@ namespace Clinic_Booking.Services.UserServices
 
             var userDtos = new List<UserGetDto>();
 
+            var userRolesDict = new Dictionary<Guid, string>();
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
                 var roleName = roles.FirstOrDefault();
-                var role = !string.IsNullOrEmpty(roleName) ? await _roleManager.FindByNameAsync(roleName) : null;
+                if (!string.IsNullOrEmpty(roleName))
+                {
+                    userRolesDict[user.Id] = roleName;
+                }
+            }
+
+            var roleNames = userRolesDict.Values.Where(r => !string.IsNullOrEmpty(r)).Distinct().ToList();
+            var roleDict = await _context.Roles
+                .Where(r => roleNames.Contains(r.Name))
+                .ToDictionaryAsync(r => r.Name, r => (Guid?)r.Id);
+
+            foreach (var user in users)
+            {
+                var roleName = userRolesDict.GetValueOrDefault(user.Id);
 
                 userDtos.Add(new UserGetDto
                 {
@@ -793,7 +804,7 @@ namespace Clinic_Booking.Services.UserServices
                     IsDeleted = user.IsDeleted,
                     DeletedAt = user.DeletedAt,
                     RoleName = roleName,
-                    RoleId = role?.Id,
+                    RoleId = !string.IsNullOrEmpty(roleName) && roleDict.TryGetValue(roleName, out var rid) ? rid : null,
                     LinkedDoctor = linkedDoctors.GetValueOrDefault(user.Id)
                 });
             }
@@ -1483,7 +1494,7 @@ namespace Clinic_Booking.Services.UserServices
             return string.IsNullOrWhiteSpace(baseUrl) ? null : baseUrl.TrimEnd('/');
         }
 
-        private List<Claim> BuildUserClaims(AspNetUsers user, IEnumerable<string> userRoles)
+        private async Task<List<Claim>> BuildUserClaimsAsync(AspNetUsers user, IEnumerable<string> userRoles)
         {
             var authClaims = new List<Claim>
             {
@@ -1495,7 +1506,7 @@ namespace Clinic_Booking.Services.UserServices
             {
                 authClaims.Add(new Claim("Role", role));
                 authClaims.Add(new Claim(ClaimTypes.Role, role));
-                var roleId = GetRoleIdByName(role);
+                var roleId = await GetRoleIdByNameAsync(role);
                 if (!string.IsNullOrWhiteSpace(roleId))
                 {
                     authClaims.Add(new Claim("roleId", roleId));
@@ -1504,9 +1515,9 @@ namespace Clinic_Booking.Services.UserServices
 
             return authClaims;
         }
-        private string GetRoleIdByName(string roleName)
+        private async Task<string?> GetRoleIdByNameAsync(string roleName)
         {
-            var role = _context.Roles.FirstOrDefault(r => r.Name == roleName);
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == roleName);
 
             if (role != null)
             {
