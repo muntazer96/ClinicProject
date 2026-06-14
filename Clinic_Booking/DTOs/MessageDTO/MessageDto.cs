@@ -1,17 +1,16 @@
-﻿using Clinic_Booking.Entities.Shared;
-using Clinic_Booking.Entities.User;
 using Clinic_Booking.Enums;
 
-namespace Clinic_Booking.Entities.Message
+namespace Clinic_Booking.DTOs.MessageDTO
 {
-    public class Message : BaseEntity<int>
+    public class MessageDto
     {
+        public int Id { get; set; }
         public Guid SenderId { get; set; }
-        public AspNetUsers Sender { get; set; }
-
+        public string SenderName { get; set; }
+        public string? SenderImage { get; set; }
         public Guid ReceiverId { get; set; }
-        public AspNetUsers Receiver { get; set; }
-
+        public string ReceiverName { get; set; }
+        public string? ReceiverImage { get; set; }
         public string Content { get; set; }
         public DateTime SentAt { get; set; }
         public bool IsRead { get; set; }

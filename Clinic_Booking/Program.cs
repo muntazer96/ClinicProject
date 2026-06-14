@@ -25,6 +25,7 @@ using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.IServices.INotificationDeliveryHelper;
+using Clinic_Booking.IServices.IMessageServices;
 using Clinic_Booking.Services.AnalyticsServices;
 using Clinic_Booking.Services.AppointmentReminderServices;
 using Clinic_Booking.Services.AppointmentReschedulingServices;
@@ -52,6 +53,8 @@ using Clinic_Booking.Services.SubscriptionExpirationServices;
 using Clinic_Booking.Services.UserServices;
 using Clinic_Booking.Services.WhatsAppMessageServices;
 using Clinic_Booking.Services.NotificationDeliveryHelper;
+using Clinic_Booking.Hubs;
+using Clinic_Booking.Services.MessageServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -85,6 +88,8 @@ builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>()
 builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
 builder.Services.AddScoped<IReviewServices, ReviewServices>();
+builder.Services.AddScoped<IMessageServices, MessageServices>();
+builder.Services.AddSignalR();
 builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServices>();
 builder.Services.AddHttpClient<IWhatsAppMessageServices, WhatsAppMessageServices>();
 builder.Services.AddHostedService<SubscriptionExpirationService>();
@@ -267,6 +272,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessageHub>("/hubs/message");
 
 app.UseStaticFiles();
 

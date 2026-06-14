@@ -279,11 +279,6 @@ namespace Clinic_Booking.Data
                     .WithOne(ds => ds.Doctor)
                     .HasForeignKey(ds => ds.DoctorId);
 
-                entity.HasMany(d => d.ReceivedMessages)
-                    .WithOne(m => m.Receiver)
-                    .HasForeignKey(m => m.ReceiverId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
                 entity.HasMany(d => d.Notifications)
                     .WithOne(n => n.Doctor)
                     .HasForeignKey(n => n.DoctorId);
@@ -575,7 +570,7 @@ namespace Clinic_Booking.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(m => m.Receiver)
-                    .WithMany(d => d.ReceivedMessages)
+                    .WithMany()
                     .HasForeignKey(m => m.ReceiverId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
