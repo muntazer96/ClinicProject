@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme.dart';
+import '../../widgets/app_logo.dart';
 import 'startup_splash_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -69,7 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: Row(
               children: [
-                Image.asset('assets/app_logo.png', width: 42, height: 42),
+                const AppLogo(size: 42),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(

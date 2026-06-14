@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import 'app_logo.dart';
 
 class AuthShell extends StatelessWidget {
   const AuthShell({
@@ -70,11 +71,7 @@ class AuthShell extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            SizedBox(
-                              width: 38,
-                              height: 38,
-                              child: Image.asset('assets/app_logo.png'),
-                            ),
+                            const AppLogo(size: 38, light: true),
                           ],
                         ),
 

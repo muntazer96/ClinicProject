@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme.dart';
+import '../../widgets/app_logo.dart';
 import '../../widgets/developer_credit.dart';
 
 class StartupSplashScreen extends StatefulWidget {
@@ -67,11 +68,7 @@ class _StartupSplashScreenState extends State<StartupSplashScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 118,
-                        height: 118,
-                        child: Image.asset('assets/app_logo.png'),
-                      ),
+                      const AppLogo(size: 118, light: true),
                       const SizedBox(height: 18),
                       const Text(
                         'عيادتي',

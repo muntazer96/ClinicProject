@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../core/app_theme.dart';
 import '../features/auth/auth_controller.dart';
+import 'app_logo.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -53,11 +54,7 @@ class AppScaffold extends StatelessWidget {
             : null,
         title: Row(
           children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: Image.asset('assets/app_logo.png'),
-            ),
+            const AppLogo(size: 44),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

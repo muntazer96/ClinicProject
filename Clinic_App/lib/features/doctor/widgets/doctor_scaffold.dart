@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
+import '../../../widgets/app_logo.dart';
 import '../../auth/auth_controller.dart';
 import '../services/doctor_service.dart';
 
@@ -94,11 +95,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
             : null,
         title: Row(
           children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: Image.asset('assets/app_logo.png'),
-            ),
+            const AppLogo(size: 44),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

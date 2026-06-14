@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/app_theme.dart';
+import 'app_logo.dart';
 
 class OfflineGate extends StatelessWidget {
   const OfflineGate({super.key, required this.child});
@@ -61,11 +62,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
           child: Column(
             children: [
               const Spacer(),
-              SizedBox(
-                width: 92,
-                height: 92,
-                child: Image.asset('assets/app_logo.png'),
-              ),
+              const AppLogo(size: 92),
               const SizedBox(height: 28),
               const Icon(
                 Icons.wifi_off_rounded,
