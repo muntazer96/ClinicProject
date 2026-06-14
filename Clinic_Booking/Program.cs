@@ -65,6 +65,9 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.UseUrls("http://0.0.0.0:8082");
+
 ConfigurationManager configuration = builder.Configuration;
 
 // Add services to the container.

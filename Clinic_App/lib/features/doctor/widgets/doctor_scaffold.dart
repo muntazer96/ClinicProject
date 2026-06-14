@@ -28,14 +28,15 @@ class DoctorScaffold extends StatefulWidget {
 
 class _DoctorScaffoldState extends State<DoctorScaffold> {
   String? _doctorName;
+  bool _canMessage = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDoctorName());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDoctorProfile());
   }
 
-  Future<void> _loadDoctorName() async {
+  Future<void> _loadDoctorProfile() async {
     final auth = context.read<AuthController>();
     if (!auth.isDoctor) return;
     try {
@@ -44,6 +45,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
       if (mounted) {
         setState(() {
           _doctorName = profile.name;
+          _canMessage = profile.canMessage;
         });
       }
     } catch (_) {}
@@ -57,23 +59,22 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
         path == '/doctor/appointments' ||
             path.startsWith('/doctor/appointments/')
         ? 1
-        : path == '/doctor/messages' ||
-              path.startsWith('/doctor/messages/')
-        ? 2
         : path == '/doctor/clinics' ||
               path.startsWith('/doctor/clinics/') ||
               path == '/doctor/schedule' ||
               path.startsWith('/doctor/schedule/')
-        ? 3
+        ? 2
         : path == '/doctor/offers' || path.startsWith('/doctor/offers/')
-        ? 4
+        ? 3
         : path == '/doctor/profile' ||
               path.startsWith('/doctor/profile/') ||
               path == '/doctor/features' ||
               path == '/doctor/subscription' ||
               path == '/doctor/reviews'
-        ? 5
+        ? 4
         : 0;
+    final isMessagesPage =
+        path == '/doctor/messages' || path.startsWith('/doctor/messages/');
     final hub = context.watch<MessageHubService>();
     final unreadCount = hub.unreadCount;
     final displayName = _doctorName?.isNotEmpty == true
@@ -82,6 +83,10 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
     const premiumColor = AppColors.primary;
 
     return Scaffold(
+      floatingActionButton: isMessagesPage || !_canMessage
+          ? null
+          : _MessageFab(unreadCount: unreadCount),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         foregroundColor: premiumColor,
         toolbarHeight: 76,
@@ -159,10 +164,9 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           onDestinationSelected: (index) {
             if (index == 0) context.go('/doctor');
             if (index == 1) context.go('/doctor/appointments');
-            if (index == 2) context.go('/doctor/messages');
-            if (index == 3) context.go('/doctor/clinics');
-            if (index == 4) context.go('/doctor/offers');
-            if (index == 5) context.go('/doctor/profile');
+            if (index == 2) context.go('/doctor/clinics');
+            if (index == 3) context.go('/doctor/offers');
+            if (index == 4) context.go('/doctor/profile');
           },
           destinations: [
             const NavigationDestination(
@@ -174,21 +178,6 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month_rounded),
               label: 'الحجوزات',
-            ),
-            NavigationDestination(
-              icon: unreadCount > 0
-                  ? Badge(
-                      label: Text('$unreadCount'),
-                      child: const Icon(Icons.chat_outlined),
-                    )
-                  : const Icon(Icons.chat_outlined),
-              selectedIcon: unreadCount > 0
-                  ? Badge(
-                      label: Text('$unreadCount'),
-                      child: const Icon(Icons.chat_rounded),
-                    )
-                  : const Icon(Icons.chat_rounded),
-              label: 'الرسائل',
             ),
             const NavigationDestination(
               icon: Icon(Icons.local_hospital_outlined),
@@ -206,6 +195,81 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
               label: 'الملف',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageFab extends StatefulWidget {
+  const _MessageFab({required this.unreadCount});
+
+  final int unreadCount;
+
+  @override
+  State<_MessageFab> createState() => _MessageFabState();
+}
+
+class _MessageFabState extends State<_MessageFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  int _lastCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _scale = Tween<double>(begin: 1, end: 1.15).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_MessageFab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.unreadCount > 0 && widget.unreadCount != _lastCount) {
+      _lastCount = widget.unreadCount;
+      _controller.forward().then((_) => _controller.reverse());
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _scale,
+      builder: (context, child) => Transform.scale(
+        scale: _scale.value,
+        child: child,
+      ),
+      child: FloatingActionButton(
+        heroTag: 'message_fab',
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        onPressed: () => context.push('/doctor/messages'),
+        tooltip: 'الرسائل',
+        child: Badge(
+          isLabelVisible: widget.unreadCount > 0,
+          label: widget.unreadCount > 0
+              ? Text(
+                  widget.unreadCount > 99
+                      ? '99+'
+                      : '${widget.unreadCount}',
+                  style: const TextStyle(fontSize: 10),
+                )
+              : null,
+          child: const Icon(Icons.chat_rounded),
         ),
       ),
     );

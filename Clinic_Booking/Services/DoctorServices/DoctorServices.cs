@@ -455,6 +455,16 @@ namespace Clinic_Booking.Services.DoctorServices
                     Location = d.Location,
                     PhoneNumber = d.PhoneNumber,
                     IsPubliclyVisible = d.IsPubliclyVisible,
+                    CanMessage =
+                        d.DoctorSubscriptions.Any(s =>
+                            s.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            s.StartDate <= DateTime.UtcNow &&
+                            s.EndDate >= DateTime.UtcNow &&
+                            s.Package.ShowMessages) &&
+                        d.DoctorFeatures.Any(f =>
+                            !f.IsDeleted &&
+                            f.IsEnabled &&
+                            f.Feature.NormalizedName == "ShowMessages"),
                     UserId = d.UserId,
                     LinkedUser = d.User == null ? null : new LinkedDoctorUserDto
                     {

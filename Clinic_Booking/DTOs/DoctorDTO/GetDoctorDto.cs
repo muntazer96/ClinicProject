@@ -23,6 +23,7 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public string PhoneNumber { get; set; }
         public string Location { get; set; }
         public bool IsPubliclyVisible { get; set; }
+        public bool CanMessage { get; set; }
         public Guid? UserId { get; set; }
         public LinkedDoctorUserDto? LinkedUser { get; set; }
     }

@@ -23,10 +23,13 @@ class ConversationsScreen extends StatefulWidget {
 class _ConversationsScreenState extends State<ConversationsScreen>
     with WidgetsBindingObserver {
   late final MessageService _service;
+  late final MessageHubService _hub;
   StreamSubscription<MessageDto>? _messageSub;
+  StreamSubscription<String>? _pushSub;
   List<ConversationDto> _items = [];
   bool _loading = true;
   String? _myUserId;
+  int _lastVersion = 0;
 
   @override
   void initState() {
@@ -35,8 +38,13 @@ class _ConversationsScreenState extends State<ConversationsScreen>
     final auth = context.read<AuthController>();
     _service = MessageService(auth.api);
     _myUserId = auth.profile?.id;
-    final hub = context.read<MessageHubService>();
-    _messageSub = hub.onMessage.listen(_onNewMessage);
+    _hub = context.read<MessageHubService>();
+    _lastVersion = _hub.conversationsVersion;
+    _messageSub = _hub.onMessage.listen(_onNewMessage);
+    _pushSub = PushNotificationService.onNewMessageNotification.listen((_) {
+      _loadSilent();
+      _hub.refreshUnreadCount();
+    });
     _load();
   }
 
@@ -56,6 +64,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _messageSub?.cancel();
+    _pushSub?.cancel();
     super.dispose();
   }
 
@@ -85,50 +94,58 @@ class _ConversationsScreenState extends State<ConversationsScreen>
   }
 
   @override
-  Widget build(BuildContext context) => RefreshIndicator(
-        onRefresh: _load,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _items.isEmpty
-                ? ListView(
-                    children: const [
-                      SizedBox(height: 120),
-                      Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              size: 64,
+  Widget build(BuildContext context) {
+    final version = context.watch<MessageHubService>().conversationsVersion;
+    if (version != _lastVersion) {
+      _lastVersion = version;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadSilent());
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _items.isEmpty
+              ? ListView(
+                  children: const [
+                    SizedBox(height: 120),
+                    Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 64,
+                            color: AppColors.muted,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'لا توجد رسائل حالياً.',
+                            style: TextStyle(
                               color: AppColors.muted,
+                              fontSize: 16,
                             ),
-                            SizedBox(height: 16),
-                            Text(
-                              'لا توجد رسائل حالياً.',
-                              style: TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 16,
-                              ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'يمكنك مراسلة الأطباء من صفحة ملفهم.',
+                            style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 13,
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              'يمكنك مراسلة الأطباء من صفحة ملفهم.',
-                              style: TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) =>
-                        _ConversationCard(item: _items[index]),
-                  ),
-      );
+                    ),
+                  ],
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) =>
+                      _ConversationCard(item: _items[index]),
+                ),
+    );
+  }
 }
 
 class _ConversationCard extends StatelessWidget {

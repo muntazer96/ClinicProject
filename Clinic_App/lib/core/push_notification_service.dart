@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,6 +17,10 @@ class PushNotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   static bool _foregroundNotificationsInitialized = false;
+  static final _newMessageController = StreamController<String>.broadcast();
+  static Stream<String> get onNewMessageNotification =>
+      _newMessageController.stream;
+
   static bool get isSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
@@ -39,7 +44,7 @@ class PushNotificationService {
         >();
     await androidNotifications?.createNotificationChannel(_androidChannel);
 
-    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    FirebaseMessaging.onMessage.listen(_onFirebaseMessage);
     _foregroundNotificationsInitialized = true;
   }
 
@@ -71,7 +76,12 @@ class PushNotificationService {
     } catch (_) {}
   }
 
-  static Future<void> _showForegroundNotification(RemoteMessage message) async {
+  static void _onFirebaseMessage(RemoteMessage message) {
+    final type = message.data['type']?.toString();
+    if (type == 'new_message') {
+      _newMessageController.add(message.data['senderId'] ?? '');
+    }
+
     final notification = message.notification;
     final title = notification?.title ?? message.data['title']?.toString();
     final body = notification?.body ?? message.data['body']?.toString();
@@ -80,7 +90,7 @@ class PushNotificationService {
       return;
     }
 
-    await showLocalNotification(title: title ?? '', body: body ?? '');
+    showLocalNotification(title: title ?? '', body: body ?? '');
   }
 
   Future<void> registerCurrentDevice() async {
@@ -132,6 +142,10 @@ class PushNotificationService {
       badge: true,
       sound: true,
     );
+  }
+
+  static void dispose() {
+    _newMessageController.close();
   }
 
   String get _platformName => switch (defaultTargetPlatform) {

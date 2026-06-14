@@ -79,16 +79,34 @@ class _SignalRConnector extends StatefulWidget {
 
 class _SignalRConnectorState extends State<_SignalRConnector> {
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncConnection());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
+    final hub = context.watch<MessageHubService>();
+
+    if (auth.isAuthenticated && !hub.isConnected && !hub.isConnecting) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncConnection());
+    } else if (!auth.isAuthenticated && hub.isConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _syncConnection());
+    }
+
+    return widget.child;
+  }
+
+  void _syncConnection() {
+    if (!mounted) return;
+    final auth = context.read<AuthController>();
     final hub = context.read<MessageHubService>();
 
-    if (auth.isAuthenticated && !hub.isConnected) {
+    if (auth.isAuthenticated && !hub.isConnected && !hub.isConnecting) {
       hub.connect();
     } else if (!auth.isAuthenticated && hub.isConnected) {
       hub.disconnect();
     }
-
-    return widget.child;
   }
 }

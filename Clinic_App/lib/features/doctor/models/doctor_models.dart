@@ -40,6 +40,7 @@ class DoctorManageProfile {
     required this.location,
     required this.isPubliclyVisible,
     required this.subscriptionRank,
+    required this.canMessage,
   });
 
   final int id;
@@ -56,6 +57,7 @@ class DoctorManageProfile {
   final String location;
   final bool isPubliclyVisible;
   final int subscriptionRank;
+  final bool canMessage;
 
   String? get imageUrl =>
       imageName.trim().isEmpty ? null : ApiClient.doctorImageUrl(imageName);
@@ -79,6 +81,7 @@ class DoctorManageProfile {
       location: json['location'] as String? ?? '',
       isPubliclyVisible: json['isPubliclyVisible'] as bool? ?? false,
       subscriptionRank: json['subscriptionRank'] as int? ?? 0,
+      canMessage: json['canMessage'] as bool? ?? true,
     );
   }
 }

@@ -17,23 +17,49 @@ class OfflineGate extends StatefulWidget {
 
 class _OfflineGateState extends State<OfflineGate> {
   Timer? _connectivityTimer;
+  Timer? _debounceTimer;
+  bool _showOverlay = false;
 
   @override
   void initState() {
     super.initState();
+    ApiClient.connectionAvailable.addListener(_onConnectionChanged);
     _connectivityTimer = Timer.periodic(
       const Duration(seconds: 15),
       (_) async {
-        if (!ApiClient.connectionAvailable.value) {
+        if (ApiClient.connectionAvailable.value == false) {
           await ApiClient.checkServerAvailability();
         }
       },
     );
   }
 
+  void _onConnectionChanged() {
+    if (ApiClient.connectionAvailable.value == false) {
+      _debounceTimer ??= Timer(
+        const Duration(seconds: 4),
+        () {
+          if (mounted &&
+              ApiClient.connectionAvailable.value == false) {
+            setState(() => _showOverlay = true);
+          }
+          _debounceTimer = null;
+        },
+      );
+    } else {
+      _debounceTimer?.cancel();
+      _debounceTimer = null;
+      if (_showOverlay) {
+        setState(() => _showOverlay = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
+    ApiClient.connectionAvailable.removeListener(_onConnectionChanged);
     _connectivityTimer?.cancel();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -42,10 +68,16 @@ class _OfflineGateState extends State<OfflineGate> {
     return ValueListenableBuilder<bool>(
       valueListenable: ApiClient.connectionAvailable,
       builder: (context, available, _) {
+        if (available && _showOverlay) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _showOverlay = false);
+          });
+        }
         return Stack(
           children: [
             widget.child,
-            if (!available) const Positioned.fill(child: _OfflineScreen()),
+            if (!available && _showOverlay)
+              const Positioned.fill(child: _OfflineScreen()),
           ],
         );
       },

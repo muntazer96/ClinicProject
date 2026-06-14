@@ -22,7 +22,7 @@ class MessageService {
   Future<ConversationResult> getConversation(
     String otherUserId, {
     int page = 1,
-    int pageSize = 50,
+    int pageSize = 10,
   }) async {
     final response = await _client.dio.get(
       '/Message/conversation/$otherUserId',
@@ -45,6 +45,18 @@ class MessageService {
       return data['canSend'] as bool? ?? true;
     } catch (_) {
       return true;
+    }
+  }
+
+  Future<int> getUnreadCount() async {
+    try {
+      final response = await _client.dio.get('/Message/unread-count');
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+      return (data['data'] is int ? data['data'] as int : 0);
+    } catch (_) {
+      return 0;
     }
   }
 }

@@ -34,6 +34,9 @@ class _ChatScreenState extends State<ChatScreen> {
   List<MessageDto> _messages = [];
   String? _myUserId;
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 1;
   bool _sending = false;
   bool _canSend = true;
   bool _canSendLoaded = false;
@@ -49,6 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _myUserId = auth.profile?.id;
     _loadMessages();
     _checkCanSend();
+    _scrollController.addListener(_onScroll);
 
     _hub.onMessageReceived = (msg) {
       if (msg.senderId == widget.otherUserId ||
@@ -110,6 +114,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _hub.signalConversationsChanged();
     _textController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
@@ -118,16 +123,52 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadMessages() async {
     setState(() => _loading = true);
+    _page = 1;
     try {
-      final result = await _service.getConversation(widget.otherUserId);
+      final result = await _service.getConversation(
+        widget.otherUserId,
+        page: _page,
+        pageSize: 10,
+      );
       setState(() {
-        _messages = result.messages.reversed.toList();
+        _messages = result.messages;
+        _hasMore = result.hasMore;
       });
       _scrollToBottom();
+      _page++;
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final result = await _service.getConversation(
+        widget.otherUserId,
+        page: _page,
+        pageSize: 10,
+      );
+      setState(() {
+        _messages.addAll(result.messages);
+        _hasMore = result.hasMore;
+      });
+      _page++;
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.position.pixels;
+    if (current >= maxScroll - 200) {
+      _loadMore();
     }
   }
 
@@ -158,7 +199,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _hub.sendMessage(form);
       } else {
         final msg = await _service.send(form);
-        setState(() => _messages.add(msg));
+        setState(() => _messages.insert(0, msg));
         _scrollToBottom();
       }
     } catch (error) {
@@ -267,8 +308,29 @@ class _ChatScreenState extends State<ChatScreen> {
                           vertical: 8,
                         ),
                         itemCount: _messages.length +
-                            (_typingUserId != null ? 1 : 0),
+                            (_typingUserId != null ? 1 : 0) +
+                            (_loadingMore ? 1 : 0),
                         itemBuilder: (context, index) {
+                          final lastIndex = _messages.length +
+                              (_typingUserId != null ? 1 : 0) +
+                              (_loadingMore ? 1 : 0) -
+                              1;
+
+                          if (_loadingMore && index == lastIndex) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
                           if (_typingUserId != null &&
                               index == 0) {
                             return const Padding(
@@ -289,8 +351,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             );
                           }
 
-                          final msgIndex =
-                              _typingUserId != null ? index - 1 : index;
+                          final msgOffset =
+                              _typingUserId != null ? 1 : 0;
+                          final msgIndex = index - msgOffset;
                           final msg = _messages[msgIndex];
                           final isMe = msg.senderId == _myUserId;
 
