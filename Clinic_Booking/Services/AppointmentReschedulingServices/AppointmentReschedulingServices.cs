@@ -10,10 +10,12 @@ namespace Clinic_Booking.Services.AppointmentReschedulingServices
     {
         private const int DefaultSearchWindowDays = 7;
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<AppointmentReschedulingServices> _logger;
 
-        public AppointmentReschedulingServices(ApplicationDbContext context)
+        public AppointmentReschedulingServices(ApplicationDbContext context, ILogger<AppointmentReschedulingServices> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<AppointmentMoveTargetDto?> FindNextMoveTargetAsync(
@@ -21,7 +23,9 @@ namespace Clinic_Booking.Services.AppointmentReschedulingServices
             DateTime startDate,
             Dictionary<DateTime, AppointmentMoveCapacityState> moveStates)
         {
-            var availableDays = await _context.DoctorAvailabilities
+            try
+            {
+                var availableDays = await _context.DoctorAvailabilities
                 .Include(availability => availability.Day)
                 .Where(availability =>
                     availability.ClinicId == clinicId &&
@@ -92,6 +96,14 @@ namespace Clinic_Booking.Services.AppointmentReschedulingServices
             }
 
             return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "FindNextMoveTargetAsync failed. ClinicId={ClinicId}, StartDate={StartDate}",
+                    clinicId, startDate);
+                return null;
+            }
         }
 
         private async Task<int> GetSearchWindowDaysAsync(int clinicId)

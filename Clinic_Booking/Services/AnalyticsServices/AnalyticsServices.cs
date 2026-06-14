@@ -6,6 +6,7 @@ using Clinic_Booking.Enums;
 using Clinic_Booking.Extensions;
 using Clinic_Booking.IServices.IAnalyticsServices;
 using Clinic_Booking.IServices.ILoadServices;
+using Clinic_Booking.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -59,7 +60,7 @@ namespace Clinic_Booking.Services.AnalyticsServices
         public async Task<IActionResult> GetAdminSummaryAsync(DateOnly? fromDate, DateOnly? toDate)
         {
             var (from, to) = ResolveRange(fromDate, toDate);
-            var today = DateTime.Today;
+            var today = BusinessClock.Today();
             var tomorrow = today.AddDays(1);
             var weekStart = today.AddDays(-7);
             var monthStart = new DateTime(today.Year, today.Month, 1);
@@ -200,7 +201,7 @@ namespace Clinic_Booking.Services.AnalyticsServices
         private async Task<IActionResult> BuildDoctorSummaryAsync(int doctorId, DateOnly? fromDate, DateOnly? toDate)
         {
             var (from, to) = ResolveRange(fromDate, toDate);
-            var today = DateTime.Today;
+            var today = BusinessClock.Today();
             var weekEnd = today.AddDays(7);
             var monthStart = new DateTime(today.Year, today.Month, 1);
             var monthEnd = monthStart.AddMonths(1);
@@ -301,7 +302,7 @@ namespace Clinic_Booking.Services.AnalyticsServices
 
         private static (DateTime From, DateTime To) ResolveRange(DateOnly? fromDate, DateOnly? toDate)
         {
-            var to = (toDate ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue).AddDays(1);
+            var to = (toDate ?? BusinessClock.TodayDateOnly()).ToDateTime(TimeOnly.MinValue).AddDays(1);
             var from = (fromDate ?? DateOnly.FromDateTime(to.AddDays(-30))).ToDateTime(TimeOnly.MinValue);
             return from >= to ? (to.AddDays(-30), to) : (from, to);
         }

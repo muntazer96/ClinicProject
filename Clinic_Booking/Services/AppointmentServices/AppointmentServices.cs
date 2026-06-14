@@ -692,12 +692,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ? await _context.Appointments.AnyAsync(a =>
                     a.UserId == userId &&
                     a.Status != AppointmentStatus.Cancelled &&
-                    a.AppointmentDate == appointmentDate &&
+                    a.AppointmentDate.Date == appointmentDate.Date &&
                     !a.IsDeleted)
                 : await _context.Appointments.AnyAsync(a =>
                     a.GuestPhoneNumber == guestPhoneNumber &&
                     a.Status != AppointmentStatus.Cancelled &&
-                    a.AppointmentDate == appointmentDate &&
+                    a.AppointmentDate.Date == appointmentDate.Date &&
                     !a.IsDeleted);
 
             if (hasDuplicate)
@@ -742,8 +742,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                     {
                         await CreateAndSendBookingOtpAsync(appointment, bookingPhoneNumber!);
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        _logger.LogError(ex, "OTP delivery failed for appointment {AppointmentId}.", appointment.Id);
                         appointment.Status = AppointmentStatus.Cancelled;
                         appointment.CancellationReason = "OTP delivery failed.";
                         appointment.IsDeleted = true;
@@ -846,6 +847,18 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Status = "Error",
                     Code = 400,
                     Message = "لا يمكن إضافة حجز يدوي بتاريخ سابق.",
+                    Data = null
+                });
+            }
+
+            var maxBookableDate = GetMaxBookableDate(clinic.BookingWindowDays);
+            if (appointmentDate > maxBookableDate)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = $"لا يمكن الحجز بعد تاريخ {maxBookableDate:yyyy/MM/dd}.",
                     Data = null
                 });
             }
@@ -1019,8 +1032,9 @@ namespace Clinic_Booking.Services.AppointmentServices
             {
                 await CreateAndSendBookingOtpAsync(appointment, form.PhoneNumber.Trim());
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Resend OTP failed for appointment {AppointmentId}.", appointment.Id);
                 return OtpDeliveryFailed();
             }
             return new OkObjectResult(new ResponseDto<object>
@@ -1463,8 +1477,9 @@ namespace Clinic_Booking.Services.AppointmentServices
             {
                 await _bookingSmsServices.SendBookingOtpAsync(phoneNumber, otpCode, appointment.Id);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "SMS OTP sending failed for appointment {AppointmentId}, phone {PhoneNumber}.", appointment.Id, phoneNumber);
                 otpRequest.IsUsed = true;
                 await _context.SaveChangesAsync();
                 throw;

@@ -58,79 +58,94 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
 
         private async Task SendTodayRemindersAsync(CancellationToken cancellationToken)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var push = scope.ServiceProvider.GetRequiredService<IPushNotificationServices>();
-            var today = BusinessClock.Today();
-            var tomorrow = today.AddDays(1);
-
-            var appointments = await context.Appointments
-                .Where(appointment =>
-                    !appointment.IsDeleted &&
-                    appointment.UserId.HasValue &&
-                    appointment.AppointmentDate >= today &&
-                    appointment.AppointmentDate < tomorrow &&
-                    appointment.Status != AppointmentStatus.Cancelled &&
-                    appointment.Status != AppointmentStatus.Completed)
-                .Include(appointment => appointment.Doctor)
-                .Include(appointment => appointment.Clinic)
-                .ToListAsync(cancellationToken);
-
-            foreach (var appointment in appointments)
+            try
             {
-                var marker = ReminderMarker(appointment.Id, today);
-                var alreadySent = await context.Notifications.AnyAsync(notification =>
-                    notification.UserId == appointment.UserId &&
-                    notification.Message.Contains(marker),
-                    cancellationToken);
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var push = scope.ServiceProvider.GetRequiredService<IPushNotificationServices>();
+                var today = BusinessClock.Today();
+                var tomorrow = today.AddDays(1);
 
-                if (alreadySent)
+                var appointments = await context.Appointments
+                    .Where(appointment =>
+                        !appointment.IsDeleted &&
+                        appointment.UserId.HasValue &&
+                        appointment.AppointmentDate >= today &&
+                        appointment.AppointmentDate < tomorrow &&
+                        appointment.Status != AppointmentStatus.Cancelled &&
+                        appointment.Status != AppointmentStatus.Completed)
+                    .Include(appointment => appointment.Doctor)
+                    .Include(appointment => appointment.Clinic)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var appointment in appointments)
                 {
-                    continue;
+                    try
+                    {
+                        var marker = ReminderMarker(appointment.Id, today);
+                        var alreadySent = await context.Notifications.AnyAsync(notification =>
+                            notification.UserId == appointment.UserId &&
+                            notification.Message.Contains(marker),
+                            cancellationToken);
+
+                        if (alreadySent)
+                        {
+                            continue;
+                        }
+
+                        var title = "تذكير بالحجز";
+                        var body = $"لديك حجز اليوم عند {appointment.Doctor?.Name ?? "الطبيب"} في {appointment.Clinic?.Name ?? "العيادة"}. رقم الدور: {appointment.QueueNumber}";
+                        var data = new Dictionary<string, string>
+                        {
+                            ["type"] = "appointment_reminder",
+                            ["appointmentId"] = appointment.Id.ToString(),
+                            ["appointmentDate"] = appointment.AppointmentDate.ToString("yyyy-MM-dd")
+                        };
+                        var sent = await push.SendToUserAsync(
+                            appointment.UserId.Value,
+                            title,
+                            body,
+                            data,
+                            cancellationToken);
+                        NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                            context,
+                            sent,
+                            appointment.UserId.Value,
+                            title,
+                            body,
+                            data,
+                            doctorId: appointment.DoctorId,
+                            clinicId: appointment.ClinicId,
+                            appointmentId: appointment.Id);
+
+                        context.Notifications.Add(new Notification
+                        {
+                            UserId = appointment.UserId,
+                            DoctorId = appointment.DoctorId,
+                            Message = $"{marker} {body}",
+                            CreatedAt = DateTime.UtcNow,
+                            Status = NotificationStatus.Unread,
+                            CreatorId = appointment.UserId
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Failed to send reminder for appointment {AppointmentId}.", appointment.Id);
+                    }
                 }
 
-                var title = "تذكير بالحجز";
-                var body = $"لديك حجز اليوم عند {appointment.Doctor?.Name ?? "الطبيب"} في {appointment.Clinic?.Name ?? "العيادة"}. رقم الدور: {appointment.QueueNumber}";
-                var data = new Dictionary<string, string>
+                if (appointments.Count > 0)
                 {
-                    ["type"] = "appointment_reminder",
-                    ["appointmentId"] = appointment.Id.ToString(),
-                    ["appointmentDate"] = appointment.AppointmentDate.ToString("yyyy-MM-dd")
-                };
-                var sent = await push.SendToUserAsync(
-                    appointment.UserId.Value,
-                    title,
-                    body,
-                    data,
-                    cancellationToken);
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    context,
-                    sent,
-                    appointment.UserId.Value,
-                    title,
-                    body,
-                    data,
-                    doctorId: appointment.DoctorId,
-                    clinicId: appointment.ClinicId,
-                    appointmentId: appointment.Id);
+                    await context.SaveChangesAsync(cancellationToken);
+                }
 
-                context.Notifications.Add(new Notification
-                {
-                    UserId = appointment.UserId,
-                    DoctorId = appointment.DoctorId,
-                    Message = $"{marker} {body}",
-                    CreatedAt = DateTime.UtcNow,
-                    Status = NotificationStatus.Unread,
-                    CreatorId = appointment.UserId
-                });
+                _logger.LogInformation("Appointment reminders checked. Count={Count}, Date={Date}", appointments.Count, today);
             }
-
-            if (appointments.Count > 0)
+            catch (Exception ex)
             {
-                await context.SaveChangesAsync(cancellationToken);
+                _logger.LogError(ex, "AppointmentReminderService failed entirely.");
             }
-
-            _logger.LogInformation("Appointment reminders checked. Count={Count}, Date={Date}", appointments.Count, today);
         }
 
         private static string ReminderMarker(int appointmentId, DateTime date) =>

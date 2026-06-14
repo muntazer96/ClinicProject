@@ -4,16 +4,13 @@ using Clinic_Booking.DTOs.ClinicExceptionDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.AuditLog;
 using Clinic_Booking.Entities.ClinicException;
-using Clinic_Booking.Entities.NotificationDeliveryAttempt;
 using Clinic_Booking.Enums;
 using Clinic_Booking.IServices.IAppointmentReschedulingServices;
 using Clinic_Booking.IServices.IClinicExceptionServices;
 using Clinic_Booking.IServices.ILoadServices;
-using Clinic_Booking.IServices.IPushNotificationServices;
-using Clinic_Booking.IServices.IWhatsAppMessageServices;
+using Clinic_Booking.IServices.INotificationDeliveryHelper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using Clinic_Booking.Utilities;
 
 namespace Clinic_Booking.Services.ClinicExceptionServices
@@ -22,22 +19,19 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
-        private readonly IPushNotificationServices _pushNotificationServices;
-        private readonly IWhatsAppMessageServices _whatsAppMessageServices;
         private readonly IAppointmentReschedulingServices _appointmentReschedulingServices;
+        private readonly INotificationDeliveryHelper _notificationHelper;
 
         public ClinicExceptionServices(
             ApplicationDbContext context,
             ILoadServices load,
-            IPushNotificationServices pushNotificationServices,
-            IWhatsAppMessageServices whatsAppMessageServices,
-            IAppointmentReschedulingServices appointmentReschedulingServices)
+            IAppointmentReschedulingServices appointmentReschedulingServices,
+            INotificationDeliveryHelper notificationHelper)
         {
             _context = context;
             _load = load;
-            _pushNotificationServices = pushNotificationServices;
-            _whatsAppMessageServices = whatsAppMessageServices;
             _appointmentReschedulingServices = appointmentReschedulingServices;
+            _notificationHelper = notificationHelper;
         }
 
         public async Task<IActionResult> GetMineAsync(int clinicId, DateOnly? fromDate, DateOnly? toDate)
@@ -169,7 +163,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 }
             }
 
-            await SendPendingNotificationsAsync(pendingNotifications);
+            await _notificationHelper.SendPendingNotificationsAsync(pendingNotifications);
 
             return Ok(new { exception.Id }, "تم حفظ يوم الاستثناء بنجاح.");
         }
@@ -472,97 +466,6 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 body);
         }
 
-        private async Task SendPendingNotificationsAsync(List<PendingAppointmentNotification> notifications)
-        {
-            if (notifications.Count == 0)
-            {
-                return;
-            }
-
-            var now = DateTime.UtcNow;
-            _context.Notifications.AddRange(notifications.Select(notification => new Entities.Notification.Notification
-            {
-                DoctorId = notification.DoctorId,
-                Message = notification.Body,
-                CreatedAt = now,
-                Status = NotificationStatus.Unread
-            }));
-            await _context.SaveChangesAsync();
-
-            foreach (var notification in notifications.Where(item => item.UserId.HasValue))
-            {
-                var data = new Dictionary<string, string>
-                {
-                    ["type"] = "booking",
-                    ["appointmentId"] = notification.AppointmentId.ToString(),
-                    ["doctorId"] = notification.DoctorId.ToString(),
-                    ["clinicId"] = notification.ClinicId.ToString(),
-                    ["status"] = notification.Status.ToString()
-                };
-                var sent = await _pushNotificationServices.SendToUserAsync(
-                    notification.UserId!.Value,
-                    notification.Title,
-                    notification.Body,
-                    data);
-                AddDeliveryAttempt(
-                    "Push",
-                    sent,
-                    notification,
-                    notification.UserId,
-                    null,
-                    data,
-                    sent ? null : "Push provider returned failure.");
-            }
-
-            foreach (var notification in notifications.Where(item =>
-                         !item.UserId.HasValue &&
-                         !string.IsNullOrWhiteSpace(item.GuestPhoneNumber)))
-            {
-                var sent = await _whatsAppMessageServices.SendMessageAsync(
-                    notification.GuestPhoneNumber!,
-                    notification.Body);
-                AddDeliveryAttempt(
-                    "WhatsApp",
-                    sent,
-                    notification,
-                    null,
-                    notification.GuestPhoneNumber,
-                    null,
-                    sent ? null : "WhatsApp provider returned failure.");
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        private void AddDeliveryAttempt(
-            string channel,
-            bool sent,
-            PendingAppointmentNotification notification,
-            Guid? recipientUserId,
-            string? recipientAddress,
-            IDictionary<string, string>? data,
-            string? error)
-        {
-            var now = DateTime.UtcNow;
-            _context.NotificationDeliveryAttempts.Add(new NotificationDeliveryAttempt
-            {
-                Channel = channel,
-                Status = sent ? "Succeeded" : "Failed",
-                RecipientUserId = recipientUserId,
-                RecipientAddress = recipientAddress,
-                Title = notification.Title,
-                Body = notification.Body,
-                PayloadJson = data == null ? null : JsonSerializer.Serialize(data),
-                AttemptCount = 1,
-                LastAttemptAt = now,
-                NextAttemptAt = sent ? null : now.AddMinutes(15),
-                LastError = error,
-                DoctorId = notification.DoctorId,
-                ClinicId = notification.ClinicId,
-                AppointmentId = notification.AppointmentId
-            });
-        }
-
         private void AddAuditLog(
             string action,
             string entityType,
@@ -662,14 +565,5 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             });
         }
 
-        private sealed record PendingAppointmentNotification(
-            int DoctorId,
-            int ClinicId,
-            int AppointmentId,
-            Guid? UserId,
-            string? GuestPhoneNumber,
-            AppointmentStatus Status,
-            string Title,
-            string Body);
     }
 }
