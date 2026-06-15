@@ -7,6 +7,7 @@ using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IMessageServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
+using Clinic_Booking.Services.ProfanityFilterService;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,13 @@ namespace Clinic_Booking.Services.MessageServices
             if (form.ReceiverId == userId.Value)
                 return BadRequest("Cannot send a message to yourself.");
 
+            var content = form.Content?.Trim();
+            if (string.IsNullOrWhiteSpace(content))
+                return BadRequest("Message content cannot be empty.");
+
+            if (ProfanityFilterServices.ContainsProfanity(content))
+                return BadRequest("Message contains blocked words.");
+
             var receiverExists = await _context.Users.AnyAsync(u => u.Id == form.ReceiverId);
             if (!receiverExists)
                 return NotFound("Receiver not found.");
@@ -56,7 +64,7 @@ namespace Clinic_Booking.Services.MessageServices
             {
                 SenderId = userId.Value,
                 ReceiverId = form.ReceiverId,
-                Content = form.Content.Trim(),
+                Content = content,
                 SentAt = DateTime.UtcNow,
                 Type = form.Type,
                 IsRead = false
@@ -70,8 +78,12 @@ namespace Clinic_Booking.Services.MessageServices
             await _hubContext.Clients.User(message.ReceiverId.ToString())
                 .SendAsync("ReceiveMessage", dto);
 
+            var unreadCount = await GetUnreadCountForUserAsync(message.ReceiverId);
+            await _hubContext.Clients.User(message.ReceiverId.ToString())
+                .SendAsync("UnreadCount", unreadCount);
+
             if (!_onlineTracker.IsUserOnline(message.ReceiverId))
-                NotifyReceiverPushAsync(message);
+                await NotifyReceiverPushAsync(message);
 
             return Ok(dto, "Message sent successfully.");
         }
@@ -185,7 +197,11 @@ namespace Clinic_Booking.Services.MessageServices
             await _hubContext.Clients.User(otherUserId.ToString())
                 .SendAsync("MessagesRead", userId.Value, unreadMessages.Count);
 
-            return Ok(new { MarkedRead = unreadMessages.Count }, "Messages marked as read.");
+            var unreadCount = await GetUnreadCountForUserAsync(userId.Value);
+            await _hubContext.Clients.User(userId.Value.ToString())
+                .SendAsync("UnreadCount", unreadCount);
+
+            return Ok(new { MarkedRead = unreadMessages.Count, UnreadCount = unreadCount }, "Messages marked as read.");
         }
 
         public async Task<IActionResult> GetUnreadCountAsync()
@@ -234,7 +250,7 @@ namespace Clinic_Booking.Services.MessageServices
             return message == null ? null : await MapToDtoAsync(message);
         }
 
-        private async void NotifyReceiverPushAsync(Entities.Message.Message message)
+        private async Task NotifyReceiverPushAsync(Entities.Message.Message message)
         {
             try
             {

@@ -117,7 +117,7 @@ class DoctorProfile extends DoctorSummary {
     required super.activeSubscriptionWeight,
     required super.clinics,
     this.userId,
-    this.canMessage = true,
+    this.canMessage = false,
     required this.clinicDetails,
   });
 
@@ -147,7 +147,7 @@ class DoctorProfile extends DoctorSummary {
       activeSubscriptionWeight:
           (json['activeSubscriptionWeight'] as num?)?.toDouble() ?? 0,
       userId: json['userId'] as String?,
-      canMessage: json['canMessage'] as bool? ?? true,
+      canMessage: json['canMessage'] as bool? ?? false,
       clinics: clinics,
       clinicDetails: clinics,
     );

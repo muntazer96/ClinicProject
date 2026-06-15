@@ -64,8 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         _scrollToBottom();
         if (msg.senderId == widget.otherUserId) {
-          _hub.markRead(widget.otherUserId);
-          _service.markAsRead(widget.otherUserId);
+          _markConversationRead();
         }
       }
     };
@@ -108,13 +107,16 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     };
 
-    _hub.markRead(widget.otherUserId);
-    _service.markAsRead(widget.otherUserId);
+    _markConversationRead();
   }
 
   @override
   void dispose() {
     _hub.signalConversationsChanged();
+    _hub.onMessageReceived = null;
+    _hub.onMessagesRead = null;
+    _hub.onUserTyping = null;
+    _hub.onUserStopTyping = null;
     _textController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
@@ -131,7 +133,7 @@ class _ChatScreenState extends State<ChatScreen> {
         pageSize: 10,
       );
       setState(() {
-        _messages = result.messages;
+        _messages = result.messages.reversed.toList();
         _hasMore = result.hasMore;
       });
       _scrollToBottom();
@@ -153,7 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
         pageSize: 10,
       );
       setState(() {
-        _messages.addAll(result.messages);
+        _messages.addAll(result.messages.reversed);
         _hasMore = result.hasMore;
       });
       _page++;
@@ -182,6 +184,13 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _markConversationRead() async {
+    await _hub.markRead(widget.otherUserId);
+    await _service.markAsRead(widget.otherUserId);
+    await _hub.refreshUnreadCount();
+    _hub.signalConversationsChanged();
+  }
+
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
@@ -195,13 +204,10 @@ class _ChatScreenState extends State<ChatScreen> {
         content: text,
       );
 
-      if (_hub.isConnected) {
-        await _hub.sendMessage(form);
-      } else {
-        final msg = await _service.send(form);
-        setState(() => _messages.insert(0, msg));
-        _scrollToBottom();
-      }
+      final msg = await _service.send(form);
+      setState(() => _messages.insert(0, msg));
+      _hub.signalConversationsChanged();
+      _scrollToBottom();
     } catch (error) {
       if (mounted) {
         showAppSnackBar(context, ApiClient.errorMessage(error));

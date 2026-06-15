@@ -122,7 +122,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 onFavoriteTap: _toggleFavorite,
               ),
               if (context.read<AuthController>().isAuthenticated &&
-                  _doctor!.userId != null) ...[
+                  _doctor!.userId != null &&
+                  _doctor!.canMessage) ...[
                 const SizedBox(height: 16),
                 Card(
                   child: Padding(
@@ -131,8 +132,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () => context.push(
-                          '/messages/${_doctor!.userId}'
-                          '?otherUserName=${Uri.encodeComponent(_doctor!.name)}',
+                          '/messages/${_doctor!.userId}',
+                          extra: _doctor!.name,
                         ),
                         icon: const Icon(Icons.chat_outlined),
                         label: const Text('إرسال رسالة'),

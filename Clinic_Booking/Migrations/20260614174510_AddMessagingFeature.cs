@@ -27,24 +27,51 @@ namespace Clinic_Booking.Migrations
                 name: "FK_Payments_Appointments_AppointmentId",
                 table: "Payments");
 
-            //migrationBuilder.AlterColumn<Guid>(
-            //    name: "ReceiverId",
-            //    table: "Messages",
-            //    type: "uuid",
-            //    nullable: false,
-            //    oldClrType: typeof(int),
-            //    oldType: "integer");
+            migrationBuilder.AddColumn<Guid>(
+                name: "ReceiverUserId",
+                table: "Messages",
+                type: "uuid",
+                nullable: true);
+
+            migrationBuilder.Sql("""
+                UPDATE "Messages" AS m
+                SET "ReceiverUserId" = d."UserId"
+                FROM "Doctors" AS d
+                WHERE m."ReceiverId" = d."Id";
+                """);
+
+            migrationBuilder.Sql("""
+                DELETE FROM "Messages"
+                WHERE "ReceiverUserId" IS NULL;
+                """);
 
             migrationBuilder.DropColumn(
-    name: "ReceiverId",
-    table: "Messages");
+                name: "ReceiverId",
+                table: "Messages");
 
-            migrationBuilder.AddColumn<Guid>(
+            migrationBuilder.RenameColumn(
+                name: "ReceiverUserId",
+                table: "Messages",
+                newName: "ReceiverId");
+
+            migrationBuilder.AlterColumn<Guid>(
                 name: "ReceiverId",
                 table: "Messages",
                 type: "uuid",
                 nullable: false,
-                defaultValue: Guid.Empty);
+                oldClrType: typeof(Guid),
+                oldType: "uuid",
+                oldNullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_ReceiverId",
+                table: "Messages",
+                column: "ReceiverId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_SenderId_ReceiverId_SentAt",
+                table: "Messages",
+                columns: new[] { "SenderId", "ReceiverId", "SentAt" });
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsRead",
@@ -58,6 +85,11 @@ namespace Clinic_Booking.Migrations
                 table: "Messages",
                 type: "timestamp without time zone",
                 nullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_ReceiverId_IsRead",
+                table: "Messages",
+                columns: new[] { "ReceiverId", "IsRead" });
 
             migrationBuilder.AlterColumn<string>(
                 name: "Code",
@@ -469,6 +501,18 @@ namespace Clinic_Booking.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_Payments_Appointments_AppointmentId",
                 table: "Payments");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Messages_ReceiverId_IsRead",
+                table: "Messages");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Messages_SenderId_ReceiverId_SentAt",
+                table: "Messages");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Messages_ReceiverId",
+                table: "Messages");
 
             migrationBuilder.DropColumn(
                 name: "IsRead",

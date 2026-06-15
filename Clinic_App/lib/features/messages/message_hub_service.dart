@@ -51,7 +51,11 @@ class MessageHubService extends ChangeNotifier {
           .withUrl(
             _buildHubUrl(),
             options: HttpConnectionOptions(
-              accessTokenFactory: () async => token.replaceFirst('Bearer ', ''),
+              accessTokenFactory: () async {
+                final currentToken =
+                    _client.dio.options.headers['Authorization'] as String?;
+                return (currentToken ?? token).replaceFirst('Bearer ', '');
+              },
             ),
           )
           .withAutomaticReconnect()
@@ -61,6 +65,7 @@ class MessageHubService extends ChangeNotifier {
         if (args == null || args.isEmpty) return;
         final dto = MessageDto.fromJson(args[0] as Map<String, dynamic>);
         _messageController.add(dto);
+        signalConversationsChanged();
         onMessageReceived?.call(dto);
         notifyListeners();
       });
@@ -69,6 +74,7 @@ class MessageHubService extends ChangeNotifier {
         if (args == null || args.isEmpty) return;
         final dto = MessageDto.fromJson(args[0] as Map<String, dynamic>);
         _messageController.add(dto);
+        signalConversationsChanged();
         onMessageReceived?.call(dto);
         notifyListeners();
       });
@@ -76,6 +82,7 @@ class MessageHubService extends ChangeNotifier {
       _hubConnection!.on('MessagesRead', (args) {
         if (args == null || args.isEmpty) return;
         final otherUserId = args[0] as String;
+        signalConversationsChanged();
         onMessagesRead?.call(otherUserId);
         notifyListeners();
       });
@@ -145,7 +152,10 @@ class MessageHubService extends ChangeNotifier {
       final data = response.data is Map
           ? response.data as Map<String, dynamic>
           : <String, dynamic>{};
-      _unreadCount = (data['data'] is int ? data['data'] as int : 0);
+      final responseData = data['data'];
+      _unreadCount = responseData is Map<String, dynamic>
+          ? (responseData['unreadCount'] as num?)?.toInt() ?? 0
+          : (responseData as num?)?.toInt() ?? 0;
       notifyListeners();
     } catch (_) {}
   }

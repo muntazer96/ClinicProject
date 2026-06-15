@@ -1,11 +1,13 @@
 using Clinic_Booking.DTOs.MessageDTO;
 using Clinic_Booking.IServices.IMessageServices;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clinic_Booking.Controllers
 {
     [Authorize]
+    [EnableRateLimiting("Messaging")]
     public class MessageController : BaseApiController
     {
         private readonly IMessageServices _services;

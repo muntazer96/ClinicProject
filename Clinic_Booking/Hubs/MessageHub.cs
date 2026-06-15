@@ -4,6 +4,7 @@ using Clinic_Booking.DTOs.MessageDTO;
 using Clinic_Booking.Entities.Message;
 using Clinic_Booking.IServices.IMessageServices;
 using Clinic_Booking.Services.MessageServices;
+using Clinic_Booking.Services.ProfanityFilterService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -79,35 +80,42 @@ namespace Clinic_Booking.Hubs
             var userId = GetUserId();
             if (userId == null || userId == Guid.Empty)
             {
-                await Clients.Caller.SendAsync("Error", "You must be authenticated to send messages.");
-                return;
+                throw new HubException("You must be authenticated to send messages.");
             }
 
             if (form.ReceiverId == userId.Value)
             {
-                await Clients.Caller.SendAsync("Error", "Cannot send a message to yourself.");
-                return;
+                throw new HubException("Cannot send a message to yourself.");
+            }
+
+            var content = form.Content?.Trim();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                throw new HubException("Message content cannot be empty.");
+            }
+
+            if (ProfanityFilterServices.ContainsProfanity(content))
+            {
+                throw new HubException("Message contains blocked words.");
             }
 
             var receiverExists = await _context.Users.AnyAsync(u => u.Id == form.ReceiverId);
             if (!receiverExists)
             {
-                await Clients.Caller.SendAsync("Error", "Receiver not found.");
-                return;
+                throw new HubException("Receiver not found.");
             }
 
             var canReceive = await _messageServices.ReceiverCanReceiveMessagesAsync(form.ReceiverId);
             if (!canReceive)
             {
-                await Clients.Caller.SendAsync("Error", "المستخدم لا يدعم خاصية الرسائل حالياً.");
-                return;
+                throw new HubException("المستخدم لا يدعم خاصية الرسائل حالياً.");
             }
 
             var message = new Message
             {
                 SenderId = userId.Value,
                 ReceiverId = form.ReceiverId,
-                Content = form.Content.Trim(),
+                Content = content,
                 SentAt = DateTime.UtcNow,
                 Type = form.Type,
                 IsRead = false
@@ -123,6 +131,9 @@ namespace Clinic_Booking.Hubs
 
                 var unreadCount = await _messageServices.GetUnreadCountForUserAsync(form.ReceiverId);
                 await Clients.User(form.ReceiverId.ToString()).SendAsync("UnreadCount", unreadCount);
+
+                var callerUnreadCount = await _messageServices.GetUnreadCountForUserAsync(userId.Value);
+                await Clients.Caller.SendAsync("UnreadCount", callerUnreadCount);
             }
             catch
             {
@@ -136,11 +147,12 @@ namespace Clinic_Booking.Hubs
                 return;
 
             await _messageServices.MarkConversationReadAsync(otherUserId, userId.Value);
+            var unreadCount = await _messageServices.GetUnreadCountForUserAsync(userId.Value);
 
             try
             {
                 await Clients.User(otherUserId.ToString()).SendAsync("MessagesRead", userId.Value);
-                await Clients.Caller.SendAsync("UnreadCount", 0);
+                await Clients.Caller.SendAsync("UnreadCount", unreadCount);
             }
             catch
             {

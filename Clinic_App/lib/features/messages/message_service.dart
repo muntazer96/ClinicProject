@@ -54,7 +54,10 @@ class MessageService {
       final data = response.data is Map
           ? response.data as Map<String, dynamic>
           : <String, dynamic>{};
-      return (data['data'] is int ? data['data'] as int : 0);
+      final responseData = data['data'];
+      return responseData is Map<String, dynamic>
+          ? (responseData['unreadCount'] as num?)?.toInt() ?? 0
+          : (responseData as num?)?.toInt() ?? 0;
     } catch (_) {
       return 0;
     }

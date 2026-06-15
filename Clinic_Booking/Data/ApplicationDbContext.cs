@@ -563,6 +563,9 @@ namespace Clinic_Booking.Data
             modelBuilder.Entity<Message>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+                entity.HasIndex(e => new { e.SenderId, e.ReceiverId, e.SentAt });
+                entity.HasIndex(e => new { e.ReceiverId, e.IsRead });
 
                 entity.HasOne(m => m.Sender)
                     .WithMany()

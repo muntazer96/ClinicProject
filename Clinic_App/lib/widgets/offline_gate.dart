@@ -38,9 +38,11 @@ class _OfflineGateState extends State<OfflineGate> {
     if (ApiClient.connectionAvailable.value == false) {
       _debounceTimer ??= Timer(
         const Duration(seconds: 4),
-        () {
-          if (mounted &&
-              ApiClient.connectionAvailable.value == false) {
+        () async {
+          if (ApiClient.connectionAvailable.value == false) {
+            await ApiClient.checkServerAvailability();
+          }
+          if (mounted && ApiClient.connectionAvailable.value == false) {
             setState(() => _showOverlay = true);
           }
           _debounceTimer = null;

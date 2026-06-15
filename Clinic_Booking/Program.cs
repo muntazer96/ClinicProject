@@ -63,6 +63,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -156,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("Messaging", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User?.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                httpContext.Connection.RemoteIpAddress?.ToString() ??
+                "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
 });

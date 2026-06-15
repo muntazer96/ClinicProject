@@ -10,7 +10,7 @@ namespace Clinic_Booking.DTOs.MessageDTO
 
         [Required]
         [MaxLength(2000)]
-        public string Content { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         public MessageType Type { get; set; } = MessageType.General;
     }
