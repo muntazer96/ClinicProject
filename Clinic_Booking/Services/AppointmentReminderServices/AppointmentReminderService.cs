@@ -123,7 +123,7 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
                             UserId = appointment.UserId,
                             DoctorId = appointment.DoctorId,
                             Message = $"{marker} {body}",
-                            CreatedAt = DateTime.UtcNow,
+                            CreatedAt = BusinessClock.Now(),
                             Status = NotificationStatus.Unread,
                             CreatorId = appointment.UserId
                         });

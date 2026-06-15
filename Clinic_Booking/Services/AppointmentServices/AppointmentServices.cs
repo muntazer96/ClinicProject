@@ -772,8 +772,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                         appointment.Status = AppointmentStatus.Cancelled;
                         appointment.CancellationReason = "OTP delivery failed.";
                         appointment.IsDeleted = true;
-                        appointment.CancelledAt = DateTime.UtcNow;
-                        appointment.ModifiedAt = DateTime.UtcNow;
+                        appointment.CancelledAt = BusinessClock.Now();
+                        appointment.ModifiedAt = BusinessClock.Now();
                         await _context.SaveChangesAsync();
                         return OtpDeliveryFailed();
                     }
@@ -1038,7 +1038,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .OrderByDescending(request => request.SentAt)
                 .FirstOrDefaultAsync();
 
-            if (lastRequest != null && lastRequest.ExpiresAt < DateTime.UtcNow)
+            if (lastRequest != null && lastRequest.ExpiresAt < BusinessClock.Now())
             {
                 await ExpireUnconfirmedBookingsAsync(appointment.ClinicId);
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -1053,7 +1053,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             if (lastRequest != null)
             {
                 var resendAvailableAt = lastRequest.SentAt.AddSeconds(_bookingOtpOptions.ResendCooldownSeconds);
-                if (resendAvailableAt > DateTime.UtcNow)
+                if (resendAvailableAt > BusinessClock.Now())
                 {
                     return new BadRequestObjectResult(new ResponseDto<object>
                     {
@@ -1123,7 +1123,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .OrderByDescending(request => request.SentAt)
                 .FirstOrDefaultAsync();
 
-            if (otpRequest == null || otpRequest.ExpiresAt < DateTime.UtcNow)
+            if (otpRequest == null || otpRequest.ExpiresAt < BusinessClock.Now())
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -1161,9 +1161,9 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             otpRequest.IsUsed = true;
-            otpRequest.VerifiedAt = DateTime.UtcNow;
+            otpRequest.VerifiedAt = BusinessClock.Now();
             appointment.IsPhoneConfirmed = true;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             await _context.SaveChangesAsync();
 
             await NotifyDoctorAsync(
@@ -1305,12 +1305,12 @@ namespace Clinic_Booking.Services.AppointmentServices
             appointment.Status = appointment.Status == AppointmentStatus.Confirmed
                 ? AppointmentStatus.Cancelled
                 : AppointmentStatus.Confirmed;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
 
             if (appointment.Status == AppointmentStatus.Cancelled)
             {
-                appointment.CancelledAt = DateTime.UtcNow;
+                appointment.CancelledAt = BusinessClock.Now();
                 appointment.CancelledByUserId = _load.GetCurrentUserId();
             }
 
@@ -1378,7 +1378,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             appointment.Status = AppointmentStatus.Completed;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 
@@ -1436,7 +1436,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         private async Task<bool> IsElectronicBookingEnabledAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var hasActivePackage = await _context.DoctorSubscriptions
                 .AnyAsync(subscription =>
                     subscription.DoctorId == doctorId &&
@@ -1497,7 +1497,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             var otpCode = GenerateNumericOtp(_bookingOtpOptions.CodeLength);
 
             var codeSalt = GenerateOtpSalt();
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var otpRequest = new BookingOtpRequest
             {
                 AppointmentId = appointment.Id,
@@ -1525,7 +1525,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         private async Task ExpireUnconfirmedBookingsAsync(int clinicId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var expiredAppointments = await _context.Appointments
                 .Where(appointment =>
                     appointment.ClinicId == clinicId &&
@@ -1964,9 +1964,9 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             appointment.Status = AppointmentStatus.Cancelled;
             appointment.CancellationReason = cancelReason;
-            appointment.CancelledAt = DateTime.UtcNow;
+            appointment.CancelledAt = BusinessClock.Now();
             appointment.CancelledByUserId = cancelledByUserId;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = cancelledByUserId;
             await _context.SaveChangesAsync();
 

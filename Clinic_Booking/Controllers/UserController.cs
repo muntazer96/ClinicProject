@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Data;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -180,7 +180,7 @@ namespace Clinic_Booking.Controllers
             var data = new Dictionary<string, string>
             {
                 ["type"] = "test",
-                ["createdAt"] = DateTime.UtcNow.ToString("O")
+                ["createdAt"] = BusinessClock.Now().ToString("O")
             };
             var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,
@@ -208,7 +208,7 @@ namespace Clinic_Booking.Controllers
             var data = new Dictionary<string, string>
             {
                 ["type"] = "test",
-                ["createdAt"] = DateTime.UtcNow.ToString("O")
+                ["createdAt"] = BusinessClock.Now().ToString("O")
             };
             var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,

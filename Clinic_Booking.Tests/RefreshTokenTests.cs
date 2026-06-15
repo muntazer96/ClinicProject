@@ -11,19 +11,19 @@ public class RefreshTokenTests
         {
             UserId = Guid.NewGuid(),
             TokenHash = "hash",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+            ExpiresAt = BusinessClock.Now().AddMinutes(5)
         };
 
         Assert.True(token.IsActive);
 
-        token.RevokedAt = DateTime.UtcNow;
+        token.RevokedAt = BusinessClock.Now();
         Assert.False(token.IsActive);
 
         token.RevokedAt = null;
-        token.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        token.ExpiresAt = BusinessClock.Now().AddMinutes(-1);
         Assert.False(token.IsActive);
 
-        token.ExpiresAt = DateTime.UtcNow.AddMinutes(5);
+        token.ExpiresAt = BusinessClock.Now().AddMinutes(5);
         token.IsDeleted = true;
         Assert.False(token.IsActive);
     }

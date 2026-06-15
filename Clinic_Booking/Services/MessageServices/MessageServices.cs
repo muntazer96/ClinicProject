@@ -8,6 +8,7 @@ using Clinic_Booking.IServices.IMessageServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
 using Clinic_Booking.Services.ProfanityFilterService;
+using Clinic_Booking.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -55,7 +56,7 @@ namespace Clinic_Booking.Services.MessageServices
                 SenderId = userId.Value,
                 ReceiverId = form.ReceiverId,
                 Content = content,
-                SentAt = DateTime.UtcNow,
+                SentAt = BusinessClock.Now(),
                 Type = form.Type,
                 IsRead = false
             };
@@ -95,7 +96,7 @@ namespace Clinic_Booking.Services.MessageServices
                 ReceiverId = receiverId,
                 Content = trimmedContent,
                 ImageName = fileName,
-                SentAt = DateTime.UtcNow,
+                SentAt = BusinessClock.Now(),
                 IsRead = false
             };
 
@@ -195,7 +196,7 @@ namespace Clinic_Booking.Services.MessageServices
             if (userId == null || userId == Guid.Empty)
                 return Unauthorized();
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var unreadMessages = await _context.Messages
                 .Where(m => m.SenderId == otherUserId && m.ReceiverId == userId.Value && !m.IsRead)
                 .ToListAsync();
@@ -245,7 +246,7 @@ namespace Clinic_Booking.Services.MessageServices
 
         public async Task MarkConversationReadAsync(Guid senderId, Guid receiverId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var unread = await _context.Messages
                 .Where(m => m.SenderId == senderId && m.ReceiverId == receiverId && !m.IsRead)
                 .ToListAsync();
@@ -282,7 +283,7 @@ namespace Clinic_Booking.Services.MessageServices
 
         public async Task<bool> CanSendMessageAsync(Guid senderId, Guid receiverId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var doctors = await _context.Doctors
                 .Include(d => d.DoctorSubscriptions).ThenInclude(s => s.Package)
                 .Include(d => d.DoctorFeatures).ThenInclude(f => f.Feature)

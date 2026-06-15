@@ -104,7 +104,7 @@ namespace Clinic_Booking.Hubs
                 SenderId = userId.Value,
                 ReceiverId = form.ReceiverId,
                 Content = content,
-                SentAt = DateTime.UtcNow,
+                SentAt = BusinessClock.Now(),
                 Type = form.Type,
                 IsRead = false
             };

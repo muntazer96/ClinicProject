@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.AppVersion;
 using Clinic_Booking.Entities.Analytics;
 using Clinic_Booking.Entities.AuditLog;
@@ -169,7 +169,7 @@ namespace Clinic_Booking.Data
                 entity.HasData(new Entities.User.AspNetUsers()
                 {
                     Id = Guid.Parse("db3946f4-275b-4bc1-ac3a-a6e1f3f4badb"),
-                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 30, DateTimeKind.Utc).AddTicks(7963),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 30, DateTimeKind.Unspecified).AddTicks(7963),
                     NormalizedUserName = "SUPERADMIN",
                     PasswordHash = "AQAAAAIAAYagAAAAEDoyZr7jFYw+dhzSmNW6K5jP/J6IiwtTB3xhO0utvtAPVvUYjIoXdfAFhW0FNbvKgQ==",
                     SecurityStamp = "86523971-50c4-48c6-bd51-d95f235847dc",
@@ -185,25 +185,25 @@ namespace Clinic_Booking.Data
                 entity.HasData(new AspNetRoles()
                 {
                     Id = Guid.Parse("f6efb588-1fd1-4df4-a453-eb11f69f9046"),
-                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7316),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7316),
                     Name = "SuperAdmin",
                     NormalizedName = "SUPERADMIN",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("5ca230af-a98f-4d9e-b99d-0b58d33a4379"),
-                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7335),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7335),
                     Name = "NormalUser",
                     NormalizedName = "NORMALUSER",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("99f94c2e-be3b-4f90-b59f-81ac294980bf"),
-                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7338),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7338),
                     Name = "DoctorUser",
                     NormalizedName = "DOCTORUSER",
                 }, new AspNetRoles()
                 {
                     Id = Guid.Parse("6f03ef0f-c1ac-43f6-9df2-2be6d5385b72"),
-                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Utc).AddTicks(7347),
+                    CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7347),
                     Name = AppRoles.ClinicStaff,
                     NormalizedName = "CLINICSTAFF",
                 });

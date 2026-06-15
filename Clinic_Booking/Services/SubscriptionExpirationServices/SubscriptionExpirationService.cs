@@ -36,7 +36,7 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationServices>();
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
 
             await SendExpirationWarningsAsync(context, push, now, cancellationToken);
 
@@ -174,7 +174,7 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
             {
                 DoctorId = doctorId,
                 Message = body,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = BusinessClock.Now(),
                 Status = NotificationStatus.Unread
             });
             await context.SaveChangesAsync(cancellationToken);

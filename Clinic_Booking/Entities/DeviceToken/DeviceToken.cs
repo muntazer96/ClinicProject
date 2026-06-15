@@ -9,6 +9,6 @@ namespace Clinic_Booking.Entities.DeviceToken
         public string Token { get; set; } = string.Empty;
         public string Platform { get; set; } = string.Empty;
         public string? DeviceId { get; set; }
-        public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
+        public DateTime LastSeenAt { get; set; } = BusinessClock.Now();
     }
 }

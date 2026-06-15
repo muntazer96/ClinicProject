@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Doctor;
@@ -41,7 +41,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var query = GetPublicDoctorsQuery(form);
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
@@ -156,7 +156,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
         public async Task<IActionResult> GetPublicProfileAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var doctor = await GetPublicDoctorsQuery(new SearchDoctorDto { Id = doctorId })
                 .Select(d => new PublicDoctorProfileDto
                 {
@@ -464,8 +464,8 @@ namespace Clinic_Booking.Services.DoctorServices
                     CanMessage =
                         d.DoctorSubscriptions.Any(s =>
                             s.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
-                            s.StartDate <= DateTime.UtcNow &&
-                            s.EndDate >= DateTime.UtcNow &&
+                            s.StartDate <= BusinessClock.Now() &&
+                            s.EndDate >= BusinessClock.Now() &&
                             s.Package.ShowMessages) &&
                         d.DoctorFeatures.Any(f =>
                             !f.IsDeleted &&
@@ -596,7 +596,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
                 doctor.ImageName = fileName;
                 doctor.ModifierId = userId;
-                doctor.ModifiedAt = DateTime.UtcNow;
+                doctor.ModifiedAt = BusinessClock.Now();
                 _context.Doctors.Update(doctor);
                 await _context.SaveChangesAsync();
 
@@ -679,7 +679,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.UserId = form.UserId;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
 
             var roleResult = await ReplaceUserRolesAsync(user, AppRoles.DoctorUser);
 
@@ -737,7 +737,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.UserId = null;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
 
             await _context.SaveChangesAsync();
             await tx.CommitAsync();
@@ -765,7 +765,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.IsPubliclyVisible = form.IsPubliclyVisible;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>
@@ -1055,7 +1055,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 doctor.PhoneNumber = form.PhoneNumber;
                 doctor.Location = form.Location;
                 doctor.ModifierId = _load.GetCurrentUserId();
-                doctor.ModifiedAt = DateTime.UtcNow;
+                doctor.ModifiedAt = BusinessClock.Now();
 
                 if (form.ImageName != null)
                 {
@@ -1136,7 +1136,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     doctor.IsDeleted = true;
                     doctor.DeleterId = _load.GetCurrentUserId();
-                    doctor.DeletedAt = DateTime.UtcNow;
+                    doctor.DeletedAt = BusinessClock.Now();
                     _context.Doctors.Update(doctor);
                     await _context.SaveChangesAsync();
                     return new OkObjectResult(new ResponseDto<string>
@@ -1223,7 +1223,7 @@ namespace Clinic_Booking.Services.DoctorServices
         }
         private async Task<bool> HasRecentCompletedAppointmentAsync(Guid userId, int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var earliestAllowed = now.AddDays(-3);
             return await _context.Appointments.AnyAsync(a =>
                 a.UserId == userId &&

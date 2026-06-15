@@ -568,8 +568,8 @@
 //        {
 //            DoctorId = 1,
 //            PackageId = 1,
-//            StartDate = DateTime.UtcNow.AddDays(-1),
-//            EndDate = DateTime.UtcNow.AddDays(30),
+//            StartDate = BusinessClock.Now().AddDays(-1),
+//            EndDate = BusinessClock.Now().AddDays(30),
 //            Status = SubscriptionStatus.Active
 //        });
 //        context.Days.AddRange(

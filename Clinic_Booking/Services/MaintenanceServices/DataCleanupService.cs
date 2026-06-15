@@ -35,7 +35,7 @@ namespace Clinic_Booking.Services.MaintenanceServices
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var expiredOtpCutoff = now.AddDays(-2);
             var readNotificationCutoff = now.AddDays(-30);
             var messageCutoff = now.AddDays(-30);

@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.DoctorFeatureDTO;
 using Clinic_Booking.DTOs.UserDTO;
@@ -34,7 +34,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
                         Data = null
                     });
                 }
-                var now = DateTime.UtcNow;
+                var now = BusinessClock.Now();
 
                 var currentUserId = _load.GetCurrentUserId();
                 var currentDoctorId = await _context.Doctors
@@ -187,7 +187,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
             // Only check on enabling
             if (!doctorFeature.IsEnabled)
             {
-                var now = DateTime.UtcNow;
+                var now = BusinessClock.Now();
 
                 var activeSubscription = await _context.DoctorSubscriptions
                     .Include(ds => ds.Package)
@@ -236,7 +236,7 @@ namespace Clinic_Booking.Services.DoctorFeatureServices
 
             // Toggle the feature
             doctorFeature.IsEnabled = !doctorFeature.IsEnabled;
-            doctorFeature.ModifiedAt = DateTime.UtcNow;
+            doctorFeature.ModifiedAt = BusinessClock.Now();
             doctorFeature.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 

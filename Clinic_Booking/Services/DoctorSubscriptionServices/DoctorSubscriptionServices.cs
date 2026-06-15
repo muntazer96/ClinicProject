@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.DoctorSubscriptionDTO;
 using Clinic_Booking.DTOs.SubscriptionPackagesDTO;
@@ -55,7 +55,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var subscription = await _context.DoctorSubscriptions
                 .Include(item => item.Package)
                 .Where(item =>
@@ -170,7 +170,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                         Data = null
                     });
                 }
-                var now = DateTime.UtcNow;
+                var now = BusinessClock.Now();
 
                 var query = _context.DoctorSubscriptions
                     .Include(ds => ds.Doctor).ThenInclude(i=> i.Specialization)
@@ -330,7 +330,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 return BadRequest("حالة الاشتراك الجديد يجب أن تكون قيد الانتظار أو نشطة.");
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
 
             bool hasActive = await _context.DoctorSubscriptions
                 .AnyAsync(ds =>
@@ -419,9 +419,9 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             }
 
             subscription.Status = SubscriptionStatus.Cancelled;
-            subscription.CancelledAt = DateTime.UtcNow;
+            subscription.CancelledAt = BusinessClock.Now();
             subscription.ModifierId = _load.GetCurrentUserId();
-            subscription.ModifiedAt = DateTime.UtcNow;
+            subscription.ModifiedAt = BusinessClock.Now();
             await DisableDoctorFeaturesIfNoActiveSubscriptionAsync(subscription.DoctorId, subscription.Id);
             AddAuditLog(
                 "SubscriptionCancelled",
@@ -459,7 +459,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 return BadRequest("يمكن تفعيل الاشتراكات قيد الانتظار فقط.");
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var hasActive = await HasActiveSubscriptionAsync(subscription.DoctorId, now, subscription.Id);
             if (hasActive)
             {
@@ -503,7 +503,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 return BadRequest("لا يمكن تجديد اشتراك ملغي. أنشئ اشتراكاً جديداً.");
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             if (await HasActiveSubscriptionAsync(subscription.DoctorId, now, subscription.Id))
             {
                 return BadRequest("يوجد اشتراك نشط آخر للطبيب بالفعل.");
@@ -543,7 +543,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             }
 
             if (subscription.Status != SubscriptionStatus.Active ||
-                subscription.EndDate < DateTime.UtcNow)
+                subscription.EndDate < BusinessClock.Now())
             {
                 return BadRequest("يجب أن يكون الاشتراك نشطاً قبل ترقيته.");
             }
@@ -569,7 +569,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             var previousPackageId = subscription.PackageId;
             subscription.PackageId = package.Id;
             subscription.ModifierId = _load.GetCurrentUserId();
-            subscription.ModifiedAt = DateTime.UtcNow;
+            subscription.ModifiedAt = BusinessClock.Now();
             await SyncDoctorFeaturesAsync(subscription.DoctorId, package);
             AddAuditLog(
                 "SubscriptionUpgraded",
@@ -606,7 +606,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
                 AppointmentId = appointmentId,
                 SubscriptionId = subscriptionId,
                 Details = details,
-                OccurredAt = DateTime.UtcNow
+                OccurredAt = BusinessClock.Now()
             });
         }
 
@@ -633,7 +633,7 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
 
                 doctorFeature.IsEnabled = IsFeatureAllowed(package, feature.NormalizedName);
                 doctorFeature.ModifierId = _load.GetCurrentUserId();
-                doctorFeature.ModifiedAt = DateTime.UtcNow;
+                doctorFeature.ModifiedAt = BusinessClock.Now();
             }
         }
 
@@ -646,13 +646,13 @@ namespace Clinic_Booking.Services.DoctorSubscriptionServices
             {
                 feature.IsEnabled = false;
                 feature.ModifierId = _load.GetCurrentUserId();
-                feature.ModifiedAt = DateTime.UtcNow;
+                feature.ModifiedAt = BusinessClock.Now();
             }
         }
 
         private async Task DisableDoctorFeaturesIfNoActiveSubscriptionAsync(int doctorId, int excludedId)
         {
-            if (!await HasActiveSubscriptionAsync(doctorId, DateTime.UtcNow, excludedId))
+            if (!await HasActiveSubscriptionAsync(doctorId, BusinessClock.Now(), excludedId))
             {
                 await DisableDoctorFeaturesAsync(doctorId);
             }

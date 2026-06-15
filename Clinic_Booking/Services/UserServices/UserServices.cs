@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.DeviceToken;
 using Clinic_Booking.Entities.RefreshToken;
@@ -270,7 +270,7 @@ namespace Clinic_Booking.Services.UserServices
                     {
                         await _userManager.SetLockoutEndDateAsync(
                             user,
-                            DateTimeOffset.UtcNow.AddMinutes(30)
+                            BusinessClock.NowOffset().AddMinutes(30)
                         );
 
                         return new UnauthorizedObjectResult(new ResponseDto<string>
@@ -304,7 +304,7 @@ namespace Clinic_Booking.Services.UserServices
 
                 _context.RefreshTokens.Add(refreshToken.Entity);
 
-                user.LastLoginDate = DateTime.UtcNow;
+                user.LastLoginDate = BusinessClock.Now();
 
                 await _userManager.UpdateAsync(user);
                 await _context.SaveChangesAsync();
@@ -392,9 +392,9 @@ namespace Clinic_Booking.Services.UserServices
             var authClaims = await BuildUserClaimsAsync(storedToken.User, userRoles);
             var accessToken = GetToken(authClaims);
             var replacement = CreateRefreshToken(storedToken.UserId);
-            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.RevokedAt = BusinessClock.Now();
             storedToken.ReplacedByTokenHash = replacement.Entity.TokenHash;
-            storedToken.ModifiedAt = DateTime.UtcNow;
+            storedToken.ModifiedAt = BusinessClock.Now();
             _context.RefreshTokens.Add(replacement.Entity);
             await _context.SaveChangesAsync();
 
@@ -424,8 +424,8 @@ namespace Clinic_Booking.Services.UserServices
                 .FirstOrDefaultAsync(token => token.TokenHash == refreshTokenHash && !token.IsDeleted);
             if (storedToken != null && !storedToken.IsRevoked)
             {
-                storedToken.RevokedAt = DateTime.UtcNow;
-                storedToken.ModifiedAt = DateTime.UtcNow;
+                storedToken.RevokedAt = BusinessClock.Now();
+                storedToken.ModifiedAt = BusinessClock.Now();
                 await _context.SaveChangesAsync();
             }
 
@@ -711,7 +711,7 @@ namespace Clinic_Booking.Services.UserServices
                 else
                 {
                     user.IsLocked = true;
-                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
+                    await _userManager.SetLockoutEndDateAsync(user, BusinessClock.NowOffset().AddYears(100));
 
                     var result = await _userManager.UpdateAsync(user);
                     if (result.Succeeded)
@@ -1088,7 +1088,7 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var lastRequest = await _context.UserPhoneOtpRequests
                 .Where(request => request.UserId == user.Id && request.PhoneNumber == user.PhoneNumber)
                 .OrderByDescending(request => request.SentAt)
@@ -1120,7 +1120,7 @@ namespace Clinic_Booking.Services.UserServices
             foreach (var request in oldRequests)
             {
                 request.IsUsed = true;
-                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifiedAt = BusinessClock.Now();
                 request.ModifierId = user.Id;
             }
 
@@ -1192,7 +1192,7 @@ namespace Clinic_Booking.Services.UserServices
                 .OrderByDescending(item => item.SentAt)
                 .FirstOrDefaultAsync();
 
-            if (request == null || request.ExpiresAt < DateTime.UtcNow)
+            if (request == null || request.ExpiresAt < BusinessClock.Now())
             {
                 return new BadRequestObjectResult(new ResponseDto<string>
                 {
@@ -1205,7 +1205,7 @@ namespace Clinic_Booking.Services.UserServices
             if (request.AttemptCount >= 5)
             {
                 request.IsUsed = true;
-                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifiedAt = BusinessClock.Now();
                 request.ModifierId = user.Id;
                 await _context.SaveChangesAsync();
 
@@ -1220,7 +1220,7 @@ namespace Clinic_Booking.Services.UserServices
             request.AttemptCount++;
             if (!string.Equals(request.CodeHash, HashOtpCode(otpCode, request.CodeSalt), StringComparison.OrdinalIgnoreCase))
             {
-                request.ModifiedAt = DateTime.UtcNow;
+                request.ModifiedAt = BusinessClock.Now();
                 request.ModifierId = user.Id;
                 await _context.SaveChangesAsync();
 
@@ -1233,8 +1233,8 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             request.IsUsed = true;
-            request.VerifiedAt = DateTime.UtcNow;
-            request.ModifiedAt = DateTime.UtcNow;
+            request.VerifiedAt = BusinessClock.Now();
+            request.ModifiedAt = BusinessClock.Now();
             request.ModifierId = user.Id;
             user.PhoneNumberConfirmed = true;
             await _userManager.UpdateAsync(user);
@@ -1284,7 +1284,7 @@ namespace Clinic_Booking.Services.UserServices
                     Token = token,
                     Platform = platform,
                     DeviceId = form.DeviceId?.Trim(),
-                    LastSeenAt = DateTime.UtcNow,
+                    LastSeenAt = BusinessClock.Now(),
                     CreatorId = userId
                 });
 
@@ -1300,10 +1300,10 @@ namespace Clinic_Booking.Services.UserServices
                 existingToken.UserId = userId.Value;
                 existingToken.Platform = platform;
                 existingToken.DeviceId = form.DeviceId?.Trim();
-                existingToken.LastSeenAt = DateTime.UtcNow;
+                existingToken.LastSeenAt = BusinessClock.Now();
                 existingToken.IsDeleted = false;
                 existingToken.DeletedAt = null;
-                existingToken.ModifiedAt = DateTime.UtcNow;
+                existingToken.ModifiedAt = BusinessClock.Now();
                 existingToken.ModifierId = userId;
 
                 _logger.LogInformation(
@@ -1354,7 +1354,7 @@ namespace Clinic_Booking.Services.UserServices
             if (existingToken != null)
             {
                 existingToken.IsDeleted = true;
-                existingToken.DeletedAt = DateTime.UtcNow;
+                existingToken.DeletedAt = BusinessClock.Now();
                 existingToken.DeleterId = userId;
                 await _context.SaveChangesAsync();
 
@@ -1567,7 +1567,7 @@ namespace Clinic_Booking.Services.UserServices
             {
                 UserId = userId,
                 TokenHash = HashRefreshToken(rawToken),
-                ExpiresAt = DateTime.UtcNow.AddDays(14),
+                ExpiresAt = BusinessClock.Now().AddDays(14),
                 CreatorId = userId
             }, rawToken);
         }
@@ -1617,7 +1617,7 @@ namespace Clinic_Booking.Services.UserServices
                 (
                     issuer: _configuration["JWT:ValidIssuer"],
                     audience: _configuration["JWT:ValidAudience"],
-                    expires: DateTime.UtcNow.AddMinutes(15),
+                    expires: BusinessClock.Now().AddMinutes(15),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );

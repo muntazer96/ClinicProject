@@ -28,7 +28,7 @@ namespace Clinic_Booking.Services.NotificationDeliveryRetryServices
             var push = scope.ServiceProvider.GetRequiredService<IPushNotificationServices>();
             var whatsApp = scope.ServiceProvider.GetRequiredService<IWhatsAppMessageServices>();
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var attempts = await context.NotificationDeliveryAttempts
                 .Where(attempt =>
                     attempt.Status == "Failed" &&
@@ -99,7 +99,7 @@ namespace Clinic_Booking.Services.NotificationDeliveryRetryServices
                 error = "Retry skipped because recipient or channel is invalid.";
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             attempt.AttemptCount++;
             attempt.LastAttemptAt = now;
             attempt.Status = sent ? "Succeeded" : "Failed";

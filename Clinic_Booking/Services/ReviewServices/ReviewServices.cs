@@ -184,7 +184,7 @@ namespace Clinic_Booking.Services.ReviewServices
 
         private Task<bool> IsReviewFeatureEnabledAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             return _context.Doctors.AnyAsync(doctor =>
                 doctor.Id == doctorId &&
                 !doctor.IsDeleted &&

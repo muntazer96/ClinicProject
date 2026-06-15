@@ -16,6 +16,7 @@ using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Services.AppointmentServices;
+using Clinic_Booking.Services.MessageServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -73,6 +74,8 @@ public class AppointmentBookingTests
             new StubLoadServices(currentUserId),
             sms,
             new StubPushNotificationServices(),
+            hubContext: null!,
+            new OnlineUserTracker(),
             Options.Create(new BookingOtpOptions { Enabled = true }),
             NullLogger<AppointmentServices>.Instance);
     }
@@ -142,8 +145,8 @@ public class AppointmentBookingTests
         {
             DoctorId = 1,
             PackageId = 1,
-            StartDate = DateTime.UtcNow.AddDays(-1),
-            EndDate = DateTime.UtcNow.AddDays(30),
+            StartDate = BusinessClock.Now().AddDays(-1),
+            EndDate = BusinessClock.Now().AddDays(30),
             Status = SubscriptionStatus.Active
         });
         context.Features.Add(new Feature

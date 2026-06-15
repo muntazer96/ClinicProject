@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace Clinic_Booking.Entities.Role
 {
@@ -8,7 +8,7 @@ namespace Clinic_Booking.Entities.Role
         public DateTime? DeletedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int? CreatorId { get; set; }
-        public DateTime? CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? CreatedAt { get; set; } = BusinessClock.Now();
         public int? ModifierId { get; set; }
         public DateTime? ModifiedAt { get; set; }
     }

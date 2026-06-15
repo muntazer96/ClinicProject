@@ -70,8 +70,8 @@ namespace Clinic_Booking.Controllers
             }
 
             notification.Status = NotificationStatus.Read;
-            notification.ReadAt ??= DateTime.UtcNow;
-            notification.ModifiedAt = DateTime.UtcNow;
+            notification.ReadAt ??= BusinessClock.Now();
+            notification.ModifiedAt = BusinessClock.Now();
             notification.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
 

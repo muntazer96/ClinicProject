@@ -42,7 +42,7 @@ namespace Clinic_Booking.Services.NotificationDeliveryHelper
                 return;
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             _context.Notifications.AddRange(notifications.Select(notification => new Notification
             {
                 DoctorId = notification.DoctorId,

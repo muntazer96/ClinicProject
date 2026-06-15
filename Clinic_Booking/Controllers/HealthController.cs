@@ -12,7 +12,7 @@ namespace Clinic_Booking.Controllers
             return Ok(new
             {
                 status = "Healthy",
-                serverTime = DateTime.UtcNow,
+                serverTime = BusinessClock.Now(),
             });
         }
     }

@@ -100,7 +100,7 @@ namespace Clinic_Booking.Services.ClinicServices
                 return validation;
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var activePackage = await _context.DoctorSubscriptions
                 .Where(subscription =>
                     subscription.DoctorId == doctorId &&
@@ -218,7 +218,7 @@ namespace Clinic_Booking.Services.ClinicServices
             clinic.BookingWindowDays = form.BookingWindowDays ?? 7;
             clinic.IsVisible = form.IsVisible;
             clinic.ModifierId = _load.GetCurrentUserId();
-            clinic.ModifiedAt = DateTime.UtcNow;
+            clinic.ModifiedAt = BusinessClock.Now();
 
             await _context.SaveChangesAsync();
             return Ok<object>(null, "تم تحديث معلومات العيادة بنجاح.");
@@ -241,7 +241,7 @@ namespace Clinic_Booking.Services.ClinicServices
 
             clinic.IsDeleted = true;
             clinic.DeleterId = _load.GetCurrentUserId();
-            clinic.DeletedAt = DateTime.UtcNow;
+            clinic.DeletedAt = BusinessClock.Now();
             await _context.SaveChangesAsync();
 
             return Ok<object>(null, "تم حذف العيادة بنجاح.");

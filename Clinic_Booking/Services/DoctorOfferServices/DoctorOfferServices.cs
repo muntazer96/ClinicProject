@@ -139,7 +139,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var query = _context.DoctorOffers
                 .AsNoTracking()
                 .Include(item => item.Doctor)
@@ -213,7 +213,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             {
                 DoctorId = doctorId,
                 CreatorId = userId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = BusinessClock.Now()
             };
 
             if (ProfanityFilterServices.ContainsProfanity(form.Title) ||
@@ -234,11 +234,11 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             offer.DiscountPercent = form.DiscountPercent;
             offer.BadgeText = string.IsNullOrWhiteSpace(form.BadgeText) ? null : form.BadgeText.Trim();
             offer.Terms = string.IsNullOrWhiteSpace(form.Terms) ? null : form.Terms.Trim();
-            offer.StartsAt = NormalizeUtc(form.StartsAt);
-            offer.EndsAt = NormalizeUtc(form.EndsAt);
+            offer.StartsAt = NormalizeBusinessTime(form.StartsAt);
+            offer.EndsAt = NormalizeBusinessTime(form.EndsAt);
             offer.IsActive = form.IsActive;
             offer.ModifierId = userId;
-            offer.ModifiedAt = DateTime.UtcNow;
+            offer.ModifiedAt = BusinessClock.Now();
 
             if (existing == null) _context.DoctorOffers.Add(offer);
 
@@ -270,8 +270,8 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             if (form.Terms?.Length > 600) return BadRequest("شروط العرض يجب أن لا تتجاوز 600 حرف.");
             if (form.BadgeText?.Length > 40) return BadRequest("شارة العرض يجب أن لا تتجاوز 40 حرفاً.");
 
-            var startsAt = NormalizeUtc(form.StartsAt);
-            var endsAt = NormalizeUtc(form.EndsAt);
+            var startsAt = NormalizeBusinessTime(form.StartsAt);
+            var endsAt = NormalizeBusinessTime(form.EndsAt);
             if (endsAt <= startsAt) return BadRequest("تاريخ نهاية العرض يجب أن يكون بعد تاريخ البداية.");
             if ((endsAt - startsAt).TotalDays > MaxOfferDurationDays)
             {
@@ -294,7 +294,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             if (quota == null) return DoctorNotFound();
             if (!quota.CanMakeOffers) return BadRequest("باقة الطبيب الحالية لا تسمح بإنشاء العروض.");
 
-            var becomesActive = form.IsActive && endsAt >= DateTime.UtcNow;
+            var becomesActive = form.IsActive && endsAt >= BusinessClock.Now();
             if (becomesActive)
             {
                 var activeOffers = await ActiveOfferCountAsync(doctorId, existingOfferId);
@@ -333,7 +333,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             if (offer == null) return NotFound("العرض غير موجود.");
 
             offer.IsDeleted = true;
-            offer.DeletedAt = DateTime.UtcNow;
+            offer.DeletedAt = BusinessClock.Now();
             offer.DeleterId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
             return Success("تم حذف العرض بنجاح.", true);
@@ -341,7 +341,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
 
         private async Task<DoctorOfferQuotaDto?> BuildQuotaAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var doctorExists = await _context.Doctors.AnyAsync(doctor => doctor.Id == doctorId && !doctor.IsDeleted);
             if (!doctorExists) return null;
 
@@ -375,7 +375,7 @@ namespace Clinic_Booking.Services.DoctorOfferServices
 
         private async Task<int> ActiveOfferCountAsync(int doctorId, int? exceptOfferId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             return await _context.DoctorOffers.CountAsync(offer =>
                 offer.DoctorId == doctorId &&
                 offer.IsActive &&
@@ -437,11 +437,9 @@ namespace Clinic_Booking.Services.DoctorOfferServices
             };
         }
 
-        private static DateTime NormalizeUtc(DateTime value)
+        private static DateTime NormalizeBusinessTime(DateTime value)
         {
-            return value.Kind == DateTimeKind.Utc
-                ? value
-                : DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();
+            return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
         }
 
         private static IActionResult Success<T>(string message, T data)
