@@ -744,6 +744,7 @@ namespace Clinic_Booking.Data
             modelBuilder.Entity<DeviceToken>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<RefreshToken>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<Referral>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<Payment>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<BookingOtpRequest>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<UserPhoneOtpRequest>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<NotificationDeliveryAttempt>().HasQueryFilter(e => !e.IsDeleted);

@@ -9,6 +9,7 @@ using Clinic_Booking.IServices.IReviewServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.ReviewServices
 {
@@ -110,12 +111,18 @@ namespace Clinic_Booking.Services.ReviewServices
                 return BadRequest("This booking has already been reviewed.");
             }
 
+            var comment = form.Comment?.Trim() ?? string.Empty;
+            if (ProfanityFilterServices.ContainsProfanity(comment))
+            {
+                return BadRequest("التعليق يحتوي على كلمات ممنوعة.");
+            }
+
             var review = new Review
             {
                 DoctorId = form.DoctorId,
                 UserId = userId.Value,
                 Rating = form.Rating,
-                Comment = form.Comment?.Trim() ?? string.Empty,
+                Comment = comment,
                 AppointmentId = appointment.Id,
                 CreatorId = userId
             };

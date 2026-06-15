@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Clinic_Booking.Authorization;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.DoctorServices
 {
@@ -920,6 +921,19 @@ namespace Clinic_Booking.Services.DoctorServices
                     await form.ImageName.CopyToAsync(stream);
                 }
 
+                if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Location))
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                        Data = null
+                    });
+                }
+
                 var doctor = new Doctor
                 {
                     Name = form.Name,
@@ -1010,6 +1024,19 @@ namespace Clinic_Booking.Services.DoctorServices
                         Status = "Error",
                         Code = 400,
                         Message = "دكتور بنفس المعلومات موجود مسبقًا!",
+                        Data = null
+                    });
+                }
+
+                if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Location))
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
                         Data = null
                     });
                 }

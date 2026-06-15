@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Clinic_Booking.Services.ProfanityFilterService;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Cryptography;
@@ -86,6 +87,17 @@ namespace Clinic_Booking.Services.UserServices
                         Status = "Error",
                         Code = 409,
                         Message = "البريد الإلكتروني مستخدم مسبقاً.",
+                        Data = null
+                    });
+                }
+
+                if (ProfanityFilterServices.ContainsProfanity(form.Name))
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "الاسم يحتوي على كلمات ممنوعة.",
                         Data = null
                     });
                 }
@@ -549,7 +561,19 @@ namespace Clinic_Booking.Services.UserServices
             var phoneChanged = !string.Equals(user.PhoneNumber, phone, StringComparison.OrdinalIgnoreCase);
             var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
 
-            user.Name = form.Name.Trim();
+            var updatedName = form.Name.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(updatedName))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "الاسم يحتوي على كلمات ممنوعة.",
+                    Data = null
+                });
+            }
+
+            user.Name = updatedName;
             user.PhoneNumber = phone;
             user.UserName = phone;
             user.NormalizedUserName = phone.ToUpperInvariant();

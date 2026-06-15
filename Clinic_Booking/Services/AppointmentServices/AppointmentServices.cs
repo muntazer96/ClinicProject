@@ -13,6 +13,7 @@ using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
 using Clinic_Booking.Utilities;
+using Clinic_Booking.Services.ProfanityFilterService;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -713,6 +714,20 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var guestName = userId.HasValue ? null : form.GuestName?.Trim();
+            var notes = form.Notes?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(guestName) ||
+                ProfanityFilterServices.ContainsProfanity(notes))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                    Data = null
+                });
+            }
+
             Appointment appointment;
             try
             {
@@ -726,9 +741,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                         ClinicId = clinic.Id,
                         AppointmentDate = appointmentDate,
                         QueueNumber = queueNumber,
-                        GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
+                        GuestName = guestName,
                         GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
-                        Notes = form.Notes?.Trim(),
+                        Notes = notes,
                         IsPhoneConfirmed = !requiresOtp,
                         Status = AppointmentStatus.Pending,
                         PaymentStatus = PaymentStatus.Pending,
@@ -828,6 +843,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             var patientName = form.PatientName?.Trim();
             var patientPhoneNumber = form.PatientPhoneNumber?.Trim();
+            var manualNotes = form.Notes?.Trim();
             if (string.IsNullOrWhiteSpace(patientName) || string.IsNullOrWhiteSpace(patientPhoneNumber))
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -835,6 +851,18 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Status = "Error",
                     Code = 400,
                     Message = "اسم المراجع ورقم الهاتف مطلوبان.",
+                    Data = null
+                });
+            }
+
+            if (ProfanityFilterServices.ContainsProfanity(patientName) ||
+                ProfanityFilterServices.ContainsProfanity(manualNotes))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "النص المدخل يحتوي على كلمات ممنوعة.",
                     Data = null
                 });
             }
@@ -944,7 +972,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                         QueueNumber = queueNumber,
                         GuestName = patientName,
                         GuestPhoneNumber = patientPhoneNumber,
-                        Notes = form.Notes?.Trim(),
+                        Notes = manualNotes,
                         IsPhoneConfirmed = true,
                         Status = AppointmentStatus.Confirmed,
                         PaymentStatus = PaymentStatus.Pending,
@@ -1876,8 +1904,20 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var cancelReason = reason?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(cancelReason))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "سبب الإلغاء يحتوي على كلمات ممنوعة.",
+                    Data = null
+                });
+            }
+
             appointment.Status = AppointmentStatus.Cancelled;
-            appointment.CancellationReason = reason?.Trim();
+            appointment.CancellationReason = cancelReason;
             appointment.CancelledAt = DateTime.UtcNow;
             appointment.CancelledByUserId = cancelledByUserId;
             appointment.ModifiedAt = DateTime.UtcNow;

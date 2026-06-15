@@ -12,6 +12,7 @@ using Clinic_Booking.IServices.INotificationDeliveryHelper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Clinic_Booking.Utilities;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.ClinicExceptionServices
 {
@@ -129,9 +130,15 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 exception.ModifiedAt = DateTime.UtcNow;
             }
 
+            var closureReason = form.ClosureReason?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(closureReason))
+            {
+                return BadRequest("سبب الإغلاق يحتوي على كلمات ممنوعة.");
+            }
+
             exception.ExceptionDate = exceptionDate;
             exception.IsClosed = form.IsClosed;
-            exception.ClosureReason = form.ClosureReason?.Trim();
+            exception.ClosureReason = closureReason;
             exception.MaxAppointments = form.MaxAppointments;
             exception.StartTime = form.StartTime;
             exception.EndTime = form.EndTime;

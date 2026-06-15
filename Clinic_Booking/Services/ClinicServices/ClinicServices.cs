@@ -7,6 +7,7 @@ using Clinic_Booking.IServices.IClinicServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.ClinicServices
 {
@@ -132,6 +133,12 @@ namespace Clinic_Booking.Services.ClinicServices
                 return BadRequest("هذه العيادة مضافة مسبقاً.");
             }
 
+            if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                ProfanityFilterServices.ContainsProfanity(form.Address))
+            {
+                return BadRequest("النص المدخل يحتوي على كلمات ممنوعة.");
+            }
+
             var clinic = new Clinic
             {
                 DoctorId = doctorId.Value,
@@ -191,6 +198,12 @@ namespace Clinic_Booking.Services.ClinicServices
             if (duplicate)
             {
                 return BadRequest("توجد عيادة أخرى بنفس الاسم والعنوان.");
+            }
+
+            if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                ProfanityFilterServices.ContainsProfanity(form.Address))
+            {
+                return BadRequest("النص المدخل يحتوي على كلمات ممنوعة.");
             }
 
             clinic.Name = form.Name.Trim();

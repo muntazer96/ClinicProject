@@ -7,6 +7,7 @@ using Clinic_Booking.IServices.IDoctorOfferServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.DoctorOfferServices
 {
@@ -214,6 +215,14 @@ namespace Clinic_Booking.Services.DoctorOfferServices
                 CreatorId = userId,
                 CreatedAt = DateTime.UtcNow
             };
+
+            if (ProfanityFilterServices.ContainsProfanity(form.Title) ||
+                ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                ProfanityFilterServices.ContainsProfanity(form.BadgeText) ||
+                ProfanityFilterServices.ContainsProfanity(form.Terms))
+            {
+                return BadRequest("النص المدخل يحتوي على كلمات ممنوعة.");
+            }
 
             offer.DoctorId = doctorId;
             offer.ClinicId = form.AppliesToAllClinics ? null : form.ClinicId;
