@@ -291,6 +291,11 @@ namespace Clinic_Booking.Services.DoctorServices
                 });
             }
 
+            var currentUserId = _load.GetCurrentUserId();
+            doctor.CanMessage = doctor.CanMessage &&
+                currentUserId.HasValue &&
+                await HasRecentCompletedAppointmentAsync(currentUserId.Value, doctor.Id);
+
             return new OkObjectResult(new ResponseDto<PublicDoctorProfileDto>
             {
                 Status = "Success",
@@ -1215,6 +1220,17 @@ namespace Clinic_Booking.Services.DoctorServices
             }
 
             return null;
+        }
+        private async Task<bool> HasRecentCompletedAppointmentAsync(Guid userId, int doctorId)
+        {
+            var now = DateTime.UtcNow;
+            var earliestAllowed = now.AddDays(-3);
+            return await _context.Appointments.AnyAsync(a =>
+                a.UserId == userId &&
+                a.DoctorId == doctorId &&
+                a.Status == Clinic_Booking.Enums.AppointmentStatus.Completed &&
+                a.AppointmentDate >= earliestAllowed &&
+                a.AppointmentDate <= now);
         }
         private async Task<IdentityResult> ReplaceUserRolesAsync(AspNetUsers user, string newRole)
         {

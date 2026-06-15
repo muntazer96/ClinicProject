@@ -5,6 +5,34 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'api_client.dart';
 
+class ForegroundMessageNotification {
+  const ForegroundMessageNotification({
+    required this.senderId,
+    required this.senderName,
+    required this.body,
+    required this.hasImage,
+  });
+
+  final String senderId;
+  final String senderName;
+  final String body;
+  final bool hasImage;
+}
+
+class ForegroundAppNotification {
+  const ForegroundAppNotification({
+    required this.type,
+    required this.title,
+    required this.body,
+    required this.data,
+  });
+
+  final String type;
+  final String title;
+  final String body;
+  final Map<String, String> data;
+}
+
 class PushNotificationService {
   PushNotificationService(this._client);
 
@@ -18,8 +46,17 @@ class PushNotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _foregroundNotificationsInitialized = false;
   static final _newMessageController = StreamController<String>.broadcast();
+  static final _foregroundMessageController =
+      StreamController<ForegroundMessageNotification>.broadcast();
+  static final _foregroundAppNotificationController =
+      StreamController<ForegroundAppNotification>.broadcast();
   static Stream<String> get onNewMessageNotification =>
       _newMessageController.stream;
+  static Stream<ForegroundMessageNotification>
+      get onForegroundMessageNotification => _foregroundMessageController.stream;
+  static Stream<ForegroundAppNotification>
+      get onForegroundAppNotification =>
+          _foregroundAppNotificationController.stream;
 
   static bool get isSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -78,13 +115,45 @@ class PushNotificationService {
 
   static void _onFirebaseMessage(RemoteMessage message) {
     final type = message.data['type']?.toString();
-    if (type == 'new_message') {
-      _newMessageController.add(message.data['senderId'] ?? '');
-    }
-
     final notification = message.notification;
     final title = notification?.title ?? message.data['title']?.toString();
     final body = notification?.body ?? message.data['body']?.toString();
+
+    if (type == 'new_message') {
+      final senderId = message.data['senderId']?.toString() ?? '';
+      _newMessageController.add(senderId);
+      _foregroundMessageController.add(
+        ForegroundMessageNotification(
+          senderId: senderId,
+          senderName:
+              message.data['senderName']?.toString() ??
+              message.notification?.title ??
+              '',
+          body:
+              message.data['body']?.toString() ??
+              message.notification?.body ??
+              '',
+          hasImage:
+              message.data['hasImage']?.toString().toLowerCase() == 'true',
+        ),
+      );
+      return;
+    }
+
+    if (type == 'booking') {
+      _foregroundAppNotificationController.add(
+        ForegroundAppNotification(
+          type: type ?? '',
+          title: title ?? '',
+          body: body ?? '',
+          data: message.data.map(
+            (key, value) => MapEntry(key, value.toString()),
+          ),
+        ),
+      );
+      return;
+    }
+
     if ((title == null || title.trim().isEmpty) &&
         (body == null || body.trim().isEmpty)) {
       return;
@@ -146,6 +215,8 @@ class PushNotificationService {
 
   static void dispose() {
     _newMessageController.close();
+    _foregroundMessageController.close();
+    _foregroundAppNotificationController.close();
   }
 
   String get _platformName => switch (defaultTargetPlatform) {

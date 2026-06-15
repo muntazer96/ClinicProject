@@ -23,6 +23,13 @@ namespace Clinic_Booking.Controllers
             return await _services.SendAsync(form);
         }
 
+        [HttpPost("send-image")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        public async Task<IActionResult> SendImageAsync([FromForm] SendImageMessageDto form)
+        {
+            return await _services.SendImageAsync(form.ReceiverId, form.File, form.Content);
+        }
+
         [HttpGet("conversations")]
         public async Task<IActionResult> GetConversationsAsync()
         {
@@ -50,8 +57,8 @@ namespace Clinic_Booking.Controllers
         [HttpGet("can-send/{userId}")]
         public async Task<IActionResult> CanSendAsync(Guid userId)
         {
-            var canSend = await _services.ReceiverCanReceiveMessagesAsync(userId);
-            return Ok(new { CanSend = canSend });
+            var canSend = await _services.CanCurrentUserSendMessageAsync(userId);
+            return Ok(new { canSend });
         }
     }
 }

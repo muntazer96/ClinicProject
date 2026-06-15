@@ -28,7 +28,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
   StreamSubscription<String>? _pushSub;
   List<ConversationDto> _items = [];
   bool _loading = true;
-  String? _myUserId;
   int _lastVersion = 0;
 
   @override
@@ -37,7 +36,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
     WidgetsBinding.instance.addObserver(this);
     final auth = context.read<AuthController>();
     _service = MessageService(auth.api);
-    _myUserId = auth.profile?.id;
     _hub = context.read<MessageHubService>();
     _lastVersion = _hub.conversationsVersion;
     _messageSub = _hub.onMessage.listen(_onNewMessage);
@@ -51,12 +49,6 @@ class _ConversationsScreenState extends State<ConversationsScreen>
   void _onNewMessage(MessageDto msg) {
     try {
       _loadSilent();
-      if (msg.senderId != _myUserId) {
-        PushNotificationService.showLocalNotification(
-          title: msg.senderName,
-          body: msg.content,
-        );
-      }
     } catch (_) {}
   }
 
@@ -108,6 +100,7 @@ class _ConversationsScreenState extends State<ConversationsScreen>
           : _items.isEmpty
               ? ListView(
                   children: const [
+                    _MessageRetentionNotice(),
                     SizedBox(height: 120),
                     Center(
                       child: Column(
@@ -140,12 +133,44 @@ class _ConversationsScreenState extends State<ConversationsScreen>
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) =>
-                      _ConversationCard(item: _items[index]),
+                  itemCount: _items.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) return const _MessageRetentionNotice();
+                    return _ConversationCard(item: _items[index - 1]);
+                  },
                 ),
     );
   }
+}
+
+class _MessageRetentionNotice extends StatelessWidget {
+  const _MessageRetentionNotice();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.softAmber,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: AppColors.primaryDark),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
+                style: TextStyle(
+                  color: AppColors.primaryDark,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _ConversationCard extends StatelessWidget {

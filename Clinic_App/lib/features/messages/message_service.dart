@@ -1,3 +1,6 @@
+import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../core/api_client.dart';
 import 'models/message_models.dart';
 
@@ -8,6 +11,21 @@ class MessageService {
 
   Future<MessageDto> send(SendMessageDto form) async {
     final response = await _client.dio.post('/Message/send', data: form.toJson());
+    return MessageDto.fromJson(response.data['data'] as Map<String, dynamic>);
+  }
+
+  Future<MessageDto> sendImage({
+    required String receiverId,
+    required XFile image,
+    String content = '',
+  }) async {
+    final bytes = await image.readAsBytes();
+    final data = FormData.fromMap({
+      'receiverId': receiverId,
+      'content': content,
+      'file': MultipartFile.fromBytes(bytes, filename: image.name),
+    });
+    final response = await _client.dio.post('/Message/send-image', data: data);
     return MessageDto.fromJson(response.data['data'] as Map<String, dynamic>);
   }
 
@@ -42,9 +60,12 @@ class MessageService {
       final data = response.data is Map
           ? response.data as Map<String, dynamic>
           : <String, dynamic>{};
-      return data['canSend'] as bool? ?? true;
+      return data['canSend'] as bool? ??
+          (data['data'] is Map<String, dynamic>
+              ? (data['data']['canSend'] as bool? ?? false)
+              : false);
     } catch (_) {
-      return true;
+      return false;
     }
   }
 

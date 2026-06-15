@@ -67,8 +67,6 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://0.0.0.0:8082");
-
 ConfigurationManager configuration = builder.Configuration;
 
 // Add services to the container.
@@ -285,11 +283,11 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseMiddleware<Clinic_Booking.Middleware.ExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+//{
+app.UseSwagger();
+app.UseSwaggerUI();
+//}
 
 app.UseHttpsRedirection();
 

@@ -564,6 +564,7 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.ImageName).HasMaxLength(260);
                 entity.HasIndex(e => new { e.SenderId, e.ReceiverId, e.SentAt });
                 entity.HasIndex(e => new { e.ReceiverId, e.IsRead });
 

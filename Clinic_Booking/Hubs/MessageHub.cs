@@ -79,37 +79,25 @@ namespace Clinic_Booking.Hubs
         {
             var userId = GetUserId();
             if (userId == null || userId == Guid.Empty)
-            {
                 throw new HubException("You must be authenticated to send messages.");
-            }
 
             if (form.ReceiverId == userId.Value)
-            {
                 throw new HubException("Cannot send a message to yourself.");
-            }
 
             var content = form.Content?.Trim();
             if (string.IsNullOrWhiteSpace(content))
-            {
                 throw new HubException("Message content cannot be empty.");
-            }
 
             if (ProfanityFilterServices.ContainsProfanity(content))
-            {
                 throw new HubException("Message contains blocked words.");
-            }
 
             var receiverExists = await _context.Users.AnyAsync(u => u.Id == form.ReceiverId);
             if (!receiverExists)
-            {
                 throw new HubException("Receiver not found.");
-            }
 
-            var canReceive = await _messageServices.ReceiverCanReceiveMessagesAsync(form.ReceiverId);
-            if (!canReceive)
-            {
-                throw new HubException("المستخدم لا يدعم خاصية الرسائل حالياً.");
-            }
+            var canSend = await _messageServices.CanSendMessageAsync(userId.Value, form.ReceiverId);
+            if (!canSend)
+                throw new HubException("المراسلة متاحة فقط بين الطبيب والمراجع الذي أكمل مراجعته خلال آخر 3 أيام.");
 
             var message = new Message
             {

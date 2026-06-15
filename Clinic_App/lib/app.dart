@@ -5,6 +5,7 @@ import 'core/app_router.dart';
 import 'core/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/messages/message_hub_service.dart';
+import 'features/messages/widgets/in_app_message_notification_listener.dart';
 import 'widgets/app_version_gate.dart';
 import 'widgets/offline_gate.dart';
 
@@ -57,8 +58,21 @@ class _ClinicAppState extends State<ClinicApp> {
         return Directionality(
           textDirection: TextDirection.rtl,
           child: _SignalRConnector(
-            child: OfflineGate(
-              child: AppVersionGate(child: child ?? const SizedBox.shrink()),
+            child: InAppMessageNotificationListener(
+              onOpenConversation: (senderId, senderName) {
+                final auth = context.read<AuthController>();
+                final path = auth.isDoctor
+                    ? '/doctor/messages/$senderId'
+                    : '/messages/$senderId';
+                router.push(path, extra: senderName);
+              },
+              onOpenBookingNotification: () {
+                final auth = context.read<AuthController>();
+                router.push(auth.isDoctor ? '/doctor/appointments' : '/bookings');
+              },
+              child: OfflineGate(
+                child: AppVersionGate(child: child ?? const SizedBox.shrink()),
+              ),
             ),
           ),
         );

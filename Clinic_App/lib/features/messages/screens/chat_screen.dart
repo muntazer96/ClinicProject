@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -31,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   late final MessageHubService _hub;
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
   List<MessageDto> _messages = [];
   String? _myUserId;
   bool _loading = true;
@@ -38,6 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _hasMore = true;
   int _page = 1;
   bool _sending = false;
+  bool _sendingImage = false;
   bool _canSend = true;
   bool _canSendLoaded = false;
   Timer? _typingTimer;
@@ -83,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 receiverName: msg.receiverName,
                 receiverImage: msg.receiverImage,
                 content: msg.content,
+                imageName: msg.imageName,
                 sentAt: msg.sentAt,
                 isRead: true,
                 readAt: DateTime.now(),
@@ -112,7 +116,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _hub.signalConversationsChanged();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _hub.signalConversationsChanged();
+    });
     _hub.onMessageReceived = null;
     _hub.onMessagesRead = null;
     _hub.onUserTyping = null;
@@ -217,6 +223,35 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _pickAndSendImage() async {
+    if (_sendingImage || !_canSend) return;
+
+    final image = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1800,
+    );
+    if (image == null) return;
+
+    setState(() => _sendingImage = true);
+
+    try {
+      final msg = await _service.sendImage(
+        receiverId: widget.otherUserId,
+        image: image,
+      );
+      setState(() => _messages.insert(0, msg));
+      _hub.signalConversationsChanged();
+      _scrollToBottom();
+    } catch (error) {
+      if (mounted) {
+        showAppSnackBar(context, ApiClient.errorMessage(error));
+      }
+    } finally {
+      if (mounted) setState(() => _sendingImage = false);
+    }
+  }
+
   void _onTyping(String value) {
     _typingTimer?.cancel();
     _hub.sendTyping(widget.otherUserId);
@@ -301,6 +336,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
+            const _MessageRetentionNotice(),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -387,10 +423,30 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: Row(
                     children: [
+                      IconButton(
+                        tooltip: 'إرسال صورة',
+                        onPressed: (_sendingImage || !_canSend)
+                            ? null
+                            : _pickAndSendImage,
+                        icon: _sendingImage
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.image_rounded),
+                        color: _canSend ? AppColors.primary : AppColors.muted,
+                      ),
                       Expanded(
                         child: TextField(
                           controller: _textController,
                           onChanged: !_canSend ? null : _onTyping,
+                          onSubmitted: (_sending || !_canSend)
+                              ? null
+                              : (_) => _sendMessage(),
+                          textInputAction: TextInputAction.send,
                           enabled: _canSend,
                           decoration: InputDecoration(
                             hintText: !_canSend
@@ -449,6 +505,37 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 }
 
+class _MessageRetentionNotice extends StatelessWidget {
+  const _MessageRetentionNotice();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: AppColors.softAmber,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: AppColors.primaryDark),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
+                style: TextStyle(
+                  color: AppColors.primaryDark,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
@@ -461,6 +548,9 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final time = DateFormat('hh:mm a').format(message.sentAt);
+    final imageUrl = message.imageName == null
+        ? null
+        : ApiClient.messageImageUrl(message.imageName!);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -513,14 +603,41 @@ class _MessageBubble extends StatelessWidget {
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : AppColors.text,
-                      fontSize: 14,
-                      height: 1.4,
+                  if (imageUrl != null) ...[
+                    GestureDetector(
+                      onTap: () => _showImagePreview(context, imageUrl),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          imageUrl,
+                          width: 220,
+                          height: 180,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 220,
+                            height: 140,
+                            alignment: Alignment.center,
+                            color: Colors.black12,
+                            child: Icon(
+                              Icons.broken_image_rounded,
+                              color: isMe ? Colors.white70 : AppColors.muted,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (message.content.trim().isNotEmpty)
+                      const SizedBox(height: 8),
+                  ],
+                  if (message.content.trim().isNotEmpty)
+                    Text(
+                      message.content,
+                      style: TextStyle(
+                        color: isMe ? Colors.white : AppColors.text,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -558,6 +675,46 @@ class _MessageBubble extends StatelessWidget {
           ),
           if (isMe) const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+
+  void _showImagePreview(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image_rounded,
+                    color: Colors.white70,
+                    size: 54,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: SafeArea(
+                child: IconButton.filled(
+                  tooltip: 'إغلاق',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

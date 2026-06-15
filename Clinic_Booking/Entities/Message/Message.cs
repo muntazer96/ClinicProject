@@ -12,7 +12,8 @@ namespace Clinic_Booking.Entities.Message
         public Guid ReceiverId { get; set; }
         public AspNetUsers Receiver { get; set; }
 
-        public string Content { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string? ImageName { get; set; }
         public DateTime SentAt { get; set; }
         public bool IsRead { get; set; }
         public DateTime? ReadAt { get; set; }

@@ -63,15 +63,15 @@ namespace Clinic_Booking.Migrations
                 oldType: "uuid",
                 oldNullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Messages_ReceiverId",
-                table: "Messages",
-                column: "ReceiverId");
+            migrationBuilder.Sql("""
+                CREATE INDEX IF NOT EXISTS "IX_Messages_ReceiverId"
+                ON "Messages" ("ReceiverId");
+                """);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Messages_SenderId_ReceiverId_SentAt",
-                table: "Messages",
-                columns: new[] { "SenderId", "ReceiverId", "SentAt" });
+            migrationBuilder.Sql("""
+                CREATE INDEX IF NOT EXISTS "IX_Messages_SenderId_ReceiverId_SentAt"
+                ON "Messages" ("SenderId", "ReceiverId", "SentAt");
+                """);
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsRead",
@@ -86,10 +86,10 @@ namespace Clinic_Booking.Migrations
                 type: "timestamp without time zone",
                 nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Messages_ReceiverId_IsRead",
-                table: "Messages",
-                columns: new[] { "ReceiverId", "IsRead" });
+            migrationBuilder.Sql("""
+                CREATE INDEX IF NOT EXISTS "IX_Messages_ReceiverId_IsRead"
+                ON "Messages" ("ReceiverId", "IsRead");
+                """);
 
             migrationBuilder.AlterColumn<string>(
                 name: "Code",

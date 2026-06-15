@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../../core/api_client.dart';
+import '../../core/push_notification_service.dart';
 import 'models/message_models.dart';
 
 class MessageHubService extends ChangeNotifier {
@@ -21,6 +22,10 @@ class MessageHubService extends ChangeNotifier {
 
   final _messageController = StreamController<MessageDto>.broadcast();
   Stream<MessageDto> get onMessage => _messageController.stream;
+  final _appNotificationController =
+      StreamController<ForegroundAppNotification>.broadcast();
+  Stream<ForegroundAppNotification> get onAppNotification =>
+      _appNotificationController.stream;
 
   void Function(MessageDto message)? onMessageReceived;
   void Function(String otherUserId)? onMessagesRead;
@@ -91,6 +96,29 @@ class MessageHubService extends ChangeNotifier {
         if (args == null || args.isEmpty) return;
         _unreadCount = (args[0] as num).toInt();
         notifyListeners();
+      });
+
+      _hubConnection!.on('AppNotification', (args) {
+        if (args == null || args.isEmpty) return;
+        final raw = args[0];
+        if (raw is! Map) return;
+        final json = Map<String, dynamic>.from(raw);
+        final rawData = json['data'] ?? json['Data'];
+        final data = rawData is Map
+            ? rawData.map(
+                (key, value) => MapEntry(key.toString(), value.toString()),
+              )
+            : <String, String>{};
+
+        _appNotificationController.add(
+          ForegroundAppNotification(
+            type: json['type']?.toString() ?? json['Type']?.toString() ?? '',
+            title:
+                json['title']?.toString() ?? json['Title']?.toString() ?? '',
+            body: json['body']?.toString() ?? json['Body']?.toString() ?? '',
+            data: data,
+          ),
+        );
       });
 
       _hubConnection!.on('UserTyping', (args) {
@@ -210,6 +238,7 @@ class MessageHubService extends ChangeNotifier {
   @override
   void dispose() {
     _messageController.close();
+    _appNotificationController.close();
     disconnect();
     super.dispose();
   }

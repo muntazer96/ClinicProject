@@ -26,6 +26,7 @@ class MessageDto {
     required this.receiverName,
     this.receiverImage,
     required this.content,
+    this.imageName,
     required this.sentAt,
     required this.isRead,
     this.readAt,
@@ -41,6 +42,7 @@ class MessageDto {
     receiverName: json['receiverName'] as String? ?? '',
     receiverImage: json['receiverImage'] as String?,
     content: json['content'] as String? ?? '',
+    imageName: json['imageName'] as String?,
     sentAt: DateTime.parse(json['sentAt'] as String),
     isRead: json['isRead'] as bool? ?? false,
     readAt: json['readAt'] == null
@@ -57,6 +59,7 @@ class MessageDto {
   final String receiverName;
   final String? receiverImage;
   final String content;
+  final String? imageName;
   final DateTime sentAt;
   final bool isRead;
   final DateTime? readAt;
@@ -69,6 +72,7 @@ class ConversationDto {
     required this.otherUserName,
     this.otherUserImage,
     required this.lastMessage,
+    this.lastMessageImageName,
     required this.lastMessageAt,
     required this.unreadCount,
   });
@@ -79,6 +83,7 @@ class ConversationDto {
         otherUserName: json['otherUserName'] as String? ?? '',
         otherUserImage: json['otherUserImage'] as String?,
         lastMessage: json['lastMessage'] as String? ?? '',
+        lastMessageImageName: json['lastMessageImageName'] as String?,
         lastMessageAt: DateTime.parse(json['lastMessageAt'] as String),
         unreadCount: json['unreadCount'] as int? ?? 0,
       );
@@ -87,6 +92,7 @@ class ConversationDto {
   final String otherUserName;
   final String? otherUserImage;
   final String lastMessage;
+  final String? lastMessageImageName;
   final DateTime lastMessageAt;
   final int unreadCount;
 }

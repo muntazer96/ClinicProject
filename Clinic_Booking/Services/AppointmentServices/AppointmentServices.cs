@@ -7,14 +7,17 @@ using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.BookingOtpRequest;
 using Clinic_Booking.Enums;
 using Clinic_Booking.Extensions;
+using Clinic_Booking.Hubs;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.Services.MessageServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
 using Clinic_Booking.Utilities;
 using Clinic_Booking.Services.ProfanityFilterService;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -28,6 +31,8 @@ namespace Clinic_Booking.Services.AppointmentServices
         private readonly ILoadServices _load;
         private readonly IBookingSmsServices _bookingSmsServices;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly IHubContext<MessageHub> _hubContext;
+        private readonly OnlineUserTracker _onlineTracker;
         private readonly BookingOtpOptions _bookingOtpOptions;
         private readonly ILogger<AppointmentServices> _logger;
 
@@ -36,6 +41,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             ILoadServices load,
             IBookingSmsServices bookingSmsServices,
             IPushNotificationServices pushNotificationServices,
+            IHubContext<MessageHub> hubContext,
+            OnlineUserTracker onlineTracker,
             IOptions<BookingOtpOptions> bookingOtpOptions,
             ILogger<AppointmentServices> logger)
         {
@@ -43,6 +50,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             _load = load;
             _bookingSmsServices = bookingSmsServices;
             _pushNotificationServices = pushNotificationServices;
+            _hubContext = hubContext;
+            _onlineTracker = onlineTracker;
             _bookingOtpOptions = bookingOtpOptions.Value;
             _logger = logger;
         }
@@ -1590,21 +1599,24 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var data = BookingNotificationData(appointment);
-            var sent = await _pushNotificationServices.SendToUserAsync(
+            var sent = await SendBookingNotificationToUserAsync(
                 doctorUserId.Value,
                 title,
                 body,
                 data);
-            NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                _context,
-                sent,
-                doctorUserId.Value,
-                title,
-                body,
-                data,
-                doctorId: appointment.DoctorId,
-                clinicId: appointment.ClinicId,
-                appointmentId: appointment.Id);
+            if (sent.HasValue)
+            {
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent.Value,
+                    doctorUserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
+            }
             await _context.SaveChangesAsync();
         }
 
@@ -1626,21 +1638,24 @@ namespace Clinic_Booking.Services.AppointmentServices
                 title);
 
             var data = BookingNotificationData(appointment);
-            var sent = await _pushNotificationServices.SendToUserAsync(
+            var sent = await SendBookingNotificationToUserAsync(
                 appointment.UserId.Value,
                 title,
                 body,
                 data);
-            NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                _context,
-                sent,
-                appointment.UserId.Value,
-                title,
-                body,
-                data,
-                doctorId: appointment.DoctorId,
-                clinicId: appointment.ClinicId,
-                appointmentId: appointment.Id);
+            if (sent.HasValue)
+            {
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent.Value,
+                    appointment.UserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
+            }
             await _context.SaveChangesAsync();
         }
 
@@ -1686,21 +1701,24 @@ namespace Clinic_Booking.Services.AppointmentServices
             if (doctorUserId.HasValue && notifiedUsers.Add(doctorUserId.Value))
             {
                 var data = BookingNotificationData(appointment);
-                var sent = await _pushNotificationServices.SendToUserAsync(
+                var sent = await SendBookingNotificationToUserAsync(
                     doctorUserId.Value,
                     title,
                     body,
                     data);
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    _context,
-                    sent,
-                    doctorUserId.Value,
-                    title,
-                    body,
-                    data,
-                    doctorId: appointment.DoctorId,
-                    clinicId: appointment.ClinicId,
-                    appointmentId: appointment.Id);
+                if (sent.HasValue)
+                {
+                    NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                        _context,
+                        sent.Value,
+                        doctorUserId.Value,
+                        title,
+                        body,
+                        data,
+                        doctorId: appointment.DoctorId,
+                        clinicId: appointment.ClinicId,
+                        appointmentId: appointment.Id);
+                }
             }
             else
             {
@@ -1713,21 +1731,24 @@ namespace Clinic_Booking.Services.AppointmentServices
             if (includePatient && appointment.UserId.HasValue && notifiedUsers.Add(appointment.UserId.Value))
             {
                 var data = BookingNotificationData(appointment);
-                var sent = await _pushNotificationServices.SendToUserAsync(
+                var sent = await SendBookingNotificationToUserAsync(
                     appointment.UserId.Value,
                     title,
                     body,
                     data);
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    _context,
-                    sent,
-                    appointment.UserId.Value,
-                    title,
-                    body,
-                    data,
-                    doctorId: appointment.DoctorId,
-                    clinicId: appointment.ClinicId,
-                    appointmentId: appointment.Id);
+                if (sent.HasValue)
+                {
+                    NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                        _context,
+                        sent.Value,
+                        appointment.UserId.Value,
+                        title,
+                        body,
+                        data,
+                        doctorId: appointment.DoctorId,
+                        clinicId: appointment.ClinicId,
+                        appointmentId: appointment.Id);
+                }
             }
             else if (includePatient)
             {
@@ -1761,6 +1782,31 @@ namespace Clinic_Booking.Services.AppointmentServices
         {
             var days = bookingWindowDays <= 0 ? 7 : bookingWindowDays;
             return BusinessClock.Today().AddDays(days - 1);
+        }
+
+        private async Task<bool?> SendBookingNotificationToUserAsync(
+            Guid userId,
+            string title,
+            string body,
+            Dictionary<string, string> data)
+        {
+            if (_onlineTracker.IsUserOnline(userId))
+            {
+                await _hubContext.Clients.User(userId.ToString()).SendAsync("AppNotification", new
+                {
+                    Type = data.TryGetValue("type", out var type) ? type : "booking",
+                    Title = title,
+                    Body = body,
+                    Data = data
+                });
+                return null;
+            }
+
+            return await _pushNotificationServices.SendToUserAsync(
+                userId,
+                title,
+                body,
+                data);
         }
 
         private static Dictionary<string, string> BookingNotificationData(Appointment appointment)

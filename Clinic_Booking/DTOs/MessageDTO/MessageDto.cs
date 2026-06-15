@@ -12,6 +12,7 @@ namespace Clinic_Booking.DTOs.MessageDTO
         public string ReceiverName { get; set; }
         public string? ReceiverImage { get; set; }
         public string Content { get; set; }
+        public string? ImageName { get; set; }
         public DateTime SentAt { get; set; }
         public bool IsRead { get; set; }
         public DateTime? ReadAt { get; set; }

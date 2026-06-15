@@ -7,11 +7,11 @@ class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
 
-    //defaultValue: 'https://localhost:7136/api',
+    defaultValue: 'http://localhost:81/api',
     //defaultValue: 'http://localhost:8082/api',
     //defaultValue: 'http://192.168.1.102:8082/api',
     //defaultValue: 'http://192.168.100.7:8082/api',
-    defaultValue: 'http://192.174.0.120:81/api',
+    //defaultValue: 'http://192.174.0.120:81/api',
   );
 
   ApiClient()
@@ -124,6 +124,13 @@ class ApiClient {
           query: null,
           fragment: null,
         )
+        .toString();
+  }
+
+  static String messageImageUrl(String imageName) {
+    final apiUri = Uri.parse(_baseUrl);
+    return apiUri
+        .replace(path: '/MessageImages/$imageName', query: null, fragment: null)
         .toString();
   }
 

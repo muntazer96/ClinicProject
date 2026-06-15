@@ -16,6 +16,7 @@ namespace Clinic_Booking.Services.MessageServices
 {
     public class MessageServices : IMessageServices
     {
+        private const int ReviewMessagingWindowDays = 3;
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IPushNotificationServices _pushNotificationServices;
@@ -42,23 +43,12 @@ namespace Clinic_Booking.Services.MessageServices
             if (userId == null || userId == Guid.Empty)
                 return Unauthorized();
 
-            if (form.ReceiverId == userId.Value)
-                return BadRequest("Cannot send a message to yourself.");
-
             var content = form.Content?.Trim();
             if (string.IsNullOrWhiteSpace(content))
                 return BadRequest("Message content cannot be empty.");
 
-            if (ProfanityFilterServices.ContainsProfanity(content))
-                return BadRequest("Message contains blocked words.");
-
-            var receiverExists = await _context.Users.AnyAsync(u => u.Id == form.ReceiverId);
-            if (!receiverExists)
-                return NotFound("Receiver not found.");
-
-            var canReceive = await ReceiverCanReceiveMessagesAsync(form.ReceiverId);
-            if (!canReceive)
-                return BadRequest("المستخدم لا يدعم خاصية الرسائل حالياً.");
+            var validation = await ValidateCanSendAsync(userId.Value, form.ReceiverId, content);
+            if (validation != null) return validation;
 
             var message = new Message
             {
@@ -70,22 +60,46 @@ namespace Clinic_Booking.Services.MessageServices
                 IsRead = false
             };
 
-            _context.Messages.Add(message);
-            await _context.SaveChangesAsync();
+            return await SaveAndDispatchAsync(message, "Message sent successfully.");
+        }
 
-            var dto = await MapToDtoAsync(message);
+        public async Task<IActionResult> SendImageAsync(Guid receiverId, IFormFile file, string? content)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+                return Unauthorized();
 
-            await _hubContext.Clients.User(message.ReceiverId.ToString())
-                .SendAsync("ReceiveMessage", dto);
+            var trimmedContent = content?.Trim() ?? string.Empty;
+            var validation = await ValidateCanSendAsync(userId.Value, receiverId, trimmedContent);
+            if (validation != null) return validation;
 
-            var unreadCount = await GetUnreadCountForUserAsync(message.ReceiverId);
-            await _hubContext.Clients.User(message.ReceiverId.ToString())
-                .SendAsync("UnreadCount", unreadCount);
+            var imageValidation = ValidateMessageImage(file);
+            if (imageValidation != null) return imageValidation;
 
-            if (!_onlineTracker.IsUserOnline(message.ReceiverId))
-                await NotifyReceiverPushAsync(message);
+            var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "MessageImages");
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
 
-            return Ok(dto, "Message sent successfully.");
+            var extension = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(folderPath, fileName);
+
+            await using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var message = new Message
+            {
+                SenderId = userId.Value,
+                ReceiverId = receiverId,
+                Content = trimmedContent,
+                ImageName = fileName,
+                SentAt = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            return await SaveAndDispatchAsync(message, "Image sent successfully.");
         }
 
         public async Task<IActionResult> GetConversationsAsync()
@@ -119,7 +133,7 @@ namespace Clinic_Booking.Services.MessageServices
                     .Where(m => (m.SenderId == userId.Value && m.ReceiverId == otherId) ||
                                 (m.SenderId == otherId && m.ReceiverId == userId.Value))
                     .OrderByDescending(m => m.SentAt)
-                    .Select(m => new { m.Content, m.SentAt })
+                    .Select(m => new { m.Content, m.ImageName, m.SentAt })
                     .FirstAsync();
 
                 var unreadCount = await _context.Messages
@@ -130,7 +144,10 @@ namespace Clinic_Booking.Services.MessageServices
                     OtherUserId = otherId,
                     OtherUserName = user.Name ?? user.Id.ToString(),
                     OtherUserImage = user.ImageName,
-                    LastMessage = lastMessage.Content,
+                    LastMessage = string.IsNullOrWhiteSpace(lastMessage.Content) && lastMessage.ImageName != null
+                        ? "صورة"
+                        : lastMessage.Content,
+                    LastMessageImageName = lastMessage.ImageName,
                     LastMessageAt = lastMessage.SentAt,
                     UnreadCount = unreadCount
                 });
@@ -211,7 +228,10 @@ namespace Clinic_Booking.Services.MessageServices
                 return Unauthorized();
 
             var count = await _context.Messages
-                .CountAsync(m => m.ReceiverId == userId.Value && !m.IsRead);
+                .Where(m => m.ReceiverId == userId.Value && !m.IsRead)
+                .Select(m => m.SenderId)
+                .Distinct()
+                .CountAsync();
 
             return Ok(new { UnreadCount = count }, "Unread count retrieved successfully.");
         }
@@ -241,7 +261,11 @@ namespace Clinic_Booking.Services.MessageServices
 
         public async Task<int> GetUnreadCountForUserAsync(Guid userId)
         {
-            return await _context.Messages.CountAsync(m => m.ReceiverId == userId && !m.IsRead);
+            return await _context.Messages
+                .Where(m => m.ReceiverId == userId && !m.IsRead)
+                .Select(m => m.SenderId)
+                .Distinct()
+                .CountAsync();
         }
 
         public async Task<MessageDto?> GetMessageDtoAsync(int messageId)
@@ -250,44 +274,26 @@ namespace Clinic_Booking.Services.MessageServices
             return message == null ? null : await MapToDtoAsync(message);
         }
 
-        private async Task NotifyReceiverPushAsync(Entities.Message.Message message)
+        public async Task<bool> CanCurrentUserSendMessageAsync(Guid receiverId)
         {
-            try
-            {
-                var senderName = await _context.Users
-                    .Where(u => u.Id == message.SenderId)
-                    .Select(u => u.Name ?? "User")
-                    .FirstAsync();
-
-                var title = "رسالة جديدة";
-                var body = $"لديك رسالة جديدة من {senderName}";
-                var data = new Dictionary<string, string>
-                {
-                    ["type"] = "new_message",
-                    ["senderId"] = message.SenderId.ToString(),
-                    ["messageId"] = message.Id.ToString()
-                };
-
-                var sent = await _pushNotificationServices.SendToUserAsync(
-                    message.ReceiverId, title, body, data);
-
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    _context, sent, message.ReceiverId, title, body, data);
-                await _context.SaveChangesAsync();
-            }
-            catch
-            {
-            }
+            var userId = _load.GetCurrentUserId();
+            return userId.HasValue && await CanSendMessageAsync(userId.Value, receiverId);
         }
 
-        public async Task<bool> ReceiverCanReceiveMessagesAsync(Guid userId)
+        public async Task<bool> CanSendMessageAsync(Guid senderId, Guid receiverId)
         {
             var now = DateTime.UtcNow;
-            var doctor = await _context.Doctors
+            var doctors = await _context.Doctors
                 .Include(d => d.DoctorSubscriptions).ThenInclude(s => s.Package)
                 .Include(d => d.DoctorFeatures).ThenInclude(f => f.Feature)
-                .FirstOrDefaultAsync(d => d.UserId == userId);
-            if (doctor == null) return true;
+                .Where(d => d.UserId == senderId || d.UserId == receiverId)
+                .ToListAsync();
+
+            if (doctors.Count != 1) return false;
+
+            var doctor = doctors[0];
+            if (doctor.UserId == null) return false;
+            var patientUserId = doctor.UserId == senderId ? receiverId : senderId;
 
             var hasSubscription = doctor.DoctorSubscriptions.Any(s =>
                 s.Status == Enums.SubscriptionStatus.Active &&
@@ -300,7 +306,71 @@ namespace Clinic_Booking.Services.MessageServices
                 f.IsEnabled &&
                 f.Feature.NormalizedName == "ShowMessages");
 
-            return hasSubscription && hasFeature;
+            if (!hasSubscription || !hasFeature) return false;
+
+            var earliestAllowed = now.AddDays(-ReviewMessagingWindowDays);
+            return await _context.Appointments.AnyAsync(a =>
+                a.UserId == patientUserId &&
+                a.DoctorId == doctor.Id &&
+                a.Status == Enums.AppointmentStatus.Completed &&
+                a.AppointmentDate >= earliestAllowed &&
+                a.AppointmentDate <= now);
+        }
+
+        private async Task<IActionResult> SaveAndDispatchAsync(Entities.Message.Message message, string successMessage)
+        {
+            _context.Messages.Add(message);
+            await _context.SaveChangesAsync();
+
+            var dto = await MapToDtoAsync(message);
+
+            await _hubContext.Clients.User(message.ReceiverId.ToString())
+                .SendAsync("ReceiveMessage", dto);
+
+            var unreadCount = await GetUnreadCountForUserAsync(message.ReceiverId);
+            await _hubContext.Clients.User(message.ReceiverId.ToString())
+                .SendAsync("UnreadCount", unreadCount);
+
+            if (!_onlineTracker.IsUserOnline(message.ReceiverId))
+                await NotifyReceiverPushAsync(message);
+
+            return Ok(dto, successMessage);
+        }
+
+        private async Task NotifyReceiverPushAsync(Entities.Message.Message message)
+        {
+            try
+            {
+                var senderName = await _context.Users
+                    .Where(u => u.Id == message.SenderId)
+                    .Select(u => u.Name ?? "User")
+                    .FirstAsync();
+
+                var hasImage = !string.IsNullOrWhiteSpace(message.ImageName);
+                var title = "رسالة جديدة";
+                var body = hasImage
+                    ? $"أرسل لك {senderName} صورة"
+                    : $"لديك رسالة جديدة من {senderName}";
+                var data = new Dictionary<string, string>
+                {
+                    ["type"] = "new_message",
+                    ["senderId"] = message.SenderId.ToString(),
+                    ["senderName"] = senderName,
+                    ["messageId"] = message.Id.ToString(),
+                    ["body"] = body,
+                    ["hasImage"] = hasImage.ToString().ToLowerInvariant()
+                };
+
+                var sent = await _pushNotificationServices.SendToUserAsync(
+                    message.ReceiverId, title, body, data);
+
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context, sent, message.ReceiverId, title, body, data);
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+            }
         }
 
         private async Task<MessageDto> MapToDtoAsync(Entities.Message.Message message)
@@ -318,11 +388,49 @@ namespace Clinic_Booking.Services.MessageServices
                 ReceiverName = receiver?.Name ?? "Unknown",
                 ReceiverImage = receiver?.ImageName,
                 Content = message.Content,
+                ImageName = message.ImageName,
                 SentAt = message.SentAt,
                 IsRead = message.IsRead,
                 ReadAt = message.ReadAt,
                 Type = message.Type
             };
+        }
+
+        private async Task<IActionResult?> ValidateCanSendAsync(Guid senderId, Guid receiverId, string content)
+        {
+            if (receiverId == senderId)
+                return BadRequest("Cannot send a message to yourself.");
+
+            if (ProfanityFilterServices.ContainsProfanity(content))
+                return BadRequest("Message contains blocked words.");
+
+            var receiverExists = await _context.Users.AnyAsync(u => u.Id == receiverId);
+            if (!receiverExists)
+                return NotFound("Receiver not found.");
+
+            var canSend = await CanSendMessageAsync(senderId, receiverId);
+            if (!canSend)
+                return BadRequest("المراسلة متاحة فقط بين الطبيب والمراجع الذي أكمل مراجعته خلال آخر 3 أيام.");
+
+            return null;
+        }
+
+        private static IActionResult? ValidateMessageImage(IFormFile? image)
+        {
+            if (image == null || image.Length == 0)
+                return BadRequest("يرجى اختيار صورة صالحة.");
+
+            const long maxFileSize = 5 * 1024 * 1024;
+            var extension = Path.GetExtension(image.FileName);
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".jpg", ".jpeg", ".png", ".webp"
+            };
+
+            if (image.Length > maxFileSize || !allowedExtensions.Contains(extension))
+                return BadRequest("المرفق يجب أن يكون صورة JPG أو PNG أو WEBP وبحجم لا يتجاوز 5MB.");
+
+            return null;
         }
 
         private static IActionResult Ok<T>(T data, string message)
