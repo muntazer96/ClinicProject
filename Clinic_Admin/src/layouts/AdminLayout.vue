@@ -43,7 +43,6 @@ const links = computed(() => [
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'لوحة التحكم')
 const roleLabel = computed(() => auth.primaryRole === 'SuperAdmin' ? 'مدير النظام' : 'حساب الطبيب')
-const hasPremiumTheme = computed(() => currentSubscription.value?.isTopPackage ?? false)
 
 function isLinkActive(path: string) {
   if (path === '/') return route.path === '/'
@@ -96,7 +95,7 @@ onMounted(loadCurrentSubscription)
 </script>
 
 <template>
-  <div class="admin-shell" :class="{ 'premium-shell': hasPremiumTheme }">
+  <div class="admin-shell">
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false" />
     <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="brand">
