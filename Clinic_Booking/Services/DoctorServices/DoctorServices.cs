@@ -926,18 +926,18 @@ namespace Clinic_Booking.Services.DoctorServices
                     await form.ImageName.CopyToAsync(stream);
                 }
 
-                if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
-                    ProfanityFilterServices.ContainsProfanity(form.Description) ||
-                    ProfanityFilterServices.ContainsProfanity(form.Location))
-                {
-                    return new BadRequestObjectResult(new ResponseDto<object>
-                    {
-                        Status = "Error",
-                        Code = 400,
-                        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
-                        Data = null
-                    });
-                }
+                //if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                //    ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                //    ProfanityFilterServices.ContainsProfanity(form.Location))
+                //{
+                //    return new BadRequestObjectResult(new ResponseDto<object>
+                //    {
+                //        Status = "Error",
+                //        Code = 400,
+                //        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                //        Data = null
+                //    });
+                //}
 
                 var doctor = new Doctor
                 {

@@ -10,7 +10,7 @@ import { getErrorMessage } from '../utils/errors'
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']) && !auth.hasAnyRole(['DoctorUser']))
 const loading = ref(false)
 const summary = ref<AnalyticsSummary | null>(null)
 const currentSubscription = ref<CurrentDoctorSubscription | null>(null)

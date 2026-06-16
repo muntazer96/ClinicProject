@@ -50,11 +50,13 @@ export const useAuthStore = defineStore('auth', () => {
   const payload = computed(() => decodePayload(token.value))
   const roles = computed(() => {
     const claims = payload.value
-    return Array.from(new Set([
+    const result = Array.from(new Set([
       ...asArray(claims?.role),
       ...asArray(claims?.Role),
       ...asArray(claims?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']),
     ]))
+    console.log('[Auth] JWT payload:', claims, 'roles:', result)
+    return result
   })
   const isAuthenticated = computed(() => {
     if (!token.value || !payload.value) return false
