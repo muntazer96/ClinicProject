@@ -45,6 +45,13 @@ namespace Clinic_Booking.Controllers
             return await _service.LoginAsync(form);
         }
 
+        [HttpPost("google-signin")]
+        [EnableRateLimiting("Auth")]
+        public async Task<IActionResult> GoogleSignInAsync([FromBody] GoogleSignInDto form)
+        {
+            return await _service.GoogleSignInAsync(form);
+        }
+
         [HttpPost("refresh")]
         [EnableRateLimiting("Auth")]
         public async Task<IActionResult> RefreshTokenAsync([FromBody] RefreshTokenDto form)

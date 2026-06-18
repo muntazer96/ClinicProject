@@ -8,6 +8,7 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> CreateUserAsync(SignUpDto form);
         Task<IActionResult> UpdateUserAsync(string id, UserUpdateDto form);
         Task<IActionResult> LoginAsync(SignInDto form);
+        Task<IActionResult> GoogleSignInAsync(GoogleSignInDto form);
         Task<IActionResult> RefreshTokenAsync(RefreshTokenDto form);
         Task<IActionResult> RevokeRefreshTokenAsync(RefreshTokenDto form);
         Task<IActionResult> GetMyProfileAsync();

@@ -19,6 +19,7 @@ using System.Security.Claims;
 using System.Text;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.Authorization;
+using Google.Apis.Auth;
 
 namespace Clinic_Booking.Services.UserServices
 {
@@ -54,6 +55,7 @@ namespace Clinic_Booking.Services.UserServices
             _configuration = configuration;
             _bookingSmsServices = bookingSmsServices;
             _logger = logger;
+            _whatsAppMessageServices = whatsAppMessageServices;
         }
         public async Task<IActionResult> CreateUserAsync(SignUpDto form)
         {
@@ -344,6 +346,224 @@ namespace Clinic_Booking.Services.UserServices
                 };
             }
         }
+
+        public async Task<IActionResult> GoogleSignInAsync(GoogleSignInDto form)
+        {
+            var idToken = form.IdToken?.Trim();
+            if (string.IsNullOrWhiteSpace(idToken))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز تسجيل الدخول من Google مطلوب.",
+                    Data = null
+                });
+            }
+
+            //var clientIds = GetGoogleClientIds();
+            //if (clientIds.Count == 0)
+            //{
+            //    _logger.LogError("Google sign-in is not configured. Missing GoogleAuth:ClientIds or GoogleAuth:ClientId.");
+            //    return new ObjectResult(new ResponseDto<string>
+            //    {
+            //        Status = "Error",
+            //        Code = 500,
+            //        Message = "تسجيل الدخول بواسطة Google غير مهيأ على الخادم.",
+            //        Data = null
+            //    })
+            //    {
+            //        StatusCode = 500
+            //    };
+            //}
+
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(
+                    idToken,
+                    new GoogleJsonWebSignature.ValidationSettings
+                    {
+                        Audience = clientIds
+                    });
+            }
+            catch (InvalidJwtException ex)
+            {
+                _logger.LogWarning(ex, "Invalid Google ID token received.");
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "تعذر التحقق من حساب Google.",
+                    Data = null
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.Subject) ||
+                string.IsNullOrWhiteSpace(payload.Email) ||
+                payload.EmailVerified != true)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "حساب Google غير صالح أو البريد الإلكتروني غير مؤكد.",
+                    Data = null
+                });
+            }
+
+            const string loginProvider = "Google";
+            var user = await _userManager.FindByLoginAsync(loginProvider, payload.Subject);
+
+            if (user == null)
+            {
+                user = await _userManager.FindByEmailAsync(payload.Email);
+                if (user != null)
+                {
+                    var addLoginResult = await _userManager.AddLoginAsync(
+                        user,
+                        new UserLoginInfo(loginProvider, payload.Subject, loginProvider));
+
+                    if (!addLoginResult.Succeeded)
+                    {
+                        return new BadRequestObjectResult(new ResponseDto<object>
+                        {
+                            Status = "Error",
+                            Code = 400,
+                            Message = string.Join(" ، ", addLoginResult.Errors.Select(x => x.Description)),
+                            Data = addLoginResult.Errors.Select(x => new
+                            {
+                                x.Code,
+                                x.Description
+                            })
+                        });
+                    }
+                }
+            }
+
+            if (user == null)
+            {
+                user = new AspNetUsers
+                {
+                    Name = string.IsNullOrWhiteSpace(payload.Name)
+                        ? payload.Email.Split('@')[0]
+                        : payload.Name,
+                    UserName = $"google_{payload.Subject}",
+                    Email = payload.Email,
+                    EmailConfirmed = true,
+                    ImageName = "default.png"
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = string.Join(" ، ", createResult.Errors.Select(x => x.Description)),
+                        Data = createResult.Errors.Select(x => new
+                        {
+                            x.Code,
+                            x.Description
+                        })
+                    });
+                }
+
+                var role = await _roleManager.FindByNameAsync(AppRoles.NormalUser);
+                if (role == null)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return new ObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 500,
+                        Message = "تعذر العثور على دور المستخدم الافتراضي.",
+                        Data = null
+                    })
+                    {
+                        StatusCode = 500
+                    };
+                }
+
+                var roleResult = await _userManager.AddToRoleAsync(user, role.Name!);
+                if (!roleResult.Succeeded)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = string.Join(" ، ", roleResult.Errors.Select(x => x.Description)),
+                        Data = roleResult.Errors.Select(x => new
+                        {
+                            x.Code,
+                            x.Description
+                        })
+                    });
+                }
+
+                var loginResult = await _userManager.AddLoginAsync(
+                    user,
+                    new UserLoginInfo(loginProvider, payload.Subject, loginProvider));
+
+                if (!loginResult.Succeeded)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = string.Join(" ، ", loginResult.Errors.Select(x => x.Description)),
+                        Data = loginResult.Errors.Select(x => new
+                        {
+                            x.Code,
+                            x.Description
+                        })
+                    });
+                }
+            }
+
+            if (user.IsDeleted || user.IsLocked || await _userManager.IsLockedOutAsync(user))
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "هذا الحساب غير متاح حالياً، يرجى التواصل مع الدعم.",
+                    Data = null
+                });
+            }
+
+            await _userManager.ResetAccessFailedCountAsync(user);
+            await _userManager.SetLockoutEndDateAsync(user, null);
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var authClaims = await BuildUserClaimsAsync(user, userRoles);
+            var token = GetToken(authClaims);
+            var refreshToken = CreateRefreshToken(user.Id);
+
+            _context.RefreshTokens.Add(refreshToken.Entity);
+            user.LastLoginDate = BusinessClock.Now();
+            user.Email = payload.Email;
+            user.EmailConfirmed = true;
+
+            await _userManager.UpdateAsync(user);
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<AuthTokenDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تسجيل الدخول بواسطة Google بنجاح.",
+                Data = BuildAuthTokenDto(
+                    token,
+                    refreshToken.RawToken,
+                    refreshToken.Entity.ExpiresAt
+                )
+            });
+        }
+
         public async Task<IActionResult> RefreshTokenAsync(RefreshTokenDto form)
         {
             var refreshTokenValue = form.RefreshToken?.Trim();
