@@ -74,10 +74,11 @@ class _DoctorOffersScreenState extends State<DoctorOffersScreen> {
         PositionedDirectional(
           start: 18,
           bottom: 16,
-          child: FloatingActionButton.small(
+          child: FloatingActionButton(
             heroTag: 'doctor-add-offer',
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            tooltip: 'إضافة عرض',
             onPressed: () async {
               await context.push('/doctor/offers/form');
               await _load();

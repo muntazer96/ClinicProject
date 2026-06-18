@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_logo.dart';
+import '../../../widgets/notification_bell.dart';
 import '../../auth/auth_controller.dart';
 import '../../messages/message_hub_service.dart';
 import '../services/doctor_service.dart';
@@ -138,11 +139,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'الإشعارات',
-            onPressed: () => context.go('/doctor/notifications'),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
+          const NotificationBell(doctor: true),
           const SizedBox(width: 4),
         ],
       ),

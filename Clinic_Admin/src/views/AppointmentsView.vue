@@ -265,9 +265,20 @@ async function toggleStatus(appointment: AppointmentRow) {
   }
 }
 
+async function rejectPending(appointment: AppointmentRow) {
+  try {
+    const response = await api.post<ApiResponse<object>>('/Appointment/reject-pending', null, { params: { appointmentId: appointment.id } })
+    notifications.show(response.data.message)
+    await loadAppointments()
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  }
+}
+
 async function confirmCancel() {
   if (!cancelAppointment.value) return
-  await toggleStatus(cancelAppointment.value)
+  if (cancelAppointment.value.status === 0) await rejectPending(cancelAppointment.value)
+  else await toggleStatus(cancelAppointment.value)
   cancelAppointment.value = undefined
 }
 
@@ -417,7 +428,7 @@ onMounted(async () => {
                 <div class="row-actions">
                   <button v-if="appointment.status === 0" type="button" title="تأكيد الحجز" @click="toggleStatus(appointment)"><Check :size="16" /></button>
                   <a v-if="appointment.patientPhoneNumber" class="row-link" :href="`tel:${appointment.patientPhoneNumber}`" title="اتصال بالمريض"><PhoneCall :size="16" /></a>
-                  <LongPressButton v-if="appointment.status === 1" button-class="danger-action" title="اضغط مطولاً لإلغاء الحجز" @confirm="cancelAppointment = appointment"><X :size="16" /></LongPressButton>
+                  <LongPressButton v-if="appointment.status === 0 || appointment.status === 1" button-class="danger-action" title="اضغط مطولاً لإلغاء الحجز" @confirm="cancelAppointment = appointment"><X :size="16" /></LongPressButton>
                   <button v-if="appointment.status === 1" type="button" title="إكمال الحجز" @click="complete(appointment)"><CheckCheck :size="16" /></button>
                 </div>
               </td>

@@ -89,6 +89,16 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     }
   }
 
+  Future<void> _reject(DoctorAppointment item) async {
+    try {
+      await _service.rejectPendingAppointment(item.id);
+      await _load();
+      if (mounted) showAppSnackBar(context, 'Booking rejected.');
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => DoctorScaffold(
     title: 'إدارة الحجوزات',
@@ -179,6 +189,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                         itemBuilder: (context, index) => _AppointmentCard(
                           item: _items[index],
                           onToggle: _toggle,
+                          onReject: _reject,
                           onComplete: _complete,
                         ),
                       ),
@@ -190,10 +201,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
         PositionedDirectional(
           start: 18,
           bottom: 16,
-          child: FloatingActionButton.small(
+          child: FloatingActionButton(
             heroTag: 'doctor-add-appointment',
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            tooltip: 'إضافة حجز',
             onPressed: () async {
               await context.push('/doctor/appointments/manual');
               await _load();
@@ -240,11 +252,13 @@ class _AppointmentCard extends StatelessWidget {
   const _AppointmentCard({
     required this.item,
     required this.onToggle,
+    required this.onReject,
     required this.onComplete,
   });
 
   final DoctorAppointment item;
   final ValueChanged<DoctorAppointment> onToggle;
+  final ValueChanged<DoctorAppointment> onReject;
   final ValueChanged<DoctorAppointment> onComplete;
 
   @override
@@ -442,8 +456,7 @@ class _AppointmentCard extends StatelessWidget {
                       onPressed: () =>
                           openPhone(context, item.patientPhoneNumber),
                     ),
-                  if (!item.isGuestBooking &&
-                      item.patientUserId != null) ...[
+                  if (!item.isGuestBooking && item.patientUserId != null) ...[
                     if (item.patientPhoneNumber.trim().isNotEmpty)
                       const SizedBox(height: 8),
                     DoctorActionButton(
@@ -458,19 +471,26 @@ class _AppointmentCard extends StatelessWidget {
                   if (item.patientPhoneNumber.trim().isNotEmpty &&
                       (item.canToggle || item.canComplete))
                     const SizedBox(height: 8),
-                  if (item.canToggle)
-                    item.status == 0
-                        ? DoctorActionButton(
-                            label: 'قبول / تأكيد',
-                            icon: Icons.check_circle_outline_rounded,
-                            onPressed: () => onToggle(item),
-                          )
-                        : LongPressButton(
-                            danger: true,
-                            onLongPress: () => onToggle(item),
-                            icon: const Icon(Icons.cancel_outlined),
-                            label: const Text('رفض / إلغاء'),
-                          ),
+                  if (item.status == 0) ...[
+                    DoctorActionButton(
+                      label: 'قبول / تأكيد',
+                      icon: Icons.check_circle_outline_rounded,
+                      onPressed: () => onToggle(item),
+                    ),
+                    const SizedBox(height: 8),
+                    LongPressButton(
+                      danger: true,
+                      onLongPress: () => onReject(item),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('رفض / إلغاء'),
+                    ),
+                  ] else if (item.status == 1)
+                    LongPressButton(
+                      danger: true,
+                      onLongPress: () => onToggle(item),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('رفض / إلغاء'),
+                    ),
                   if (item.canToggle && item.canComplete)
                     const SizedBox(height: 8),
                   if (item.canComplete)

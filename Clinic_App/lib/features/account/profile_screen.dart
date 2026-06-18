@@ -288,6 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final profile = _profile!;
+    final isDoctor = context.watch<AuthController>().isDoctor;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -374,27 +375,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          _SectionCard(
-            title: 'اختصارات',
-            icon: Icons.grid_view_rounded,
-            child: Column(
-              children: [
-                _ActionTile(
-                  icon: Icons.calendar_month_outlined,
-                  title: 'حجوزاتي',
-                  subtitle: 'تابع الحجوزات النشطة والسابقة',
-                  onTap: () => context.go('/bookings'),
-                ),
-                _ActionTile(
-                  icon: Icons.search_rounded,
-                  title: 'البحث عن طبيب',
-                  subtitle: 'اختر الاختصاص والمحافظة واحجز دورك',
-                  onTap: () => context.go('/search'),
-                ),
-              ],
+          if (!isDoctor) ...[
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'اختصارات',
+              icon: Icons.grid_view_rounded,
+              child: Column(
+                children: [
+                  _ActionTile(
+                    icon: Icons.calendar_month_outlined,
+                    title: 'حجوزاتي',
+                    subtitle: 'تابع الحجوزات النشطة والسابقة',
+                    onTap: () => context.go('/bookings'),
+                  ),
+                  _ActionTile(
+                    icon: Icons.search_rounded,
+                    title: 'البحث عن طبيب',
+                    subtitle: 'اختر الاختصاص والمحافظة واحجز دورك',
+                    onTap: () => context.go('/search'),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           _FullWidthButton(
             child: OutlinedButton.icon(

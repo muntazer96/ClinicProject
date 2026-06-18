@@ -77,10 +77,11 @@ class _DoctorClinicsScreenState extends State<DoctorClinicsScreen> {
         PositionedDirectional(
           start: 18,
           bottom: 16,
-          child: FloatingActionButton.small(
+          child: FloatingActionButton(
             heroTag: 'doctor-add-clinic',
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            tooltip: 'إضافة عيادة',
             onPressed: () async {
               await context.push('/doctor/clinics/form');
               await _load();

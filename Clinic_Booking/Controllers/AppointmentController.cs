@@ -97,6 +97,12 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.ToggleAppointmentStatusAsync(appointmentId);
         }
+        [HttpPost("reject-pending")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> RejectPendingAppointmentAsync([FromQuery] int appointmentId)
+        {
+            return await _service.RejectPendingAppointmentAsync(appointmentId);
+        }
         [HttpPost("complete")]
         [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> CompleteAppointmentAsync([FromQuery] int appointmentId)

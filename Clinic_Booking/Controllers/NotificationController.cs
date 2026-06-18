@@ -20,6 +20,85 @@ namespace Clinic_Booking.Controllers
             _load = load;
         }
 
+        [HttpGet("my")]
+        [Authorize]
+        public async Task<IActionResult> GetMineAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return Unauthorized("You must sign in to view notifications.");
+            }
+
+            var notifications = await _context.Notifications
+                .Where(notification =>
+                    notification.UserId == userId &&
+                    notification.DoctorId == null &&
+                    !notification.IsDeleted)
+                .OrderByDescending(notification => notification.CreatedAt)
+                .Take(100)
+                .Select(notification => new
+                {
+                    notification.Id,
+                    notification.Message,
+                    notification.CreatedAt,
+                    notification.Status,
+                    notification.ReadAt
+                })
+                .ToListAsync();
+
+            return Ok(notifications, "Notifications retrieved successfully.");
+        }
+
+        [HttpGet("my/unread-count")]
+        [Authorize]
+        public async Task<IActionResult> GetMineUnreadCountAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return Unauthorized("You must sign in to view notifications.");
+            }
+
+            var count = await _context.Notifications.CountAsync(notification =>
+                notification.UserId == userId &&
+                notification.DoctorId == null &&
+                notification.Status == NotificationStatus.Unread &&
+                !notification.IsDeleted);
+
+            return Ok(new { UnreadCount = count }, "Unread notifications count retrieved successfully.");
+        }
+
+        [HttpPost("my/{id}/read")]
+        [Authorize]
+        public async Task<IActionResult> MarkMineAsReadForUserAsync(int id)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return Unauthorized("You must sign in to view notifications.");
+            }
+
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(item =>
+                    item.Id == id &&
+                    item.UserId == userId &&
+                    item.DoctorId == null &&
+                    !item.IsDeleted);
+            if (notification == null)
+            {
+                return NotFound("Notification not found.");
+            }
+
+            notification.Status = NotificationStatus.Read;
+            notification.ReadAt ??= BusinessClock.Now();
+            notification.ModifiedAt = BusinessClock.Now();
+            notification.ModifierId = userId;
+            await _context.SaveChangesAsync();
+
+            return Ok<object>(null, "Notification marked as read.");
+        }
+
         [HttpGet("doctor/my")]
         [Authorize(Roles = AppRoles.DoctorUser)]
         public async Task<IActionResult> GetMineForDoctorAsync()
@@ -47,6 +126,24 @@ namespace Clinic_Booking.Controllers
                 .ToListAsync();
 
             return Ok(notifications, "Doctor notifications retrieved successfully.");
+        }
+
+        [HttpGet("doctor/my/unread-count")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> GetMineUnreadCountForDoctorAsync()
+        {
+            var doctorId = await GetCurrentDoctorIdAsync();
+            if (!doctorId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var count = await _context.Notifications.CountAsync(notification =>
+                notification.DoctorId == doctorId &&
+                notification.Status == NotificationStatus.Unread &&
+                !notification.IsDeleted);
+
+            return Ok(new { UnreadCount = count }, "Doctor unread notifications count retrieved successfully.");
         }
 
         [HttpPost("doctor/my/{id}/read")]
@@ -113,13 +210,13 @@ namespace Clinic_Booking.Controllers
             });
         }
 
-        private static IActionResult Unauthorized()
+        private static IActionResult Unauthorized(string message = "You must sign in with a linked doctor account.")
         {
             return new UnauthorizedObjectResult(new ResponseDto<string>
             {
                 Status = "Error",
                 Code = 401,
-                Message = "You must sign in with a linked doctor account."
+                Message = message
             });
         }
     }

@@ -6,6 +6,7 @@ import '../core/app_theme.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/messages/message_hub_service.dart';
 import 'app_logo.dart';
+import 'notification_bell.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -93,6 +94,7 @@ class AppScaffold extends StatelessWidget {
           ],
         ),
         actions: [
+          if (auth.isAuthenticated) const NotificationBell(doctor: false),
           IconButton(
             tooltip: 'متابعة حجز زائر',
             onPressed: () => context.go('/guest-booking'),

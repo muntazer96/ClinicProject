@@ -11,7 +11,7 @@ class ApiClient {
     //defaultValue: 'http://localhost:81/api',
     //defaultValue: 'http://localhost:8082/api',
     //defaultValue: 'http://192.168.1.102:8082/api',
-    // defaultValue: 'http://192.168.100.7:8082/api',
+    //defaultValue: 'http://192.168.100.7:8082/api',
     //defaultValue: 'http://192.174.0.120:81/api',
   );
 

@@ -1000,6 +1000,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            await NotifyDoctorAsync(
+                clinic.DoctorId,
+                "تمت إضافة حجز يدوي",
+                $"تمت إضافة حجز يدوي للمراجع {patientName} برقم دور {appointment.QueueNumber}.",
+                appointment);
+
             return new OkObjectResult(new ResponseDto<object>
             {
                 Status = "Success",
@@ -1326,6 +1332,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (appointment.Status == AppointmentStatus.Confirmed)
             {
+                await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"تمت الموافقة على الحجز رقم {appointment.QueueNumber}.");
+
                 var doctorName = await GetDoctorNameAsync(appointment.DoctorId);
                 var appointmentDate = FormatAppointmentDate(appointment.AppointmentDate);
                 await NotifyPatientAsync(
@@ -1335,6 +1346,11 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
             else if (appointment.Status == AppointmentStatus.Cancelled)
             {
+                await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"تم إلغاء الحجز رقم {appointment.QueueNumber}.");
+
                 await NotifyBookingCancelledAsync(appointment, includeDoctor: false);
             }
 
@@ -1345,6 +1361,44 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Message = $"تم تحديث حالة الحجز إلى '{appointment.Status}'.",
                 Data = null
             });
+        }
+
+        public async Task<IActionResult> RejectPendingAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Booking not found.",
+                    Data = null
+                });
+            }
+
+            if (!await IsOwnedByCurrentDoctorAsync(appointment.DoctorId))
+            {
+                return DoctorAccessDenied();
+            }
+
+            if (appointment.Status != AppointmentStatus.Pending)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Only pending bookings can be rejected.",
+                    Data = null
+                });
+            }
+
+            await SaveNotificationAsync(
+                userId: null,
+                doctorId: appointment.DoctorId,
+                message: $"تم رفض الحجز رقم {appointment.QueueNumber}.");
+
+            return await CancelAppointmentAsync(appointment, "Rejected by doctor.", _load.GetCurrentUserId(), includeDoctor: false);
         }
 
         public async Task<IActionResult> CompleteAppointmentAsync(int appointmentId)
@@ -1381,6 +1435,11 @@ namespace Clinic_Booking.Services.AppointmentServices
             appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
+
+            await SaveNotificationAsync(
+                userId: null,
+                doctorId: appointment.DoctorId,
+                message: $"تم إكمال الحجز رقم {appointment.QueueNumber}.");
 
             var doctorName = await GetDoctorNameAsync(appointment.DoctorId);
             await NotifyPatientAsync(
@@ -1593,12 +1652,17 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .Select(doctor => doctor.UserId)
                 .FirstOrDefaultAsync();
 
+            var notificationId = await SaveNotificationAsync(
+                userId: null,
+                doctorId: doctorId,
+                message: $"{title}: {body}");
+
             if (!doctorUserId.HasValue)
             {
                 return;
             }
 
-            var data = BookingNotificationData(appointment);
+            var data = BookingNotificationData(appointment, notificationId);
             var sent = await SendBookingNotificationToUserAsync(
                 doctorUserId.Value,
                 title,
@@ -1631,13 +1695,18 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return;
             }
 
+            var notificationId = await SaveNotificationAsync(
+                userId: appointment.UserId,
+                doctorId: null,
+                message: $"{title}: {body}");
+
             _logger.LogInformation(
                 "Sending patient push notification. AppointmentId={AppointmentId}, PatientUserId={PatientUserId}, Title={Title}",
                 appointment.Id,
                 appointment.UserId,
                 title);
 
-            var data = BookingNotificationData(appointment);
+            var data = BookingNotificationData(appointment, notificationId);
             var sent = await SendBookingNotificationToUserAsync(
                 appointment.UserId.Value,
                 title,
@@ -1700,7 +1769,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (doctorUserId.HasValue && notifiedUsers.Add(doctorUserId.Value))
             {
-                var data = BookingNotificationData(appointment);
+                var doctorNotificationId = await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"{title}: {body}");
+                var data = BookingNotificationData(appointment, doctorNotificationId);
                 var sent = await SendBookingNotificationToUserAsync(
                     doctorUserId.Value,
                     title,
@@ -1730,7 +1803,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (includePatient && appointment.UserId.HasValue && notifiedUsers.Add(appointment.UserId.Value))
             {
-                var data = BookingNotificationData(appointment);
+                var patientNotificationId = await SaveNotificationAsync(
+                    userId: appointment.UserId,
+                    doctorId: null,
+                    message: $"{title}: {body}");
+                var data = BookingNotificationData(appointment, patientNotificationId);
                 var sent = await SendBookingNotificationToUserAsync(
                     appointment.UserId.Value,
                     title,
@@ -1809,9 +1886,26 @@ namespace Clinic_Booking.Services.AppointmentServices
                 data);
         }
 
-        private static Dictionary<string, string> BookingNotificationData(Appointment appointment)
+        private async Task<int?> SaveNotificationAsync(Guid? userId, int? doctorId, string message)
         {
-            return new Dictionary<string, string>
+            var notification = new Entities.Notification.Notification
+            {
+                UserId = userId,
+                DoctorId = doctorId,
+                Message = message,
+                CreatedAt = BusinessClock.Now(),
+                Status = NotificationStatus.Unread,
+                CreatorId = _load.GetCurrentUserId()
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+            return notification.Id;
+        }
+
+        private static Dictionary<string, string> BookingNotificationData(Appointment appointment, int? notificationId = null)
+        {
+            var data = new Dictionary<string, string>
             {
                 ["type"] = "booking",
                 ["appointmentId"] = appointment.Id.ToString(),
@@ -1820,6 +1914,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ["queueNumber"] = appointment.QueueNumber.ToString(),
                 ["status"] = appointment.Status.ToString()
             };
+
+            if (notificationId.HasValue)
+            {
+                data["notificationId"] = notificationId.Value.ToString();
+            }
+
+            return data;
         }
 
         private static UnauthorizedObjectResult DoctorAccessDenied()
@@ -1926,7 +2027,7 @@ namespace Clinic_Booking.Services.AppointmentServices
         }
 
         private async Task<IActionResult> CancelAppointmentAsync(
-            Appointment appointment, string? reason, Guid? cancelledByUserId)
+            Appointment appointment, string? reason, Guid? cancelledByUserId, bool includeDoctor = true)
         {
             if (appointment.Status == AppointmentStatus.Cancelled)
             {
@@ -1970,7 +2071,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             appointment.ModifierId = cancelledByUserId;
             await _context.SaveChangesAsync();
 
-            await NotifyBookingCancelledAsync(appointment, includeDoctor: true);
+            await NotifyBookingCancelledAsync(appointment, includeDoctor);
 
             return new OkObjectResult(new ResponseDto<object>
             {

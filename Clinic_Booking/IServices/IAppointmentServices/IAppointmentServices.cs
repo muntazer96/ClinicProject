@@ -20,6 +20,7 @@ namespace Clinic_Booking.IServices.IAppointmentServices
         Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form);
         Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form);
         Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId);
+        Task<IActionResult> RejectPendingAppointmentAsync(int appointmentId);
         Task<IActionResult> CompleteAppointmentAsync(int appointmentId);
     }
 }

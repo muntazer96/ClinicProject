@@ -29,7 +29,6 @@ import '../features/doctor/pages/doctor_clinics_screen.dart';
 import '../features/doctor/pages/doctor_features_page.dart';
 import '../features/doctor/pages/doctor_home_screen.dart';
 import '../features/doctor/pages/doctor_manual_appointment_page.dart';
-import '../features/doctor/pages/doctor_notifications_screen.dart';
 import '../features/doctor/pages/doctor_offer_form_page.dart';
 import '../features/doctor/pages/doctor_offers_screen.dart';
 import '../features/doctor/pages/doctor_profile_edit_page.dart';
@@ -46,6 +45,7 @@ import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/startup_splash_screen.dart';
 import '../features/messages/screens/chat_screen.dart';
 import '../features/messages/screens/conversations_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/reviews/screens/doctor_reviews_screen.dart';
 import '../widgets/app_scaffold.dart';
 import 'app_theme.dart';
@@ -180,7 +180,11 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
     GoRoute(
       path: '/doctor/notifications',
-      builder: (_, __) => const DoctorNotificationsScreen(),
+      builder: (_, __) => const NotificationsScreen(doctor: true),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (_, __) => const NotificationsScreen(doctor: false),
     ),
     GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
     GoRoute(
@@ -363,6 +367,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/profile/edit-name',
       '/profile/confirm-phone',
       '/messages',
+      '/notifications',
     };
     final doctorPage =
         state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');

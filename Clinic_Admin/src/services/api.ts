@@ -4,9 +4,9 @@ export const ACCESS_TOKEN_KEY = 'clinic_admin_token'
 export const REFRESH_TOKEN_KEY = 'clinic_admin_refresh_token'
 
 const api = axios.create({
-    //baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://192.168.100.7:8082/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://192.168.100.7:8082/api',
 
-    baseURL: import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:7136/api',
+    //baseURL: import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:7136/api',
 
     //baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:81/api',
 
