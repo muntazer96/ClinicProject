@@ -361,21 +361,21 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            //var clientIds = GetGoogleClientIds();
-            //if (clientIds.Count == 0)
-            //{
-            //    _logger.LogError("Google sign-in is not configured. Missing GoogleAuth:ClientIds or GoogleAuth:ClientId.");
-            //    return new ObjectResult(new ResponseDto<string>
-            //    {
-            //        Status = "Error",
-            //        Code = 500,
-            //        Message = "تسجيل الدخول بواسطة Google غير مهيأ على الخادم.",
-            //        Data = null
-            //    })
-            //    {
-            //        StatusCode = 500
-            //    };
-            //}
+            var clientIds = GetGoogleClientIds();
+            if (clientIds.Count == 0)
+            {
+                _logger.LogError("Google sign-in is not configured. Missing GoogleAuth:ClientIds or GoogleAuth:ClientId.");
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "تسجيل الدخول بواسطة Google غير مهيأ على الخادم.",
+                    Data = null
+                })
+                {
+                    StatusCode = 500
+                };
+            }
 
             GoogleJsonWebSignature.Payload payload;
             try
@@ -764,9 +764,6 @@ namespace Clinic_Booking.Services.UserServices
             user.PhoneNumber = phone;
             user.UserName = phone;
             user.NormalizedUserName = phone.ToUpperInvariant();
-            user.Email = null;
-            user.NormalizedEmail = null;
-            user.EmailConfirmed = false;
 
             if (phoneChanged)
             {
@@ -793,6 +790,86 @@ namespace Clinic_Booking.Services.UserServices
                 Data = null
             });
         }
+
+        public async Task<IActionResult> SetMyPhoneNumberAsync(SetPhoneNumberDto form)
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return new UnauthorizedObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 401,
+                    Message = "يرجى تسجيل الدخول."
+                });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "المستخدم غير موجود.",
+                    Data = null
+                });
+            }
+
+            var phone = form.PhoneNumber?.Trim();
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يرجى إدخال رقم الهاتف.",
+                    Data = null
+                });
+            }
+
+            var phoneOwner = await _userManager.FindByNameAsync(phone);
+            if (phoneOwner != null && phoneOwner.Id != user.Id)
+            {
+                return new ConflictObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 409,
+                    Message = "رقم الهاتف مستخدم من حساب آخر.",
+                    Data = null
+                });
+            }
+
+            var phoneChanged = !string.Equals(user.PhoneNumber, phone, StringComparison.OrdinalIgnoreCase);
+            user.PhoneNumber = phone;
+            user.UserName = phone;
+            user.NormalizedUserName = phone.ToUpperInvariant();
+            if (phoneChanged)
+            {
+                user.PhoneNumberConfirmed = false;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = $"فشل تحديث رقم الهاتف: {string.Join(" | ", result.Errors.Select(e => e.Description))}",
+                    Data = null
+                });
+            }
+
+            return new OkObjectResult(new ResponseDto<string>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تحديث رقم الهاتف بنجاح.",
+                Data = null
+            });
+        }
+
         public async Task<IActionResult> SoftDeleteUserAsync(string id)
         {
             try
@@ -1795,6 +1872,22 @@ namespace Clinic_Booking.Services.UserServices
         {
             var baseUrl = _configuration["ClientApp:BaseUrl"] ?? _configuration["JWT:ValidAudience"];
             return string.IsNullOrWhiteSpace(baseUrl) ? null : baseUrl.TrimEnd('/');
+        }
+
+        private IReadOnlyList<string> GetGoogleClientIds()
+        {
+            var configuredClientIds = _configuration
+                .GetSection("GoogleAuth:ClientIds")
+                .Get<string[]>() ?? Array.Empty<string>();
+
+            var singleClientId = _configuration["GoogleAuth:ClientId"];
+
+            return configuredClientIds
+                .Append(singleClientId)
+                .Where(clientId => !string.IsNullOrWhiteSpace(clientId))
+                .Select(clientId => clientId!.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
         }
 
         private async Task<List<Claim>> BuildUserClaimsAsync(AspNetUsers user, IEnumerable<string> userRoles)

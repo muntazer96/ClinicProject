@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/api_client.dart';
 import '../../core/push_notification_service.dart';
@@ -15,6 +18,11 @@ class AuthController extends ChangeNotifier {
   static const _tokenKey = 'clinic_app_token';
   static const _refreshTokenKey = 'clinic_app_refresh_token';
   static const _phoneKey = 'clinic_app_phone';
+  static const _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue:
+        '242254582280-k2v2k9c7jf1fuap5f8qun4e4ncn556fo.apps.googleusercontent.com',
+  );
   final ApiClient api;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   String? _token;
@@ -24,10 +32,18 @@ class AuthController extends ChangeNotifier {
   bool loading = false;
   String? profileError;
   bool _restoring = false;
+  bool _googleInitialized = false;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
 
   bool get isAuthenticated => _token?.isNotEmpty == true;
   bool get isDoctor => _profile?.roleName == 'DoctorUser';
   bool get isRestoring => _restoring;
+  bool get needsPhoneSetup =>
+      isAuthenticated && (_profile?.phoneNumber.trim().isEmpty ?? false);
+  bool get needsPhoneConfirmation =>
+      isAuthenticated &&
+      (_profile?.phoneNumber.trim().isNotEmpty ?? false) &&
+      _profile?.phoneConfirmed != true;
   String? get phoneNumber => _phoneNumber;
   UserProfile? get profile => _profile;
   String get displayName => _profile?.name.isNotEmpty == true
@@ -96,8 +112,98 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> loginWithGoogle() async {
+    if (loading) return;
+    loading = true;
+    profileError = null;
+    notifyListeners();
+    try {
+      final googleSignIn = await ensureGoogleSignInInitialized();
+
+      if (!googleSignIn.supportsAuthenticate()) {
+        throw Exception('تسجيل الدخول بواسطة Google غير مدعوم على هذا الجهاز.');
+      }
+
+      final googleAccount = await googleSignIn.authenticate();
+      final idToken = googleAccount.authentication.idToken;
+      await _completeGoogleLogin(idToken);
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<GoogleSignIn> ensureGoogleSignInInitialized() async {
+    if (_googleServerClientId.isEmpty) {
+      throw Exception(
+        'تسجيل الدخول بواسطة Google غير مهيأ في التطبيق. شغل التطبيق مع GOOGLE_SERVER_CLIENT_ID.',
+      );
+    }
+
+    final googleSignIn = GoogleSignIn.instance;
+    if (!_googleInitialized) {
+      await googleSignIn.initialize(
+        clientId: kIsWeb ? _googleServerClientId : null,
+        serverClientId: kIsWeb ? null : _googleServerClientId,
+      );
+      _googleInitialized = true;
+    }
+
+    if (kIsWeb && _googleAuthSubscription == null) {
+      _googleAuthSubscription = googleSignIn.authenticationEvents.listen(
+        (event) async {
+          if (event is GoogleSignInAuthenticationEventSignIn) {
+            loading = true;
+            profileError = null;
+            notifyListeners();
+            try {
+              await _completeGoogleLogin(event.user.authentication.idToken);
+            } catch (error) {
+              profileError = ApiClient.errorMessage(error);
+            } finally {
+              loading = false;
+              notifyListeners();
+            }
+          }
+        },
+        onError: (Object error) {
+          profileError = ApiClient.errorMessage(error);
+          notifyListeners();
+        },
+      );
+    }
+
+    return googleSignIn;
+  }
+
+  Future<void> _completeGoogleLogin(String? idToken) async {
+    if (idToken == null || idToken.isEmpty) {
+      throw Exception('تعذر الحصول على رمز Google صالح.');
+    }
+
+    final response = await api.dio.post(
+      '/User/google-signin',
+      data: {'idToken': idToken},
+    );
+    final token = response.data['data']?['token'] as String?;
+    final refreshToken = response.data['data']?['refreshToken'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('لم يرجع الخادم رمز دخول صالحاً.');
+    }
+
+    await _storeTokens(token, refreshToken);
+    await _storage.delete(key: _phoneKey);
+    await refreshProfile(silent: true);
+    await _registerPushToken();
+  }
+
   Future<void> logout() async {
     final currentRefreshToken = _refreshToken;
+    if (_googleInitialized) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+    }
     _token = null;
     _refreshToken = null;
     _phoneNumber = null;
@@ -161,5 +267,11 @@ class AuthController extends ChangeNotifier {
     _phoneNumber = profile.phoneNumber;
     _storage.write(key: _phoneKey, value: profile.phoneNumber);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _googleAuthSubscription?.cancel();
+    super.dispose();
   }
 }

@@ -206,6 +206,10 @@ class ApiClient {
       }
       return error.message ?? 'تعذر الاتصال بالخادم.';
     }
+    final message = error.toString().trim();
+    if (message.isNotEmpty && message != 'Exception') {
+      return message.replaceFirst(RegExp(r'^Exception:\s*'), '');
+    }
     return 'تعذر تنفيذ العملية. حاول مرة أخرى.';
   }
 }

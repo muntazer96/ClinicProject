@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/account/change_password_screen.dart';
 import '../features/account/edit_name_screen.dart';
+import '../features/account/phone_setup_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
@@ -350,6 +351,19 @@ GoRouter createRouter(AuthController auth) => GoRouter(
             ),
     ),
     GoRoute(
+      path: '/profile/phone-setup',
+      builder: (_, __) => auth.isDoctor
+          ? const DoctorScaffold(
+              title: 'إضافة رقم الهاتف',
+              showBackButton: false,
+              child: PhoneSetupScreen(),
+            )
+          : const AppScaffold(
+              title: 'إضافة رقم الهاتف',
+              child: PhoneSetupScreen(),
+            ),
+    ),
+    GoRoute(
       path: '/guest-booking',
       builder: (_, __) => const GuestBookingScreen(),
     ),
@@ -366,21 +380,33 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/profile/change-password',
       '/profile/edit-name',
       '/profile/confirm-phone',
+      '/profile/phone-setup',
       '/messages',
       '/notifications',
     };
     final doctorPage =
         state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');
     final phoneConfirmationPage = state.uri.path == '/profile/confirm-phone';
+    final phoneSetupPage = state.uri.path == '/profile/phone-setup';
     if ((protectedPages.contains(state.uri.path) || doctorPage) &&
         !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+    }
+    if (auth.needsPhoneSetup && !phoneSetupPage && !phoneConfirmationPage) {
+      return '/profile/phone-setup';
+    }
+    if (!auth.needsPhoneSetup && phoneSetupPage) {
+      if (auth.needsPhoneConfirmation) {
+        return '/profile/confirm-phone';
+      }
+      return auth.isDoctor ? '/doctor' : '/';
     }
     if (doctorPage && !auth.isDoctor) return '/';
     if (auth.isDoctor &&
         (state.uri.path == '/' ||
             (protectedPages.contains(state.uri.path) &&
-                !phoneConfirmationPage) ||
+                !phoneConfirmationPage &&
+                !phoneSetupPage) ||
             authPages.contains(state.uri.path))) {
       return '/doctor';
     }
@@ -393,9 +419,7 @@ int? _tryParsePathParam(GoRouterState state, String key) =>
     int.tryParse(state.pathParameters[key] ?? '');
 
 class _MissingBookingData extends StatelessWidget {
-  const _MissingBookingData({this.redirectTo = '/search'});
-
-  final String redirectTo;
+  const _MissingBookingData();
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -410,7 +434,7 @@ class _MissingBookingData extends StatelessWidget {
             const SizedBox(height: 10),
             const Text('لا توجد بيانات حجز لعرضها.'),
             TextButton(
-              onPressed: () => context.go(redirectTo),
+              onPressed: () => context.go('/search'),
               child: const Text('عودة'),
             ),
           ],

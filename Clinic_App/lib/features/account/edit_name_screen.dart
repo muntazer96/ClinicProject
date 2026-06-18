@@ -232,7 +232,10 @@ class _ConfirmPhoneScreenState extends State<ConfirmPhoneScreen> {
         _Notice(text: _notice ?? 'تم تأكيد رقم الهاتف بنجاح.'),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: () => context.pop(true),
+          onPressed: () {
+            final auth = context.read<AuthController>();
+            context.go(auth.isDoctor ? '/doctor' : '/');
+          },
           icon: const Icon(Icons.arrow_back_rounded),
           label: const Text('العودة'),
         ),

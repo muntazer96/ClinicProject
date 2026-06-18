@@ -85,6 +85,14 @@ class ProfileService {
     );
   }
 
+  Future<UserProfile> setPhoneNumber(String phoneNumber) async {
+    await _client.dio.put(
+      '/User/me/phone-number',
+      data: {'phoneNumber': phoneNumber.trim()},
+    );
+    return getProfile();
+  }
+
   Future<void> updateProfileImage({
     required String fileName,
     required Uint8List bytes,

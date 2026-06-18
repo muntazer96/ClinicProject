@@ -79,6 +79,13 @@ namespace Clinic_Booking.Controllers
             return await _service.UpdateMyProfileAsync(form);
         }
 
+        [HttpPut("me/phone-number")]
+        [Authorize]
+        public async Task<IActionResult> SetMyPhoneNumberAsync([FromBody] SetPhoneNumberDto form)
+        {
+            return await _service.SetMyPhoneNumberAsync(form);
+        }
+
         [HttpPut("{id}")]
         [Authorize(Roles = AppRoles.SuperAdmin)]
         public async Task<IActionResult> UpdateUserAsync(string id, [FromBody] UserUpdateDto form)

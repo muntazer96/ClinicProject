@@ -13,6 +13,7 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> RevokeRefreshTokenAsync(RefreshTokenDto form);
         Task<IActionResult> GetMyProfileAsync();
         Task<IActionResult> UpdateMyProfileAsync(UserUpdateDto form);
+        Task<IActionResult> SetMyPhoneNumberAsync(SetPhoneNumberDto form);
         Task<IActionResult> SoftDeleteUserAsync(string id);
         Task<IActionResult> ToggleUserLockStatusAsync(string id);
         Task<IActionResult> GetPaginatedUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10);
