@@ -22,7 +22,7 @@ namespace Clinic_Booking.Controllers
 
         [HttpGet("my")]
         [Authorize]
-        public async Task<IActionResult> GetMineAsync()
+        public async Task<IActionResult> GetMineAsync(int page = 1, int pageSize = 20)
         {
             var userId = _load.GetCurrentUserId();
             if (userId == null || userId == Guid.Empty)
@@ -30,13 +30,17 @@ namespace Clinic_Booking.Controllers
                 return Unauthorized("You must sign in to view notifications.");
             }
 
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
             var notifications = await _context.Notifications
                 .Where(notification =>
                     notification.UserId == userId &&
                     notification.DoctorId == null &&
                     !notification.IsDeleted)
                 .OrderByDescending(notification => notification.CreatedAt)
-                .Take(100)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(notification => new
                 {
                     notification.Id,
@@ -99,9 +103,44 @@ namespace Clinic_Booking.Controllers
             return Ok<object>(null, "Notification marked as read.");
         }
 
+        [HttpPost("my/read-all")]
+        [Authorize]
+        public async Task<IActionResult> MarkAllMineAsReadForUserAsync()
+        {
+            var userId = _load.GetCurrentUserId();
+            if (userId == null || userId == Guid.Empty)
+            {
+                return Unauthorized("You must sign in to view notifications.");
+            }
+
+            var now = BusinessClock.Now();
+            var notifications = await _context.Notifications
+                .Where(item =>
+                    item.UserId == userId &&
+                    item.DoctorId == null &&
+                    item.Status == NotificationStatus.Unread &&
+                    !item.IsDeleted)
+                .ToListAsync();
+
+            foreach (var notification in notifications)
+            {
+                notification.Status = NotificationStatus.Read;
+                notification.ReadAt ??= now;
+                notification.ModifiedAt = now;
+                notification.ModifierId = userId;
+            }
+
+            if (notifications.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok<object>(null, "All notifications marked as read.");
+        }
+
         [HttpGet("doctor/my")]
         [Authorize(Roles = AppRoles.DoctorUser)]
-        public async Task<IActionResult> GetMineForDoctorAsync()
+        public async Task<IActionResult> GetMineForDoctorAsync(int page = 1, int pageSize = 20)
         {
             var doctorId = await GetCurrentDoctorIdAsync();
             if (!doctorId.HasValue)
@@ -109,12 +148,16 @@ namespace Clinic_Booking.Controllers
                 return Unauthorized();
             }
 
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 50);
+
             var notifications = await _context.Notifications
                 .Where(notification =>
                     notification.DoctorId == doctorId &&
                     !notification.IsDeleted)
                 .OrderByDescending(notification => notification.CreatedAt)
-                .Take(100)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(notification => new
                 {
                     notification.Id,
@@ -173,6 +216,41 @@ namespace Clinic_Booking.Controllers
             await _context.SaveChangesAsync();
 
             return Ok<object>(null, "Notification marked as read.");
+        }
+
+        [HttpPost("doctor/my/read-all")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> MarkAllMineAsReadForDoctorAsync()
+        {
+            var doctorId = await GetCurrentDoctorIdAsync();
+            if (!doctorId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var userId = _load.GetCurrentUserId();
+            var now = BusinessClock.Now();
+            var notifications = await _context.Notifications
+                .Where(item =>
+                    item.DoctorId == doctorId &&
+                    item.Status == NotificationStatus.Unread &&
+                    !item.IsDeleted)
+                .ToListAsync();
+
+            foreach (var notification in notifications)
+            {
+                notification.Status = NotificationStatus.Read;
+                notification.ReadAt ??= now;
+                notification.ModifiedAt = now;
+                notification.ModifierId = userId;
+            }
+
+            if (notifications.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok<object>(null, "All notifications marked as read.");
         }
 
         private async Task<int?> GetCurrentDoctorIdAsync()

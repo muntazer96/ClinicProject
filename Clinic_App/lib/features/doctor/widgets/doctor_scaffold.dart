@@ -29,7 +29,7 @@ class DoctorScaffold extends StatefulWidget {
 
 class _DoctorScaffoldState extends State<DoctorScaffold> {
   String? _doctorName;
-  bool _canMessage = true;
+  bool? _canMessage;
 
   @override
   void initState() {
@@ -84,7 +84,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
     const premiumColor = AppColors.primary;
 
     return Scaffold(
-      floatingActionButton: isMessagesPage || !_canMessage
+      floatingActionButton: isMessagesPage || _canMessage != true
           ? null
           : _MessageFab(unreadCount: unreadCount),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

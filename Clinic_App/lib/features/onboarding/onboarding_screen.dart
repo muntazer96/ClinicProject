@@ -32,7 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingItem(
       icon: Icons.verified_user_outlined,
       title: 'حساب موثق وآمن',
-      text: 'أكد الهاتف والبريد حتى تقدر تحجز وتدير مواعيدك بثقة.',
+      text: 'أكد رقم الهاتف حتى تقدر تحجز وتدير مواعيدك بثقة.',
     ),
   ];
 

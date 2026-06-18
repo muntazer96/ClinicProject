@@ -24,7 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _savingName = false;
   bool _uploadingImage = false;
-  bool _sendingEmailConfirmation = false;
   bool _sendingPhoneConfirmation = false;
   String? _error;
 
@@ -198,35 +197,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _sendEmailConfirmation() async {
-    final profile = _profile;
-    if (profile == null || profile.email.isEmpty) return;
-    setState(() {
-      _sendingEmailConfirmation = true;
-      _error = null;
-    });
-    try {
-      await _service.sendEmailConfirmation(profile.email);
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          'تم إرسال رابط تأكيد البريد الإلكتروني.',
-          type: AppSnackBarType.success,
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          ApiClient.errorMessage(error),
-          type: AppSnackBarType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _sendingEmailConfirmation = false);
-    }
-  }
-
   Future<void> _sendPhoneConfirmation() async {
     setState(() {
       _sendingPhoneConfirmation = true;
@@ -314,15 +284,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: 'رقم الهاتف',
                   value: profile.phoneNumber,
                 ),
-                _InfoTile(
-                  icon: Icons.email_outlined,
-                  label: 'البريد الإلكتروني',
-                  value: profile.email,
-                ),
               ],
             ),
           ),
-          if (!profile.phoneConfirmed || !profile.emailConfirmed) ...[
+          if (!profile.phoneConfirmed) ...[
             const SizedBox(height: 12),
             _SectionCard(
               title: 'تأكيد الحساب',
@@ -343,22 +308,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                  if (!profile.phoneConfirmed && !profile.emailConfirmed)
-                    const SizedBox(height: 10),
-                  if (!profile.emailConfirmed)
-                    _FullWidthButton(
-                      child: OutlinedButton.icon(
-                        onPressed: _sendingEmailConfirmation
-                            ? null
-                            : _sendEmailConfirmation,
-                        icon: const Icon(Icons.email_outlined),
-                        label: Text(
-                          _sendingEmailConfirmation
-                              ? 'جاري الإرسال...'
-                              : 'تأكيد البريد الإلكتروني',
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -369,7 +318,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.lock_outline,
             child: _FullWidthButton(
               child: FilledButton.icon(
-                onPressed: () => context.go('/profile/change-password'),
+                onPressed: () => context.go(
+                  isDoctor
+                      ? '/doctor/profile/change-password'
+                      : '/profile/change-password',
+                ),
                 icon: const Icon(Icons.lock_reset_rounded),
                 label: const Text('تغيير كلمة المرور'),
               ),
@@ -530,10 +483,6 @@ class _ProfileHero extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _StatusPill(
-              label: profile.emailConfirmed ? 'البريد مؤكد' : 'البريد غير مؤكد',
-              active: profile.emailConfirmed,
-            ),
             _StatusPill(
               label: profile.phoneConfirmed ? 'الهاتف مؤكد' : 'الهاتف غير مؤكد',
               active: profile.phoneConfirmed,

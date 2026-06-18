@@ -114,11 +114,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
     if (_selected == null) return;
 
-    if (auth.isAuthenticated &&
-        auth.profile?.phoneConfirmed != true &&
-        auth.profile?.emailConfirmed != true) {
+    if (auth.isAuthenticated && auth.profile?.phoneConfirmed != true) {
       setState(
-        () => _error = 'يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.',
+        () => _error = 'يجب تأكيد رقم الهاتف قبل الحجز.',
       );
 
       if (mounted) {

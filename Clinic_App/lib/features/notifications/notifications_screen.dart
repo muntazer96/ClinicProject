@@ -24,16 +24,23 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  static const _pageSize = 20;
+
   late final NotificationService _service;
+  final _scrollController = ScrollController();
   StreamSubscription<ForegroundAppNotification>? _hubSub;
   StreamSubscription<ForegroundAppNotification>? _pushSub;
   List<AppNotificationItem> _items = [];
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
+  int _page = 1;
 
   @override
   void initState() {
     super.initState();
     _service = NotificationService(context.read<AuthController>().api);
+    _scrollController.addListener(_onScroll);
     _load();
     final hub = context.read<MessageHubService>();
     _hubSub = hub.onAppNotification.listen((_) => _load(silent: true));
@@ -44,6 +51,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _hubSub?.cancel();
     _pushSub?.cancel();
     super.dispose();
@@ -52,8 +60,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _load({bool silent = false}) async {
     if (!silent && mounted) setState(() => _loading = true);
     try {
-      final items = await _service.getNotifications(doctor: widget.doctor);
-      if (mounted) setState(() => _items = items);
+      final items = await _service.getNotifications(
+        doctor: widget.doctor,
+        page: 1,
+        pageSize: _pageSize,
+      );
+      if (mounted) {
+        setState(() {
+          _items = items;
+          _page = 1;
+          _hasMore = items.length == _pageSize;
+        });
+      }
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     } finally {
@@ -61,11 +79,82 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> _loadMore() async {
+    if (_loading || _loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final nextPage = _page + 1;
+      final items = await _service.getNotifications(
+        doctor: widget.doctor,
+        page: nextPage,
+        pageSize: _pageSize,
+      );
+      if (mounted) {
+        setState(() {
+          _items = [..._items, ...items];
+          _page = nextPage;
+          _hasMore = items.length == _pageSize;
+        });
+      }
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 220) {
+      _loadMore();
+    }
+  }
+
   Future<void> _markRead(AppNotificationItem item) async {
     if (item.isRead) return;
     try {
       await _service.markRead(doctor: widget.doctor, id: item.id);
-      await _load();
+      if (!mounted) return;
+      setState(() {
+        _items = _items
+            .map(
+              (current) => current.id == item.id
+                  ? AppNotificationItem(
+                      id: current.id,
+                      message: current.message,
+                      createdAt: current.createdAt,
+                      status: 1,
+                      readAt: DateTime.now(),
+                    )
+                  : current,
+            )
+            .toList();
+      });
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await _service.markAllRead(doctor: widget.doctor);
+      if (!mounted) return;
+      setState(() {
+        _items = _items
+            .map(
+              (item) => item.isRead
+                  ? item
+                  : AppNotificationItem(
+                      id: item.id,
+                      message: item.message,
+                      createdAt: item.createdAt,
+                      status: 1,
+                      readAt: DateTime.now(),
+                    ),
+            )
+            .toList();
+      });
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     }
@@ -73,6 +162,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount = _items.where((item) => !item.isRead).length;
     final content = RefreshIndicator(
       onRefresh: _load,
       child: _loading
@@ -80,12 +170,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           : _items.isEmpty
               ? const _EmptyNotifications()
               : ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) => _NotificationCard(
-                    item: _items[index],
-                    onTap: () => _markRead(_items[index]),
-                  ),
+                  itemCount: _items.length + 2,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _NotificationsToolbar(
+                        unreadCount: unreadCount,
+                        onMarkAllRead: unreadCount == 0 ? null : _markAllRead,
+                      );
+                    }
+
+                    if (index == _items.length + 1) {
+                      if (_loadingMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 18),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (!_hasMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            'تم عرض كل الإشعارات',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox(height: 18);
+                    }
+
+                    final item = _items[index - 1];
+                    return _NotificationCard(
+                      item: item,
+                      onTap: () => _markRead(item),
+                    );
+                  },
                 ),
     );
 
@@ -95,6 +219,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return AppScaffold(title: 'الإشعارات', showBackButton: true, child: content);
   }
+}
+
+class _NotificationsToolbar extends StatelessWidget {
+  const _NotificationsToolbar({
+    required this.unreadCount,
+    required this.onMarkAllRead,
+  });
+
+  final int unreadCount;
+  final VoidCallback? onMarkAllRead;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                unreadCount == 0
+                    ? 'كل الإشعارات مقروءة'
+                    : '$unreadCount إشعار غير مقروء',
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onMarkAllRead,
+              icon: const Icon(Icons.done_all_rounded, size: 18),
+              label: const Text('قراءة الكل'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _EmptyNotifications extends StatelessWidget {

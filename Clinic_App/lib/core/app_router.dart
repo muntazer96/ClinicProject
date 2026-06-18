@@ -5,7 +5,6 @@ import '../features/account/change_password_screen.dart';
 import '../features/account/edit_name_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/auth/auth_controller.dart';
-import '../features/auth/screens/email_confirm_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/password_reset_screen.dart';
@@ -111,6 +110,15 @@ GoRouter createRouter(AuthController auth) => GoRouter(
         child: EditNameScreen(
           initialName: state.uri.queryParameters['name'] ?? '',
         ),
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/profile/change-password',
+      builder: (_, __) => const DoctorScaffold(
+        title: 'تغيير كلمة المرور',
+        showBackButton: true,
+        backRoute: '/doctor/profile',
+        child: ChangePasswordScreen(),
       ),
     ),
     GoRoute(
@@ -299,16 +307,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     GoRoute(
       path: '/password-reset',
       builder: (_, state) => PasswordResetScreen(
-        userId: state.uri.queryParameters['userId'],
-        token: state.uri.queryParameters['token'],
-      ),
-    ),
-    GoRoute(
-      path: '/email-confirm',
-      builder: (_, state) => EmailConfirmScreen(
-        userId: state.uri.queryParameters['userId'],
-        token: state.uri.queryParameters['token'],
-        identifier: state.uri.queryParameters['identifier'],
+        phoneNumber: state.uri.queryParameters['phoneNumber'],
+        resetToken: state.uri.queryParameters['resetToken'],
       ),
     ),
     GoRoute(path: '/bookings', builder: (_, __) => const MyBookingsScreen()),
@@ -355,7 +355,7 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     ),
   ],
   redirect: (_, state) {
-    final authPages = {'/login', '/register', '/forgot-password'};
+    final authPages = {'/login', '/register', '/forgot-password', '/password-reset'};
     if (state.uri.path == '/splash' || state.uri.path == '/onboarding') {
       return null;
     }

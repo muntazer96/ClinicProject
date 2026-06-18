@@ -478,7 +478,6 @@ namespace Clinic_Booking.Services.DoctorServices
                         Name = d.User.Name,
                         UserName = d.User.UserName,
                         PhoneNumber = d.User.PhoneNumber,
-                        Email = d.User.Email,
                     },
                 })
                 .FirstOrDefaultAsync();
@@ -852,7 +851,6 @@ namespace Clinic_Booking.Services.DoctorServices
                             Name = d.User.Name,
                             UserName = d.User.UserName,
                             PhoneNumber = d.User.PhoneNumber,
-                            Email = d.User.Email,
                         },
                     })
                     .ToListAsync();

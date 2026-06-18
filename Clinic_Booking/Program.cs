@@ -15,7 +15,6 @@ using Clinic_Booking.IServices.IDoctorFeatureServices;
 using Clinic_Booking.IServices.IDoctorOfferServices;
 using Clinic_Booking.IServices.IDoctorServices;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
-using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.IFeatureServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -40,7 +39,6 @@ using Clinic_Booking.Services.DoctorFeatureServices;
 using Clinic_Booking.Services.DoctorOfferServices;
 using Clinic_Booking.Services.DoctorServices;
 using Clinic_Booking.Services.DoctorSubscriptionServices;
-using Clinic_Booking.Services.EmailServices;
 using Clinic_Booking.Services.FeatureServices;
 using Clinic_Booking.Services.LoadServices;
 using Clinic_Booking.Services.MaintenanceServices;
@@ -109,7 +107,6 @@ builder.Services.Configure<AppointmentReminderOptions>(
     builder.Configuration.GetSection(AppointmentReminderOptions.SectionName));
 
 
-builder.Services.AddTransient<IEmailServices, EmailServices>();
 
 
 
@@ -257,7 +254,7 @@ builder.Services.AddSwaggerGen(option =>
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    options.SignIn.RequireConfirmedEmail = true;
+    options.SignIn.RequireConfirmedEmail = false;
     options.Password.RequiredLength = 8;
     options.Password.RequireUppercase = true;
     options.Password.RequireLowercase = true;

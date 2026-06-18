@@ -73,6 +73,29 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> completeLoginFromTokens({
+    required String phoneNumber,
+    required String token,
+    String? refreshToken,
+  }) async {
+    if (token.isEmpty) {
+      throw Exception('لم يرجع الخادم رمز دخول صالحاً.');
+    }
+    loading = true;
+    profileError = null;
+    notifyListeners();
+    try {
+      await _storeTokens(token, refreshToken);
+      _phoneNumber = phoneNumber.trim();
+      await _storage.write(key: _phoneKey, value: _phoneNumber);
+      await refreshProfile(silent: true);
+      await _registerPushToken();
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     final currentRefreshToken = _refreshToken;
     _token = null;

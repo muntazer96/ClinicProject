@@ -10,7 +10,6 @@ import ClinicsView from '../views/ClinicsView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import DoctorDetailsView from '../views/DoctorDetailsView.vue'
 import DoctorsView from '../views/DoctorsView.vue'
-import EmailConfirmView from '../views/EmailConfirmView.vue'
 import ExceptionsView from '../views/ExceptionsView.vue'
 import GuestBookingView from '../views/GuestBookingView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
@@ -28,7 +27,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
-    { path: '/email-confirm', name: 'email-confirm', component: EmailConfirmView },
     { path: '/password-reset', name: 'password-reset', component: PasswordResetView },
     { path: '/directory', name: 'public-directory', component: PublicDirectoryView },
     { path: '/directory/:doctorId', name: 'public-doctor', component: PublicDoctorView },

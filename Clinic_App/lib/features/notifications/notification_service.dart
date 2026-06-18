@@ -34,13 +34,23 @@ class NotificationService {
 
   final ApiClient _client;
 
-  String _prefix(bool doctor) => doctor ? '/Notification/doctor/my' : '/Notification/my';
+  String _prefix(bool doctor) =>
+      doctor ? '/Notification/doctor/my' : '/Notification/my';
 
-  Future<List<AppNotificationItem>> getNotifications({required bool doctor}) async {
-    final response = await _client.dio.get(_prefix(doctor));
+  Future<List<AppNotificationItem>> getNotifications({
+    required bool doctor,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _client.dio.get(
+      _prefix(doctor),
+      queryParameters: {'page': page, 'pageSize': pageSize},
+    );
     final data = response.data['data'] as List? ?? const [];
     return data
-        .map((item) => AppNotificationItem.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) => AppNotificationItem.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -57,5 +67,9 @@ class NotificationService {
 
   Future<void> markRead({required bool doctor, required int id}) async {
     await _client.dio.post('${_prefix(doctor)}/$id/read');
+  }
+
+  Future<void> markAllRead({required bool doctor}) async {
+    await _client.dio.post('${_prefix(doctor)}/read-all');
   }
 }

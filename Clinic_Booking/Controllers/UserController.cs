@@ -116,19 +116,6 @@ namespace Clinic_Booking.Controllers
             return await _service.UploadImgAsync(file);
         }
 
-        [HttpPost("email-confirmation")]
-        [EnableRateLimiting("AccountRecovery")]
-        public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
-        {
-            return await _service.SendEmailConfirmationAsync(identifier);
-        }
-
-        [HttpGet("email-confirm")]
-        public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
-        {
-            return await _service.ConfirmEmailAsync(userId, token);
-        }
-
         [HttpPost("phone-confirmation")]
         [Authorize]
         [EnableRateLimiting("Otp")]
@@ -226,11 +213,18 @@ namespace Clinic_Booking.Controllers
             });
         }
 
-        [HttpPost("password/reset-link")]
-        [EnableRateLimiting("AccountRecovery")]
-        public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
+        [HttpPost("password/forgot/send-otp")]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> SendPasswordResetOtpAsync([FromBody] PasswordResetOtpRequestDto form)
         {
-            return await _service.SendResetPasswordLinkAsync(identifier);
+            return await _service.SendPasswordResetOtpAsync(form);
+        }
+
+        [HttpPost("password/forgot/verify-otp")]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> VerifyPasswordResetOtpAsync([FromBody] PasswordResetOtpVerifyDto form)
+        {
+            return await _service.VerifyPasswordResetOtpAsync(form);
         }
 
         [HttpPost("password/reset")]

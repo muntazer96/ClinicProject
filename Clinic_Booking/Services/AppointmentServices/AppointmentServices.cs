@@ -426,7 +426,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
-        public async Task<IActionResult> GetMyAppointmentsAsync()
+        public async Task<IActionResult> GetMyAppointmentsAsync(DateOnly? fromDate, DateOnly? toDate)
         {
             var userId = GetAuthenticatedUserId();
             if (!userId.HasValue)
@@ -434,8 +434,22 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return LoginRequired();
             }
 
+            var query = _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId);
+
+            if (fromDate.HasValue)
+            {
+                var from = fromDate.Value.ToDateTime(TimeOnly.MinValue);
+                query = query.Where(a => a.AppointmentDate.Date >= from);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to = toDate.Value.ToDateTime(TimeOnly.MinValue);
+                query = query.Where(a => a.AppointmentDate.Date <= to);
+            }
+
             var appointments = await ProjectBookingDetails(
-                    _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId))
+                    query)
                 .OrderByDescending(a => a.AppointmentDate)
                 .ThenBy(a => a.QueueNumber)
                 .Take(100)
@@ -600,20 +614,19 @@ namespace Clinic_Booking.Services.AppointmentServices
                     .Select(user => new
                     {
                         user.PhoneNumber,
-                        user.PhoneNumberConfirmed,
-                        user.EmailConfirmed
+                        user.PhoneNumberConfirmed
                     })
                     .FirstOrDefaultAsync()
                 : null;
 
             if (userId.HasValue &&
-            bookingUser is { PhoneNumberConfirmed: false, EmailConfirmed: false })
+            bookingUser is { PhoneNumberConfirmed: false })
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.",
+                    Message = "يجب تأكيد رقم الهاتف قبل الحجز.",
                     Data = null
                 });
             }
@@ -795,7 +808,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 "حجز جديد",
                 requiresOtp
                     ? "تم إنشاء حجز جديد وينتظر تأكيد رقم الهاتف."
-                    : "تم استلام حجز جديد بتأريخ " + appointmentDate + ".",
+                    : "تم استلام حجز جديد بتأريخ " + FormatAppointmentDate(appointmentDate) + ".",
                 appointment);
 
             if (!requiresOtp)

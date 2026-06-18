@@ -46,9 +46,9 @@ namespace Clinic_Booking.Controllers
         }
         [HttpGet("my")]
         [Authorize]
-        public async Task<IActionResult> GetMyAppointmentsAsync()
+        public async Task<IActionResult> GetMyAppointmentsAsync([FromQuery] DateOnly? fromDate, [FromQuery] DateOnly? toDate)
         {
-            return await _service.GetMyAppointmentsAsync();
+            return await _service.GetMyAppointmentsAsync(fromDate, toDate);
         }
         [HttpGet("my/{appointmentId}")]
         [Authorize]

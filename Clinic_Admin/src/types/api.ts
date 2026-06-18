@@ -18,8 +18,6 @@ export interface UserItem {
   name?: string
   phoneNumber?: string
   phoneNumberConfirmed: boolean
-  email?: string
-  emailConfirmed: boolean
   userName?: string
   imageName?: string
   isLocked: boolean
@@ -63,7 +61,6 @@ export interface DoctorItem {
     name?: string
     userName?: string
     phoneNumber?: string
-    email?: string
   }
 }
 

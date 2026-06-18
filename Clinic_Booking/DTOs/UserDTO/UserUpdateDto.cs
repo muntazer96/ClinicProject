@@ -12,8 +12,5 @@ namespace Clinic_Booking.DTOs.UserDTO
         [StringLength(30)]
         public string PhoneNumber { get; set; }
 
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
     }
 }

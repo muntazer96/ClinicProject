@@ -16,13 +16,12 @@ namespace Clinic_Booking.IServices.IUserServices
         Task<IActionResult> ToggleUserLockStatusAsync(string id);
         Task<IActionResult> GetPaginatedUsersAsync(Guid userGuid, string? search, int page = 1, int pageSize = 10);
         Task<IActionResult> UploadImgAsync(IFormFile file);
-        Task<IActionResult> SendEmailConfirmationAsync(string email);
-        Task<IActionResult> ConfirmEmailAsync(Guid userId, string token);
         Task<IActionResult> SendPhoneConfirmationAsync();
         Task<IActionResult> ConfirmPhoneAsync(ConfirmPhoneDto form);
         Task<IActionResult> RegisterDeviceTokenAsync(DeviceTokenDto form);
         Task<IActionResult> DeleteDeviceTokenAsync(DeviceTokenDto form);
-        Task<IActionResult> SendResetPasswordLinkAsync(string guid);
+        Task<IActionResult> SendPasswordResetOtpAsync(PasswordResetOtpRequestDto form);
+        Task<IActionResult> VerifyPasswordResetOtpAsync(PasswordResetOtpVerifyDto form);
         Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form);
         Task<IActionResult> ChangePasswordAsync(ChangePasswordDto form);
     }

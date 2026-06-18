@@ -19,7 +19,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final firstName = TextEditingController();
   final secondName = TextEditingController();
   final phone = TextEditingController();
-  final email = TextEditingController();
   final password = TextEditingController();
   final confirm = TextEditingController();
 
@@ -32,7 +31,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       firstName.text.trim().isNotEmpty &&
       secondName.text.trim().isNotEmpty &&
       phone.text.trim().isNotEmpty &&
-      email.text.trim().isNotEmpty &&
       password.text.isNotEmpty &&
       confirm.text.isNotEmpty &&
       !loading;
@@ -47,7 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       firstName,
       secondName,
       phone,
-      email,
       password,
       confirm,
     ]) {
@@ -61,7 +58,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       firstName,
       secondName,
       phone,
-      email,
       password,
       confirm,
     ]) {
@@ -78,11 +74,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> submit() async {
     if (!canSubmit) return;
-
-    if (!email.text.contains('@')) {
-      setState(() => error = 'أدخل بريد إلكتروني صحيح.');
-      return;
-    }
 
     if (password.text.length < 6) {
       setState(() => error = 'كلمة المرور يجب أن لا تقل عن ستة أحرف.');
@@ -105,15 +96,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         data: {
           'name': fullName,
           'phoneNumber': phone.text.trim(),
-          'email': email.text.trim(),
           'password': password.text,
         },
       );
 
       if (mounted) {
-        context.go(
-          '/email-confirm?identifier=${Uri.encodeComponent(email.text.trim())}',
-        );
+        context.go('/login');
       }
     } catch (e) {
       if (mounted) setState(() => error = ApiClient.errorMessage(e));
@@ -161,18 +149,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           decoration: const InputDecoration(
             labelText: 'رقم الهاتف',
             prefixIcon: Icon(Icons.phone_outlined),
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        TextField(
-          controller: email,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(
-            labelText: 'البريد الإلكتروني',
-            prefixIcon: Icon(Icons.email_outlined),
           ),
         ),
 

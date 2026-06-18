@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
@@ -30,6 +30,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   bool _loading = true;
   String _filter = 'active';
   String? _error;
+  late DateTime _fromDate;
+  late DateTime _toDate;
 
   List<BookingDetails> get _filteredBookings {
     final sorted = [..._bookings]
@@ -65,6 +67,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
     _reviewService = ReviewService(context.read<AuthController>().api);
+    final now = DateTime.now();
+    _fromDate = DateTime(now.year, now.month, now.day);
+    _toDate = _fromDate.add(const Duration(days: 30));
     _load();
   }
 
@@ -75,7 +80,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     });
 
     try {
-      final bookings = await _service.getMyBookings();
+      final bookings = await _service.getMyBookings(
+        fromDate: _fromDate,
+        toDate: _toDate,
+      );
       if (mounted) setState(() => _bookings = bookings);
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
@@ -143,6 +151,35 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(DateTime.now().year + 2, 12, 31),
+      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      helpText: 'اختيار مدة الحجوزات',
+      cancelText: 'إلغاء',
+      confirmText: 'تطبيق',
+      saveText: 'تطبيق',
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Theme(data: Theme.of(context), child: child!),
+      ),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _fromDate = DateTime(
+        picked.start.year,
+        picked.start.month,
+        picked.start.day,
+      );
+      _toDate = DateTime(picked.end.year, picked.end.month, picked.end.day);
+    });
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredBookings;
@@ -170,6 +207,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               value: _filter,
               onChanged: (value) => setState(() => _filter = value),
             ),
+            const SizedBox(height: 10),
+            _DateRangeFilter(
+              fromDate: _fromDate,
+              toDate: _toDate,
+              onTap: _loading ? null : _pickDateRange,
+            ),
             const SizedBox(height: 14),
             if (_loading)
               const Padding(
@@ -195,6 +238,39 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DateRangeFilter extends StatelessWidget {
+  const _DateRangeFilter({
+    required this.fromDate,
+    required this.toDate,
+    required this.onTap,
+  });
+
+  final DateTime fromDate;
+  final DateTime toDate;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('yyyy/MM/dd');
+
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.date_range_rounded),
+      label: Text(
+        'من ${formatter.format(fromDate)} إلى ${formatter.format(toDate)}',
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerRight,
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.border),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

@@ -6,7 +6,6 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.Entities.UserPhoneOtpRequest;
 using Clinic_Booking.IServices.IBookingSmsServices;
-using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IUserServices;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +14,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Clinic_Booking.Services.ProfanityFilterService;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
 using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
@@ -32,7 +30,6 @@ namespace Clinic_Booking.Services.UserServices
         private readonly RoleManager<AspNetRoles> _roleManager;
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
-        private readonly IEmailServices _emailServices;
         private readonly IBookingSmsServices _bookingSmsServices;
         private readonly ILogger<UserServices> _logger;
         private readonly IWhatsAppMessageServices _whatsAppMessageServices;
@@ -45,7 +42,6 @@ namespace Clinic_Booking.Services.UserServices
             ILoadServices load,
             ApplicationDbContext context,
             IConfiguration configuration,
-            IEmailServices emailServices,
             IBookingSmsServices bookingSmsServices,
             ILogger<UserServices> logger,
             IWhatsAppMessageServices whatsAppMessageServices)
@@ -56,7 +52,6 @@ namespace Clinic_Booking.Services.UserServices
             _roleManager = roleManager;
             _context = context;
             _configuration = configuration;
-            _emailServices = emailServices;
             _bookingSmsServices = bookingSmsServices;
             _logger = logger;
         }
@@ -78,19 +73,6 @@ namespace Clinic_Booking.Services.UserServices
                     });
                 }
 
-                var existingEmail = await _userManager.FindByEmailAsync(form.Email);
-
-                if (existingEmail != null)
-                {
-                    return new ConflictObjectResult(new ResponseDto<object>
-                    {
-                        Status = "Error",
-                        Code = 409,
-                        Message = "البريد الإلكتروني مستخدم مسبقاً.",
-                        Data = null
-                    });
-                }
-
                 if (ProfanityFilterServices.ContainsProfanity(form.Name))
                 {
                     return new BadRequestObjectResult(new ResponseDto<object>
@@ -108,7 +90,9 @@ namespace Clinic_Booking.Services.UserServices
                     UserName = form.PhoneNumber,
                     NormalizedUserName = form.PhoneNumber.ToUpper(),
                     PhoneNumber = form.PhoneNumber,
-                    Email = form.Email,
+                    Email = null,
+                    NormalizedEmail = null,
+                    EmailConfirmed = false,
                     ImageName = "default.png"
                 };
 
@@ -477,8 +461,6 @@ namespace Clinic_Booking.Services.UserServices
                     Name = user.Name,
                     PhoneNumber = user.PhoneNumber,
                     PhoneNumberConfirmed = user.PhoneNumberConfirmed,
-                    Email = user.Email,
-                    EmailConfirmed = user.EmailConfirmed,
                     UserName = user.UserName,
                     ImageName = user.ImageName,
                     IsLocked = user.IsLocked,
@@ -532,8 +514,6 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             var phone = form.PhoneNumber.Trim();
-            var email = form.Email.Trim();
-
             var phoneOwner = await _userManager.FindByNameAsync(phone);
             if (phoneOwner != null && phoneOwner.Id != user.Id)
             {
@@ -546,20 +526,7 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var emailOwner = await _userManager.FindByEmailAsync(email);
-            if (emailOwner != null && emailOwner.Id != user.Id)
-            {
-                return new ConflictObjectResult(new ResponseDto<string>
-                {
-                    Status = "Error",
-                    Code = 409,
-                    Message = "البريد الإلكتروني مستخدم من حساب آخر.",
-                    Data = null
-                });
-            }
-
             var phoneChanged = !string.Equals(user.PhoneNumber, phone, StringComparison.OrdinalIgnoreCase);
-            var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
 
             var updatedName = form.Name.Trim();
             if (ProfanityFilterServices.ContainsProfanity(updatedName))
@@ -577,17 +544,13 @@ namespace Clinic_Booking.Services.UserServices
             user.PhoneNumber = phone;
             user.UserName = phone;
             user.NormalizedUserName = phone.ToUpperInvariant();
-            user.Email = email;
-            user.NormalizedEmail = email.ToUpperInvariant();
+            user.Email = null;
+            user.NormalizedEmail = null;
+            user.EmailConfirmed = false;
 
             if (phoneChanged)
             {
                 user.PhoneNumberConfirmed = false;
-            }
-
-            if (emailChanged)
-            {
-                user.EmailConfirmed = false;
             }
 
             var result = await _userManager.UpdateAsync(user);
@@ -762,8 +725,7 @@ namespace Clinic_Booking.Services.UserServices
                 query = query.Where(u =>
                     (u.Name != null && u.Name.Contains(term)) ||
                     (u.UserName != null && u.UserName.Contains(term)) ||
-                    (u.PhoneNumber != null && u.PhoneNumber.Contains(term)) ||
-                    (u.Email != null && u.Email.Contains(term)));
+                    (u.PhoneNumber != null && u.PhoneNumber.Contains(term)));
             }
 
             var totalItems = await query.CountAsync();
@@ -818,8 +780,6 @@ namespace Clinic_Booking.Services.UserServices
                     Name = user.Name,
                     PhoneNumber = user.PhoneNumber,
                     PhoneNumberConfirmed = user.PhoneNumberConfirmed,
-                    Email = user.Email,
-                    EmailConfirmed = user.EmailConfirmed,
                     UserName = user.UserName,
                     ImageName = user.ImageName,
                     IsLocked = user.IsLocked,
@@ -973,76 +933,6 @@ namespace Clinic_Booking.Services.UserServices
                     StatusCode = 500
                 };
             }
-        }
-        public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
-        {
-            var user = await FindUserAsync(identifier);
-            if (user == null)
-            {
-                return new NotFoundObjectResult(new ResponseDto<string>
-                {
-                    Status = "Error",
-                    Code = 404,
-                    Message = "المستخدم غير موجود."
-                });
-            }
-
-            var clientBaseUrl = GetClientAppBaseUrl();
-            if (string.IsNullOrWhiteSpace(clientBaseUrl))
-            {
-                return new ObjectResult(new ResponseDto<string>
-                {
-                    Status = "Error",
-                    Code = 500,
-                    Message = "تعذر إنشاء رابط تأكيد البريد الإلكتروني."
-                })
-                {
-                    StatusCode = 500
-                };
-            }
-
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = $"{clientBaseUrl}/email-confirm?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-
-            await _emailServices.SendAsync(user.Email, "تأكيد البريد الإلكتروني", _load.SandEmailHTMLTemplate(confirmationLink));
-
-            return new OkObjectResult(new ResponseDto<string>
-            {
-                Status = "Success",
-                Code = 200,
-                Message = "تم إرسال رابط التفعيل إلى بريدك الإلكتروني."
-            });
-        }
-        public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
-        {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
-            if (user == null)
-            {
-                return new NotFoundObjectResult(new ResponseDto<string>
-                {
-                    Status = "Error",
-                    Code = 404,
-                    Message = "المستخدم غير موجود"
-                });
-            }
-
-            var result = await _userManager.ConfirmEmailAsync(user, token);
-            if (result.Succeeded)
-            {
-                return new OkObjectResult(new ResponseDto<string>
-                {
-                    Status = "Success",
-                    Code = 200,
-                    Message = "تم تأكيد البريد الإلكتروني بنجاح"
-                });
-            }
-
-            return new BadRequestObjectResult(new ResponseDto<string>
-            {
-                Status = "Error",
-                Code = 400,
-                Message = "فشل تأكيد البريد الإلكتروني، الرابط غير صالح أو منتهي"
-            });
         }
         public async Task<IActionResult> SendPhoneConfirmationAsync()
         {
@@ -1372,48 +1262,22 @@ namespace Clinic_Booking.Services.UserServices
             });
         }
 
-        public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
+        public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form)
         {
-            var user = await FindUserAsync(identifier);
-            if (user == null || user.IsDeleted)
+            var phoneNumber = form.PhoneNumber?.Trim();
+            var resetToken = form.ResetToken?.Trim();
+            if (string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(resetToken))
             {
-                return new NotFoundObjectResult(new ResponseDto<string>
+                return new BadRequestObjectResult(new ResponseDto<string>
                 {
                     Status = "Error",
-                    Code = 404,
-                    Message = "هذا البريد غير مسجل لدينا."
+                    Code = 400,
+                    Message = "يرجى إدخال رقم الهاتف ورمز إعادة التعيين."
                 });
             }
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var clientBaseUrl = GetClientAppBaseUrl();
-            if (string.IsNullOrWhiteSpace(clientBaseUrl))
-            {
-                return new ObjectResult(new ResponseDto<string>
-                {
-                    Status = "Error",
-                    Code = 500,
-                    Message = "تعذر إنشاء رابط إعادة تعيين كلمة المرور."
-                })
-                {
-                    StatusCode = 500
-                };
-            }
-
-            var resetLink = $"{clientBaseUrl}/password-reset?userId={user.Id}&token={WebUtility.UrlEncode(token)}";
-
-            await _emailServices.SendAsync(user.Email, "إعادة تعيين كلمة المرور", _load.ResetPasswordHTMLTemplate(resetLink));
-
-            return new OkObjectResult(new ResponseDto<string>
-            {
-                Status = "Success",
-                Code = 200,
-                Message = "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني."
-            });
-        }
-        public async Task<IActionResult> ResetPasswordAsync(ResetPasswordDto form)
-        {
-            var user = await _userManager.FindByIdAsync(form.UserId.ToString());
+            var user = await _userManager.Users
+                .FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
             if (user == null || user.IsDeleted)
             {
                 return new NotFoundObjectResult(new ResponseDto<string>
@@ -1424,7 +1288,7 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
-            var result = await _userManager.ResetPasswordAsync(user, form.Token, form.NewPassword);
+            var result = await _userManager.ResetPasswordAsync(user, resetToken, form.NewPassword);
 
             if (!result.Succeeded)
             {
@@ -1441,11 +1305,207 @@ namespace Clinic_Booking.Services.UserServices
                 });
             }
 
+            await _userManager.ResetAccessFailedCountAsync(user);
+            await _userManager.SetLockoutEndDateAsync(user, null);
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var authClaims = await BuildUserClaimsAsync(user, userRoles);
+            var token = GetToken(authClaims);
+            var refreshToken = CreateRefreshToken(user.Id);
+
+            _context.RefreshTokens.Add(refreshToken.Entity);
+            user.LastLoginDate = BusinessClock.Now();
+            await _userManager.UpdateAsync(user);
+            await _context.SaveChangesAsync();
+
+            return new OkObjectResult(new ResponseDto<AuthTokenDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم تغيير كلمة المرور وتسجيل الدخول بنجاح.",
+                Data = BuildAuthTokenDto(
+                    token,
+                    refreshToken.RawToken,
+                    refreshToken.Entity.ExpiresAt
+                )
+            });
+        }
+
+        public async Task<IActionResult> SendPasswordResetOtpAsync(PasswordResetOtpRequestDto form)
+        {
+            var phoneNumber = form.PhoneNumber?.Trim();
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يرجى إدخال رقم الهاتف."
+                });
+            }
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "رقم الهاتف غير مسجل لدينا."
+                });
+            }
+
+            var now = BusinessClock.Now();
+            var lastRequest = await _context.UserPhoneOtpRequests
+                .Where(request => request.UserId == user.Id && request.PhoneNumber == phoneNumber)
+                .OrderByDescending(request => request.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (lastRequest != null)
+            {
+                var resendAvailableAt = lastRequest.SentAt.AddMinutes(2);
+                if (resendAvailableAt > now)
+                {
+                    var remainingSeconds = (int)Math.Ceiling((resendAvailableAt - now).TotalSeconds);
+                    return new ObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 429,
+                        Message = $"يمكنك طلب رمز جديد بعد {remainingSeconds} ثانية.",
+                        Data = new { RemainingSeconds = remainingSeconds }
+                    })
+                    {
+                        StatusCode = StatusCodes.Status429TooManyRequests
+                    };
+                }
+            }
+
+            var oldRequests = await _context.UserPhoneOtpRequests
+                .Where(request => request.UserId == user.Id && !request.IsUsed)
+                .ToListAsync();
+
+            foreach (var request in oldRequests)
+            {
+                request.IsUsed = true;
+                request.ModifiedAt = now;
+                request.ModifierId = user.Id;
+            }
+
+            var otpCode = GenerateNumericOtp(6);
+            var codeSalt = GenerateOtpSalt();
+
+            _context.UserPhoneOtpRequests.Add(new UserPhoneOtpRequest
+            {
+                UserId = user.Id,
+                PhoneNumber = phoneNumber,
+                CodeHash = HashOtpCode(otpCode, codeSalt),
+                CodeSalt = codeSalt,
+                SentAt = now,
+                ExpiresAt = now.AddMinutes(10),
+                CreatorId = user.Id
+            });
+
+            await _context.SaveChangesAsync();
+            await _bookingSmsServices.SendBookingOtpAsync(phoneNumber, otpCode);
+
             return new OkObjectResult(new ResponseDto<string>
             {
                 Status = "Success",
                 Code = 200,
-                Message = "تم تغيير كلمة المرور بنجاح."
+                Message = "تم إرسال رمز التحقق إلى رقم الهاتف."
+            });
+        }
+
+        public async Task<IActionResult> VerifyPasswordResetOtpAsync(PasswordResetOtpVerifyDto form)
+        {
+            var phoneNumber = form.PhoneNumber?.Trim();
+            var otpCode = form.OtpCode?.Trim();
+            if (string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(otpCode))
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "يرجى إدخال رقم الهاتف ورمز التحقق."
+                });
+            }
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
+            if (user == null || user.IsDeleted)
+            {
+                return new NotFoundObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "رقم الهاتف غير مسجل لدينا."
+                });
+            }
+
+            var request = await _context.UserPhoneOtpRequests
+                .Where(item =>
+                    item.UserId == user.Id &&
+                    item.PhoneNumber == phoneNumber &&
+                    !item.IsUsed)
+                .OrderByDescending(item => item.SentAt)
+                .FirstOrDefaultAsync();
+
+            if (request == null || request.ExpiresAt < BusinessClock.Now())
+            {
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز التحقق غير صالح أو منتهي."
+                });
+            }
+
+            if (request.AttemptCount >= 5)
+            {
+                request.IsUsed = true;
+                request.ModifiedAt = BusinessClock.Now();
+                request.ModifierId = user.Id;
+                await _context.SaveChangesAsync();
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "تم تجاوز عدد المحاولات. اطلب رمزاً جديداً."
+                });
+            }
+
+            request.AttemptCount++;
+            if (!string.Equals(request.CodeHash, HashOtpCode(otpCode, request.CodeSalt), StringComparison.OrdinalIgnoreCase))
+            {
+                request.ModifiedAt = BusinessClock.Now();
+                request.ModifierId = user.Id;
+                await _context.SaveChangesAsync();
+
+                return new BadRequestObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "رمز التحقق غير صحيح."
+                });
+            }
+
+            request.IsUsed = true;
+            request.VerifiedAt = BusinessClock.Now();
+            request.ModifiedAt = BusinessClock.Now();
+            request.ModifierId = user.Id;
+            await _context.SaveChangesAsync();
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return new OkObjectResult(new ResponseDto<PasswordResetOtpResultDto>
+            {
+                Status = "Success",
+                Code = 200,
+                Message = "تم التحقق من الرمز بنجاح.",
+                Data = new PasswordResetOtpResultDto
+                {
+                    PhoneNumber = phoneNumber,
+                    ResetToken = resetToken
+                }
             });
         }
         public async Task<IActionResult> ChangePasswordAsync(ChangePasswordDto form)
@@ -1508,8 +1568,7 @@ namespace Clinic_Booking.Services.UserServices
                 return await _userManager.FindByIdAsync(userId.ToString());
             }
 
-            return await _userManager.FindByEmailAsync(value)
-                ?? await _userManager.FindByNameAsync(value);
+            return await _userManager.FindByNameAsync(value);
         }
 
         private string? GetClientAppBaseUrl()
