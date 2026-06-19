@@ -17,6 +17,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.Authorization;
 using Google.Apis.Auth;
@@ -25,6 +26,9 @@ namespace Clinic_Booking.Services.UserServices
 {
     public class UserServices : IUserServices
     {
+        private const string IraqiPhonePattern = @"^07\d{9}$";
+        private const string IraqiPhoneValidationMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.";
+
         private readonly ILoadServices _load;
         private readonly UserManager<AspNetUsers> _userManager;
         private readonly SignInManager<AspNetUsers> _signInManager;
@@ -61,8 +65,14 @@ namespace Clinic_Booking.Services.UserServices
         {
             try
             {
+                var phoneNumber = form.PhoneNumber?.Trim();
+                if (!IsValidIraqiPhone(phoneNumber))
+                {
+                    return InvalidPhoneNumber();
+                }
+
                 var existingPhone = await _userManager.Users
-                    .FirstOrDefaultAsync(x => x.PhoneNumber == form.PhoneNumber);
+                    .FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber);
 
                 if (existingPhone != null)
                 {
@@ -89,9 +99,9 @@ namespace Clinic_Booking.Services.UserServices
                 var user = new AspNetUsers
                 {
                     Name = form.Name,
-                    UserName = form.PhoneNumber,
-                    NormalizedUserName = form.PhoneNumber.ToUpper(),
-                    PhoneNumber = form.PhoneNumber,
+                    UserName = phoneNumber,
+                    NormalizedUserName = phoneNumber.ToUpper(),
+                    PhoneNumber = phoneNumber,
                     Email = null,
                     NormalizedEmail = null,
                     EmailConfirmed = false,
@@ -196,6 +206,10 @@ namespace Clinic_Booking.Services.UserServices
                         Message = "يرجى إدخال رقم الهاتف وكلمة المرور.",
                         Data = null
                     });
+                }
+                if (!IsValidIraqiPhone(phoneNumber))
+                {
+                    return InvalidPhoneNumber();
                 }
 
                 var user = await _userManager.FindByNameAsync(phoneNumber);
@@ -734,6 +748,11 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             var phone = form.PhoneNumber.Trim();
+            if (!IsValidIraqiPhone(phone))
+            {
+                return InvalidPhoneNumber();
+            }
+
             var phoneOwner = await _userManager.FindByNameAsync(phone);
             if (phoneOwner != null && phoneOwner.Id != user.Id)
             {
@@ -826,6 +845,10 @@ namespace Clinic_Booking.Services.UserServices
                     Message = "يرجى إدخال رقم الهاتف.",
                     Data = null
                 });
+            }
+            if (!IsValidIraqiPhone(phone))
+            {
+                return InvalidPhoneNumber();
             }
 
             var phoneOwner = await _userManager.FindByNameAsync(phone);
@@ -1572,6 +1595,10 @@ namespace Clinic_Booking.Services.UserServices
                     Message = "يرجى إدخال رقم الهاتف ورمز إعادة التعيين."
                 });
             }
+            if (!IsValidIraqiPhone(phoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             var user = await _userManager.Users
                 .FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
@@ -1639,6 +1666,10 @@ namespace Clinic_Booking.Services.UserServices
                     Code = 400,
                     Message = "يرجى إدخال رقم الهاتف."
                 });
+            }
+            if (!IsValidIraqiPhone(phoneNumber))
+            {
+                return InvalidPhoneNumber();
             }
 
             var user = await _userManager.Users.FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
@@ -1725,6 +1756,10 @@ namespace Clinic_Booking.Services.UserServices
                     Code = 400,
                     Message = "يرجى إدخال رقم الهاتف ورمز التحقق."
                 });
+            }
+            if (!IsValidIraqiPhone(phoneNumber))
+            {
+                return InvalidPhoneNumber();
             }
 
             var user = await _userManager.Users.FirstOrDefaultAsync(item => item.PhoneNumber == phoneNumber);
@@ -1866,6 +1901,23 @@ namespace Clinic_Booking.Services.UserServices
             }
 
             return await _userManager.FindByNameAsync(value);
+        }
+
+        private static bool IsValidIraqiPhone(string? phoneNumber)
+        {
+            return !string.IsNullOrWhiteSpace(phoneNumber) &&
+                Regex.IsMatch(phoneNumber.Trim(), IraqiPhonePattern);
+        }
+
+        private static BadRequestObjectResult InvalidPhoneNumber()
+        {
+            return new BadRequestObjectResult(new ResponseDto<string>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = IraqiPhoneValidationMessage,
+                Data = null
+            });
         }
 
         private string? GetClientAppBaseUrl()

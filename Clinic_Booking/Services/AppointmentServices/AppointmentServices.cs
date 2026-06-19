@@ -22,11 +22,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Clinic_Booking.Services.AppointmentServices
 {
     public class AppointmentServices : IAppointmentServices
     {
+        private const string IraqiPhonePattern = @"^07\d{9}$";
+        private const string IraqiPhoneValidationMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.";
+
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IBookingSmsServices _bookingSmsServices;
@@ -396,6 +400,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Data = null
                 });
             }
+            if (!IsValidIraqiPhone(normalizedPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             var appointment = await ProjectBookingDetails(
                 _context.Appointments
@@ -635,8 +643,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ? bookingUser?.PhoneNumber
                 : form.GuestPhoneNumber?.Trim();
 
-            var requiresOtp = _bookingOtpOptions.Enabled &&
-                (!userId.HasValue || bookingUser?.PhoneNumberConfirmed != true);
+            var requiresOtp = !userId.HasValue ||
+                (_bookingOtpOptions.Enabled && bookingUser?.PhoneNumberConfirmed != true);
 
             if (requiresOtp && string.IsNullOrWhiteSpace(bookingPhoneNumber))
             {
@@ -710,6 +718,10 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var guestPhoneNumber = form.GuestPhoneNumber?.Trim();
+            if (!userId.HasValue && !IsValidIraqiPhone(guestPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             var hasDuplicate = userId.HasValue
                 ? await _context.Appointments.AnyAsync(a =>
@@ -876,6 +888,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Data = null
                 });
             }
+            if (!IsValidIraqiPhone(patientPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             if (ProfanityFilterServices.ContainsProfanity(patientName) ||
                 ProfanityFilterServices.ContainsProfanity(manualNotes))
@@ -1030,6 +1046,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
         {
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
+
             var appointment = await GetOtpAppointmentAsync(form.PhoneNumber, form.BookingCode);
             if (appointment == null)
             {
@@ -1104,6 +1125,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
         {
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
+
             if (string.IsNullOrWhiteSpace(form.OtpCode))
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -1218,6 +1244,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Message = "Phone number and booking code are required.",
                     Data = null
                 });
+            }
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
             }
 
             var appointment = await _context.Appointments.FirstOrDefaultAsync(a =>
@@ -1988,6 +2018,23 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Status = "Error",
                 Code = 401,
                 Message = "Login is required.",
+                Data = null
+            });
+        }
+
+        private static bool IsValidIraqiPhone(string? phoneNumber)
+        {
+            return !string.IsNullOrWhiteSpace(phoneNumber) &&
+                Regex.IsMatch(phoneNumber.Trim(), IraqiPhonePattern);
+        }
+
+        private static BadRequestObjectResult InvalidPhoneNumber()
+        {
+            return new BadRequestObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = IraqiPhoneValidationMessage,
                 Data = null
             });
         }

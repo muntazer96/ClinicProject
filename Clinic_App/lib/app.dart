@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'core/app_router.dart';
 import 'core/app_theme.dart';
+import 'core/theme_controller.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/messages/message_hub_service.dart';
 import 'features/messages/widgets/in_app_message_notification_listener.dart';
@@ -21,6 +22,7 @@ class _ClinicAppState extends State<ClinicApp> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.watch<ThemeController>();
     return MaterialApp.router(
       title: 'عيادتي',
       debugShowCheckedModeBanner: false,
@@ -30,24 +32,31 @@ class _ClinicAppState extends State<ClinicApp> {
         ErrorWidget.builder = (details) => Directionality(
           textDirection: TextDirection.rtl,
           child: Material(
-            color: Colors.white,
+            color: Theme.of(context).scaffoldBackgroundColor,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppColors.danger,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'حدث خطأ غير متوقع',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       details.exceptionAsString(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                      style: TextStyle(color: context.appMuted, fontSize: 13),
                     ),
                   ],
                 ),
@@ -68,7 +77,9 @@ class _ClinicAppState extends State<ClinicApp> {
               },
               onOpenBookingNotification: () {
                 final auth = context.read<AuthController>();
-                router.push(auth.isDoctor ? '/doctor/appointments' : '/bookings');
+                router.push(
+                  auth.isDoctor ? '/doctor/appointments' : '/bookings',
+                );
               },
               child: OfflineGate(
                 child: AppVersionGate(child: child ?? const SizedBox.shrink()),
@@ -78,6 +89,8 @@ class _ClinicAppState extends State<ClinicApp> {
         );
       },
       theme: buildAppTheme(),
+      darkTheme: buildAppTheme(brightness: Brightness.dark),
+      themeMode: theme.mode,
     );
   }
 }

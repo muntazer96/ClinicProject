@@ -49,30 +49,33 @@ class _DoctorClinicsScreenState extends State<DoctorClinicsScreen> {
     child: Stack(
       children: [
         RefreshIndicator(
-            onRefresh: _load,
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
-                ? const DoctorEmptyState(
-                    icon: Icons.local_hospital_outlined,
-                    message: 'لا توجد عيادات مرتبطة بحساب الطبيب.',
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 86),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) => _ClinicCard(
-                      clinic: _items[index],
-                      onEdit: () async {
-                        await context.push('/doctor/clinics/form', extra: _items[index]);
-                        await _load();
-                      },
-                      onSchedule: () => context.push(
-                        '/doctor/clinics/${_items[index].id}/schedule',
+          onRefresh: _load,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _items.isEmpty
+              ? const DoctorEmptyState(
+                  icon: Icons.local_hospital_outlined,
+                  message: 'لا توجد عيادات مرتبطة بحساب الطبيب.',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 86),
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) => _ClinicCard(
+                    clinic: _items[index],
+                    onEdit: () async {
+                      await context.push(
+                        '/doctor/clinics/form',
                         extra: _items[index],
-                      ),
-                      onDelete: () => _delete(_items[index]),
+                      );
+                      await _load();
+                    },
+                    onSchedule: () => context.push(
+                      '/doctor/clinics/${_items[index].id}/schedule',
+                      extra: _items[index],
                     ),
+                    onDelete: () => _delete(_items[index]),
                   ),
+                ),
         ),
         PositionedDirectional(
           start: 18,
@@ -109,17 +112,19 @@ class _ClinicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleColor = clinic.isVisible ? AppColors.primary : AppColors.muted;
+    final visibleColor = clinic.isVisible
+        ? AppColors.primary
+        : context.appMuted;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.035),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .035),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -136,7 +141,7 @@ class _ClinicCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF7F5),
+                    color: context.appSoftBlue,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -168,7 +173,7 @@ class _ClinicCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12.5,
                           height: 1.4,
-                          color: Colors.grey.shade700,
+                          color: context.appMuted,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -247,7 +252,7 @@ class _ClinicCard extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: Color(0xFFDDE9E7)),
+                      side: BorderSide(color: context.appBorder),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13),
@@ -268,7 +273,9 @@ class _ClinicCard extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.danger,
-                      side: BorderSide(color: AppColors.danger.withOpacity(.22)),
+                      side: BorderSide(
+                        color: AppColors.danger.withOpacity(.22),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13),
@@ -301,9 +308,9 @@ class _ClinicInfoBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -315,7 +322,7 @@ class _ClinicInfoBox extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: context.appMuted),
                 ),
                 const SizedBox(height: 3),
                 Text(

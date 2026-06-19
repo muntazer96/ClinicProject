@@ -128,163 +128,157 @@ class _DoctorOfferFormPageState extends State<DoctorOfferFormPage> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: _editing ? 'تعديل عرض' : 'إضافة عرض',
-        showBackButton: true,
-        backRoute: '/doctor/offers',
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+    title: _editing ? 'تعديل عرض' : 'إضافة عرض',
+    showBackButton: true,
+    backRoute: '/doctor/offers',
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        _HeroOfferCard(active: _active, editing: _editing),
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'معلومات العرض',
+          icon: Icons.local_offer_rounded,
           children: [
-            _HeroOfferCard(active: _active, editing: _editing),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'معلومات العرض',
-              icon: Icons.local_offer_rounded,
-              children: [
-                _AppTextField(
-                  controller: _title,
-                  label: 'عنوان العرض',
-                  icon: Icons.title_rounded,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _description,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'وصف العرض',
-                    prefixIcon: Icon(Icons.description_outlined),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-              ],
+            _AppTextField(
+              controller: _title,
+              label: 'عنوان العرض',
+              icon: Icons.title_rounded,
             ),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'تفاصيل السعر',
-              icon: Icons.payments_rounded,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _AppTextField(
-                        controller: _originalPrice,
-                        label: 'السعر الأصلي',
-                        icon: Icons.payments_outlined,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _AppTextField(
-                        controller: _discount,
-                        label: 'نسبة الخصم',
-                        icon: Icons.percent_rounded,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _AppTextField(
-                  controller: _offerPrice,
-                  label: 'سعر العرض - اختياري',
-                  icon: Icons.sell_outlined,
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'مدة العرض',
-              icon: Icons.date_range_rounded,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DateBox(
-                        title: 'بداية العرض',
-                        date: _startsAt!,
-                        icon: Icons.play_circle_outline_rounded,
-                        onTap: () => _pickDate(true),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _DateBox(
-                        title: 'نهاية العرض',
-                        date: _endsAt!,
-                        icon: Icons.stop_circle_outlined,
-                        onTap: () => _pickDate(false),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'حالة العرض',
-              icon: Icons.tune_rounded,
-              children: [
-                _ActiveSwitchCard(
-                  value: _active,
-                  onChanged: (value) => setState(() => _active = value),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 18),
-
-            SizedBox(
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(
-                  _saving ? 'جاري الحفظ...' : 'حفظ العرض',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(.55),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _description,
+              minLines: 3,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                labelText: 'وصف العرض',
+                prefixIcon: Icon(Icons.description_outlined),
+                alignLabelWithHint: true,
               ),
             ),
           ],
         ),
-      );
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'تفاصيل السعر',
+          icon: Icons.payments_rounded,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _AppTextField(
+                    controller: _originalPrice,
+                    label: 'السعر الأصلي',
+                    icon: Icons.payments_outlined,
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _AppTextField(
+                    controller: _discount,
+                    label: 'نسبة الخصم',
+                    icon: Icons.percent_rounded,
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _AppTextField(
+              controller: _offerPrice,
+              label: 'سعر العرض - اختياري',
+              icon: Icons.sell_outlined,
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'مدة العرض',
+          icon: Icons.date_range_rounded,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _DateBox(
+                    title: 'بداية العرض',
+                    date: _startsAt!,
+                    icon: Icons.play_circle_outline_rounded,
+                    onTap: () => _pickDate(true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _DateBox(
+                    title: 'نهاية العرض',
+                    date: _endsAt!,
+                    icon: Icons.stop_circle_outlined,
+                    onTap: () => _pickDate(false),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'حالة العرض',
+          icon: Icons.tune_rounded,
+          children: [
+            _ActiveSwitchCard(
+              value: _active,
+              onChanged: (value) => setState(() => _active = value),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        SizedBox(
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(
+              _saving ? 'جاري الحفظ...' : 'حفظ العرض',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withOpacity(.55),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _HeroOfferCard extends StatelessWidget {
-  const _HeroOfferCard({
-    required this.active,
-    required this.editing,
-  });
+  const _HeroOfferCard({required this.active, required this.editing});
 
   final bool active;
   final bool editing;
@@ -305,8 +299,9 @@ class _HeroOfferCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: (active ? AppColors.primary : AppColors.muted)
-                .withOpacity(.18),
+            color: (active ? AppColors.primary : AppColors.muted).withOpacity(
+              .18,
+            ),
             blurRadius: 18,
             offset: const Offset(0, 9),
           ),
@@ -363,12 +358,12 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -416,10 +411,7 @@ class _AppTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-      ),
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
     );
   }
 }
@@ -440,7 +432,7 @@ class _DateBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF7FAFA),
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -449,7 +441,7 @@ class _DateBox extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE3ECEA)),
+            border: Border.all(color: context.appBorder),
           ),
           child: Column(
             children: [
@@ -459,7 +451,7 @@ class _DateBox extends StatelessWidget {
                 title,
                 style: TextStyle(
                   fontSize: 11.5,
-                  color: Colors.grey.shade600,
+                  color: context.appMuted,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -481,10 +473,7 @@ class _DateBox extends StatelessWidget {
 }
 
 class _ActiveSwitchCard extends StatelessWidget {
-  const _ActiveSwitchCard({
-    required this.value,
-    required this.onChanged,
-  });
+  const _ActiveSwitchCard({required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -519,11 +508,7 @@ class _ActiveSwitchCard extends StatelessWidget {
               ),
             ),
           ),
-          Switch(
-            value: value,
-            activeColor: color,
-            onChanged: onChanged,
-          ),
+          Switch(value: value, activeColor: color, onChanged: onChanged),
         ],
       ),
     );

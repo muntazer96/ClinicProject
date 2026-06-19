@@ -54,6 +54,8 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final surface = context.appSurface;
+    final muted = context.appMuted;
     final auth = context.watch<AuthController>();
     final path = GoRouterState.of(context).uri.path;
     final selectedIndex =
@@ -129,9 +131,8 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11,
-                      color: AppColors.muted,
                       fontWeight: FontWeight.w700,
-                    ),
+                    ).copyWith(color: muted),
                   ),
                 ],
               ),
@@ -145,11 +146,13 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
       ),
       body: widget.child,
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: surface,
           boxShadow: [
             BoxShadow(
-              color: Color(0x121D4A44),
+              color: context.isDark
+                  ? Colors.black.withValues(alpha: .30)
+                  : const Color(0x121D4A44),
               blurRadius: 22,
               offset: Offset(0, -7),
             ),
@@ -221,9 +224,10 @@ class _MessageFabState extends State<_MessageFab>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    _scale = Tween<double>(begin: 1, end: 1.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -245,10 +249,8 @@ class _MessageFabState extends State<_MessageFab>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _scale,
-      builder: (context, child) => Transform.scale(
-        scale: _scale.value,
-        child: child,
-      ),
+      builder: (context, child) =>
+          Transform.scale(scale: _scale.value, child: child),
       child: FloatingActionButton(
         heroTag: 'message_fab',
         backgroundColor: AppColors.primary,
@@ -260,9 +262,7 @@ class _MessageFabState extends State<_MessageFab>
           isLabelVisible: widget.unreadCount > 0,
           label: widget.unreadCount > 0
               ? Text(
-                  widget.unreadCount > 99
-                      ? '99+'
-                      : '${widget.unreadCount}',
+                  widget.unreadCount > 99 ? '99+' : '${widget.unreadCount}',
                   style: const TextStyle(fontSize: 10),
                 )
               : null,

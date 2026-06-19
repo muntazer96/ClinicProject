@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/api_client.dart';
 import 'core/push_notification_service.dart';
+import 'core/theme_controller.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/messages/message_hub_service.dart';
 
@@ -26,7 +27,10 @@ Future<void> main() async {
   }
   final api = ApiClient();
   final auth = AuthController(api);
+  final themeController = ThemeController();
   final messageHub = MessageHubService(api);
+
+  await themeController.restore();
 
   await auth.restoreSession().timeout(
     const Duration(seconds: 10),
@@ -41,6 +45,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         Provider<ApiClient>.value(value: api),
+        ChangeNotifierProvider<ThemeController>.value(value: themeController),
         ChangeNotifierProvider<AuthController>.value(value: auth),
         ChangeNotifierProvider<MessageHubService>.value(value: messageHub),
       ],

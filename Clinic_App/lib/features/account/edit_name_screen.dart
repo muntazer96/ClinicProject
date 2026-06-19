@@ -289,7 +289,7 @@ class _ConfirmPhoneScreenState extends State<ConfirmPhoneScreen> {
             _remainingSeconds > 0
                 ? 'يمكنك طلب رمز جديد بعد ${_formatTime(_remainingSeconds)}'
                 : 'يمكنك الآن طلب رمز جديد',
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.appMuted),
           ),
         ),
         const SizedBox(height: 8),
@@ -371,20 +371,28 @@ class _Notice extends StatelessWidget {
   final bool error;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F3),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: error ? Colors.red.shade100 : const Color(0xFFCDECE4),
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final background = error
+        ? (isDark ? const Color(0xFF3F1518) : Colors.red.shade50)
+        : context.appSoftBlue;
+    final border = error
+        ? (isDark ? const Color(0xFF7F1D1D) : Colors.red.shade100)
+        : context.appBorder;
+    final foreground = error
+        ? (isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800)
+        : Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
       ),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error ? Colors.red.shade800 : AppColors.primaryDark,
+      child: Text(
+        text,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
-    ),
-  );
+    );
+  }
 }

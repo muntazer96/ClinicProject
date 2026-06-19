@@ -168,56 +168,60 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
-              ? const _EmptyNotifications()
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  itemCount: _items.length + 2,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return _NotificationsToolbar(
-                        unreadCount: unreadCount,
-                        onMarkAllRead: unreadCount == 0 ? null : _markAllRead,
-                      );
-                    }
+          ? const _EmptyNotifications()
+          : ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+              itemCount: _items.length + 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _NotificationsToolbar(
+                    unreadCount: unreadCount,
+                    onMarkAllRead: unreadCount == 0 ? null : _markAllRead,
+                  );
+                }
 
-                    if (index == _items.length + 1) {
-                      if (_loadingMore) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 18),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      if (!_hasMore) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            'تم عرض كل الإشعارات',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        );
-                      }
-                      return const SizedBox(height: 18);
-                    }
-
-                    final item = _items[index - 1];
-                    return _NotificationCard(
-                      item: item,
-                      onTap: () => _markRead(item),
+                if (index == _items.length + 1) {
+                  if (_loadingMore) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 18),
+                      child: Center(child: CircularProgressIndicator()),
                     );
-                  },
-                ),
+                  }
+                  if (!_hasMore) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        'تم عرض كل الإشعارات',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox(height: 18);
+                }
+
+                final item = _items[index - 1];
+                return _NotificationCard(
+                  item: item,
+                  onTap: () => _markRead(item),
+                );
+              },
+            ),
     );
 
     if (widget.doctor) {
       return DoctorScaffold(title: 'الإشعارات', child: content);
     }
 
-    return AppScaffold(title: 'الإشعارات', showBackButton: true, child: content);
+    return AppScaffold(
+      title: 'الإشعارات',
+      showBackButton: true,
+      child: content,
+    );
   }
 }
 
@@ -232,28 +236,28 @@ class _NotificationsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                unreadCount == 0
-                    ? 'كل الإشعارات مقروءة'
-                    : '$unreadCount إشعار غير مقروء',
-                style: const TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            unreadCount == 0
+                ? 'كل الإشعارات مقروءة'
+                : '$unreadCount إشعار غير مقروء',
+            style: const TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w900,
             ),
-            TextButton.icon(
-              onPressed: onMarkAllRead,
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('قراءة الكل'),
-            ),
-          ],
+          ),
         ),
-      );
+        TextButton.icon(
+          onPressed: onMarkAllRead,
+          icon: const Icon(Icons.done_all_rounded, size: 18),
+          label: const Text('قراءة الكل'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _EmptyNotifications extends StatelessWidget {
@@ -261,18 +265,18 @@ class _EmptyNotifications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 110),
-          Icon(Icons.notifications_none_rounded, size: 54, color: AppColors.muted),
-          SizedBox(height: 12),
-          Text(
-            'لا توجد إشعارات حالياً.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.muted, fontWeight: FontWeight.w800),
-          ),
-        ],
-      );
+    physics: const AlwaysScrollableScrollPhysics(),
+    children: const [
+      SizedBox(height: 110),
+      Icon(Icons.notifications_none_rounded, size: 54, color: AppColors.muted),
+      SizedBox(height: 12),
+      Text(
+        'لا توجد إشعارات حالياً.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: AppColors.muted, fontWeight: FontWeight.w800),
+      ),
+    ],
+  );
 }
 
 class _NotificationCard extends StatelessWidget {
@@ -283,12 +287,12 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.isRead ? AppColors.muted : AppColors.primary;
+    final color = item.isRead ? context.appMuted : AppColors.primary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -299,12 +303,14 @@ class _NotificationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: item.isRead
-                    ? const Color(0xFFE3ECEA)
+                    ? context.appBorder
                     : AppColors.primary.withValues(alpha: .28),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: .025),
+                  color: Colors.black.withValues(
+                    alpha: context.isDark ? .18 : .025,
+                  ),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -335,16 +341,20 @@ class _NotificationCard extends StatelessWidget {
                       Text(
                         item.message,
                         style: TextStyle(
-                          fontWeight: item.isRead ? FontWeight.w700 : FontWeight.w900,
-                          color: AppColors.text,
+                          fontWeight: item.isRead
+                              ? FontWeight.w700
+                              : FontWeight.w900,
+                          color: context.appText,
                           height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        DateFormat('yyyy/MM/dd - hh:mm a').format(item.createdAt),
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        DateFormat(
+                          'yyyy/MM/dd - hh:mm a',
+                        ).format(item.createdAt),
+                        style: TextStyle(
+                          color: context.appMuted,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),

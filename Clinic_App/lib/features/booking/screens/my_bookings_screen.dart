@@ -268,7 +268,7 @@ class _DateRangeFilter extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         alignment: Alignment.centerRight,
         foregroundColor: AppColors.primary,
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: context.appBorder),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -285,18 +285,18 @@ class _PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const Expanded(
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'حجوزاتي',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               'تابع حجوزاتك الحالية والسابقة بسهولة.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.appMuted),
             ),
           ],
         ),
@@ -371,12 +371,12 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(.035),
+          color: Colors.black.withOpacity(context.isDark ? .18 : .035),
           blurRadius: 14,
           offset: const Offset(0, 6),
         ),
@@ -396,8 +396,8 @@ class _SummaryTile extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.muted,
+          style: TextStyle(
+            color: context.appMuted,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -415,9 +415,9 @@ class _NextBookingBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppColors.softBlue,
+      color: context.appSoftBlue,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -425,7 +425,7 @@ class _NextBookingBanner extends StatelessWidget {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appSurface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(
@@ -447,7 +447,7 @@ class _NextBookingBanner extends StatelessWidget {
                 '${booking.doctorName} - ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)} - الدور #${booking.queueNumber}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.appMuted),
               ),
             ],
           ),
@@ -496,12 +496,12 @@ class _FilterChip extends StatelessWidget {
         label: Text(label),
         onSelected: (_) => onChanged(id),
         selectedColor: AppColors.primary,
-        backgroundColor: Colors.white,
+        backgroundColor: context.appSurface,
         side: BorderSide(
-          color: selected ? AppColors.primary : AppColors.border,
+          color: selected ? AppColors.primary : context.appBorder,
         ),
         labelStyle: TextStyle(
-          color: selected ? Colors.white : AppColors.muted,
+          color: selected ? Colors.white : context.appMuted,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -537,12 +537,12 @@ class BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.06),
+            color: Colors.black.withOpacity(context.isDark ? .22 : .06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -707,7 +707,7 @@ class _BookingCardHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -765,9 +765,9 @@ class _BookingInfoTile extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
     decoration: BoxDecoration(
-      color: const Color(0xFFF6FAF9),
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -779,8 +779,8 @@ class _BookingInfoTile extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppColors.muted,
+                style: TextStyle(
+                  color: context.appMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -814,7 +814,7 @@ class _CancelReasonBox extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFECEC),
+      color: context.isDark ? const Color(0xFF3F1518) : const Color(0xFFFFECEC),
       borderRadius: BorderRadius.circular(16),
     ),
     child: Row(
@@ -843,7 +843,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(booking.status);
-    final background = _statusBackground(booking.status);
+    final background = _statusBackground(context, booking.status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
@@ -872,7 +872,16 @@ Color _statusColor(int status) {
   };
 }
 
-Color _statusBackground(int status) {
+Color _statusBackground(BuildContext context, int status) {
+  if (context.isDark) {
+    return switch (status) {
+      1 => const Color(0xFF12382F),
+      2 => const Color(0xFF3F1518),
+      3 => const Color(0xFF12382F),
+      _ => const Color(0xFF3A2A16),
+    };
+  }
+
   return switch (status) {
     1 => const Color(0xFFE4F5F1),
     2 => const Color(0xFFFFECEC),
@@ -899,9 +908,9 @@ class BookingMessage extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Column(
       children: [

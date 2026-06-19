@@ -24,30 +24,24 @@ class _OfflineGateState extends State<OfflineGate> {
   void initState() {
     super.initState();
     ApiClient.connectionAvailable.addListener(_onConnectionChanged);
-    _connectivityTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) async {
-        if (ApiClient.connectionAvailable.value == false) {
-          await ApiClient.checkServerAvailability();
-        }
-      },
-    );
+    _connectivityTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (ApiClient.connectionAvailable.value == false) {
+        await ApiClient.checkServerAvailability();
+      }
+    });
   }
 
   void _onConnectionChanged() {
     if (ApiClient.connectionAvailable.value == false) {
-      _debounceTimer ??= Timer(
-        const Duration(seconds: 4),
-        () async {
-          if (ApiClient.connectionAvailable.value == false) {
-            await ApiClient.checkServerAvailability();
-          }
-          if (mounted && ApiClient.connectionAvailable.value == false) {
-            setState(() => _showOverlay = true);
-          }
-          _debounceTimer = null;
-        },
-      );
+      _debounceTimer ??= Timer(const Duration(seconds: 4), () async {
+        if (ApiClient.connectionAvailable.value == false) {
+          await ApiClient.checkServerAvailability();
+        }
+        if (mounted && ApiClient.connectionAvailable.value == false) {
+          setState(() => _showOverlay = true);
+        }
+        _debounceTimer = null;
+      });
     } else {
       _debounceTimer?.cancel();
       _debounceTimer = null;
@@ -116,8 +110,10 @@ class _OfflineScreenState extends State<_OfflineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final text = context.appText;
+    final muted = context.appMuted;
     return Material(
-      color: AppColors.background,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -128,7 +124,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
               const SizedBox(height: 28),
               const Icon(
                 Icons.wifi_off_rounded,
-                color: AppColors.primaryDark,
+                color: AppColors.primary,
                 size: 54,
               ),
               const SizedBox(height: 16),
@@ -137,7 +133,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
-                  color: AppColors.text,
+                  color: text,
                 ),
               ),
               const SizedBox(height: 8),
@@ -145,7 +141,7 @@ class _OfflineScreenState extends State<_OfflineScreen> {
                 'تعذر الوصول إلى الانترنت أو السيرفر. سنرجعك للتطبيق مباشرة عند نجاح إعادة المحاولة.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.muted,
+                  color: muted,
                   height: 1.7,
                   fontWeight: FontWeight.w700,
                 ),

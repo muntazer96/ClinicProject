@@ -98,47 +98,41 @@ class _ConversationsScreenState extends State<ConversationsScreen>
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
-              ? ListView(
-                  children: const [
-                    _MessageRetentionNotice(),
-                    SizedBox(height: 120),
-                    Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 64,
-                            color: AppColors.muted,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'لا توجد رسائل حالياً.',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 16,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'يمكنك مراسلة الأطباء من صفحة ملفهم.',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+          ? ListView(
+              children: const [
+                _MessageRetentionNotice(),
+                SizedBox(height: 120),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 64,
+                        color: AppColors.muted,
                       ),
-                    ),
-                  ],
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  itemCount: _items.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) return const _MessageRetentionNotice();
-                    return _ConversationCard(item: _items[index - 1]);
-                  },
+                      SizedBox(height: 16),
+                      Text(
+                        'لا توجد رسائل حالياً.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'يمكنك مراسلة الأطباء من صفحة ملفهم.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+              itemCount: _items.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return const _MessageRetentionNotice();
+                return _ConversationCard(item: _items[index - 1]);
+              },
+            ),
     );
   }
 }
@@ -148,29 +142,29 @@ class _MessageRetentionNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.softAmber,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.info_outline_rounded, color: AppColors.primaryDark),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color: AppColors.softAmber,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: const Row(
+      children: [
+        Icon(Icons.info_outline_rounded, color: AppColors.primaryDark),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
+            style: TextStyle(
+              color: AppColors.primaryDark,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _ConversationCard extends StatelessWidget {
@@ -182,13 +176,12 @@ class _ConversationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final isDoctor = auth.isDoctor;
-    final time =
-        DateFormat('MM/dd').format(item.lastMessageAt);
+    final time = DateFormat('MM/dd').format(item.lastMessageAt);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
@@ -205,7 +198,7 @@ class _ConversationCard extends StatelessWidget {
               border: Border.all(
                 color: item.unreadCount > 0
                     ? AppColors.primary.withOpacity(.26)
-                    : const Color(0xFFE3ECEA),
+                    : context.appBorder,
               ),
             ),
             child: Row(
@@ -213,11 +206,9 @@ class _ConversationCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: AppColors.softAmber,
+                  backgroundColor: context.appSoftAmber,
                   child: Text(
-                    item.otherUserName.isNotEmpty
-                        ? item.otherUserName[0]
-                        : '?',
+                    item.otherUserName.isNotEmpty ? item.otherUserName[0] : '?',
                     style: const TextStyle(
                       color: AppColors.primaryDark,
                       fontWeight: FontWeight.w900,
@@ -238,13 +229,13 @@ class _ConversationCard extends StatelessWidget {
                               fontWeight: item.unreadCount > 0
                                   ? FontWeight.w900
                                   : FontWeight.w700,
-                              color: AppColors.text,
+                              color: context.appText,
                             ),
                           ),
                           Text(
                             time,
-                            style: const TextStyle(
-                              color: AppColors.muted,
+                            style: TextStyle(
+                              color: context.appMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -260,8 +251,8 @@ class _ConversationCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: item.unreadCount > 0
-                                    ? AppColors.text
-                                    : AppColors.muted,
+                                    ? context.appText
+                                    : context.appMuted,
                                 fontSize: 13,
                                 fontWeight: item.unreadCount > 0
                                     ? FontWeight.w700

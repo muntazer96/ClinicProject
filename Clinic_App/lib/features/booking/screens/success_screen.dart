@@ -65,7 +65,7 @@ class BookingSuccessScreen extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      color: AppColors.softBlue,
+                      color: context.appSoftBlue,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -77,10 +77,10 @@ class BookingSuccessScreen extends StatelessWidget {
                         const SizedBox(height: 5),
                         SelectableText(
                           args.result.code,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.primaryDark,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         TextButton.icon(
@@ -104,7 +104,7 @@ class BookingSuccessScreen extends StatelessWidget {
                 ? 'تگدر تتابع تفاصيل الحجز من صفحة حجوزاتي.'
                 : 'احتفظ بكود الحجز. ستحتاجه لمتابعة الحجز أو إلغائه كزائر.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.appMuted),
           ),
           const SizedBox(height: 16),
           if (isAuthenticated)
@@ -144,7 +144,7 @@ class _Row extends StatelessWidget {
     child: Row(
       children: [
         Expanded(
-          child: Text(label, style: const TextStyle(color: AppColors.muted)),
+          child: Text(label, style: TextStyle(color: context.appMuted)),
         ),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
       ],

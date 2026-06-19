@@ -24,9 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final DirectoryService _service;
   late final AnalyticsService _analytics;
 
-  final _offersController = PageController(
-    viewportFraction: .90,
-  );
+  final _offersController = PageController(viewportFraction: .90);
 
   List<Specialization> _specializations = [];
   List<DoctorOffer> _offers = [];
@@ -64,9 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() => _specializations = items);
     } catch (error) {
       if (mounted) {
-        setState(
-          () => _specializationsError = ApiClient.errorMessage(error),
-        );
+        setState(() => _specializationsError = ApiClient.errorMessage(error));
       }
     } finally {
       if (mounted) setState(() => _loadingSpecializations = false);
@@ -322,33 +318,38 @@ class _SearchCard extends StatelessWidget {
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.045),
+            color: context.isDark
+                ? Colors.black.withValues(alpha: .20)
+                : Colors.black.withOpacity(.045),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.search_rounded, color: AppColors.primary),
-          SizedBox(width: 10),
+          Icon(
+            Icons.search_rounded,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'ابحث عن طبيب، اختصاص أو عيادة',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: AppColors.muted,
+                color: context.appMuted,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          Icon(Icons.arrow_back_rounded, color: AppColors.text),
+          Icon(Icons.arrow_back_rounded, color: context.appText),
         ],
       ),
     ),
@@ -380,9 +381,9 @@ class _OffersSection extends StatelessWidget {
       return Container(
         height: 170,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.appSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.appBorder),
         ),
         child: const Center(child: CircularProgressIndicator()),
       );
@@ -439,7 +440,9 @@ class _OfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final featured = offer.isFeatured;
     final accent = featured ? const Color(0xFFD79A00) : AppColors.primary;
-    final surface = featured ? const Color(0xFFFFFBED) : Colors.white;
+    final surface = featured
+        ? (context.isDark ? const Color(0xFF2F2817) : const Color(0xFFFFFBED))
+        : context.appSurface;
 
     return InkWell(
       onTap: onTap,
@@ -450,7 +453,7 @@ class _OfferCard extends StatelessWidget {
           color: surface,
           borderRadius: BorderRadius.circular(26),
           border: Border.all(
-            color: featured ? const Color(0xFFE8B33A) : AppColors.border,
+            color: featured ? const Color(0xFFE8B33A) : context.appBorder,
           ),
           boxShadow: [
             BoxShadow(
@@ -531,7 +534,6 @@ class _OfferCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: AppColors.text,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                           ),
@@ -553,7 +555,6 @@ class _OfferCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: AppColors.muted,
                             fontWeight: FontWeight.w700,
                             fontSize: 11,
                           ),
@@ -664,12 +665,14 @@ class _SpecializationCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.appSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.appBorder),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(.045),
+              color: context.isDark
+                  ? Colors.black.withValues(alpha: .20)
+                  : Colors.black.withOpacity(.045),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -683,7 +686,7 @@ class _SpecializationCard extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 115,
-                color: AppColors.primary.withOpacity(.07),
+                color: Theme.of(context).colorScheme.primary.withOpacity(.07),
               ),
             ),
             Padding(
@@ -698,7 +701,11 @@ class _SpecializationCard extends StatelessWidget {
                       color: AppColors.primary.withOpacity(.10),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Icon(icon, color: AppColors.primary, size: 24),
+                    child: Icon(
+                      icon,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
                   ),
                   const Spacer(),
                   Text(
@@ -746,14 +753,14 @@ class _EmptySpecializations extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
-    child: const Text(
+    child: Text(
       'لا توجد اختصاصات متاحة حالياً.',
       textAlign: TextAlign.center,
-      style: TextStyle(color: AppColors.muted),
+      style: TextStyle(color: context.appMuted),
     ),
   );
 }
@@ -769,9 +776,9 @@ class _InlineErrorMessage extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -779,7 +786,10 @@ class _InlineErrorMessage extends StatelessWidget {
         Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            color: AppColors.danger,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         if (onRetry != null) ...[
           const SizedBox(height: 8),
@@ -832,7 +842,7 @@ class _ServiceList extends StatelessWidget {
         icon: Icons.calendar_month_rounded,
         title: 'حجوزاتي',
         subtitle: 'تابع مواعيدك الحالية والسابقة.',
-        color: AppColors.softAmber,
+        color: context.appSoftAmber,
         onTap: () => context.go('/bookings'),
       ),
       const SizedBox(height: 10),
@@ -840,7 +850,9 @@ class _ServiceList extends StatelessWidget {
         icon: Icons.favorite_rounded,
         title: 'الأطباء المفضلون',
         subtitle: 'وصول سريع للأطباء الذين تتابعهم.',
-        color: const Color(0xFFFFE4EA),
+        color: context.isDark
+            ? const Color(0xFF3A2330)
+            : const Color(0xFFFFE4EA),
         onTap: () => context.go('/favorites'),
       ),
       const SizedBox(height: 10),
@@ -848,7 +860,7 @@ class _ServiceList extends StatelessWidget {
         icon: Icons.manage_search_rounded,
         title: 'متابعة حجز زائر',
         subtitle: 'اعرض الحجز أو ألغِه باستخدام الهاتف والكود.',
-        color: AppColors.softCoral,
+        color: context.appSoftCoral,
         onTap: () => context.go('/guest-booking'),
       ),
       const SizedBox(height: 10),
@@ -856,7 +868,7 @@ class _ServiceList extends StatelessWidget {
         icon: Icons.account_circle_rounded,
         title: 'الملف الشخصي',
         subtitle: 'عرض بيانات الحساب وتعديل الاسم.',
-        color: AppColors.surfaceMuted,
+        color: context.appSurfaceMuted,
         onTap: () => context.go('/profile'),
       ),
     ],
@@ -885,12 +897,14 @@ class _ServiceRow extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.035),
+            color: context.isDark
+                ? Colors.black.withValues(alpha: .18)
+                : Colors.black.withOpacity(.035),
             blurRadius: 16,
             offset: const Offset(0, 7),
           ),
@@ -905,7 +919,7 @@ class _ServiceRow extends StatelessWidget {
               color: color,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: AppColors.primaryDark),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -921,8 +935,8 @@ class _ServiceRow extends StatelessWidget {
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.muted,
+                  style: TextStyle(
+                    color: context.appMuted,
                     fontSize: 12,
                     height: 1.5,
                   ),

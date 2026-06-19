@@ -170,7 +170,9 @@ class _OffersScreenState extends State<OffersScreen> {
                       source: 'offers_page',
                       page: 'offers',
                     );
-                    context.push('/doctors/${offer.doctorId}?source=offer&offerId=${offer.id}');
+                    context.push(
+                      '/doctors/${offer.doctorId}?source=offer&offerId=${offer.id}',
+                    );
                   },
                 ),
               ),
@@ -198,121 +200,123 @@ class OfferCard extends StatelessWidget {
     final featured = offer.isFeatured;
     const premiumColor = Color(0xFFD49A00);
     final accent = featured ? premiumColor : AppColors.primary;
-    final iconBackground =
-        featured ? const Color(0xFFFFF5D8) : const Color(0xFFEAF6F8);
+    final iconBackground = featured
+        ? (context.isDark ? const Color(0xFF3A3018) : const Color(0xFFFFF5D8))
+        : context.appSoftBlue;
+    final borderColor = featured
+        ? (context.isDark ? const Color(0xFF6F5818) : const Color(0xFFE8C76D))
+        : context.appBorder;
 
     return Card(
-    color: Colors.white,
-    elevation: featured ? 2 : 1,
-    shadowColor: (featured ? premiumColor : AppColors.primary)
-        .withValues(alpha: featured ? .18 : .08),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: BorderSide(
-        color: featured ? const Color(0xFFE8C76D) : AppColors.border,
-        width: featured ? 1.2 : 1,
+      color: context.appSurface,
+      elevation: featured ? 2 : 1,
+      shadowColor: (featured ? premiumColor : AppColors.primary).withValues(
+        alpha: featured ? .18 : .08,
       ),
-    ),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Row(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: featured ? const Color(0xFFE8C76D) : AppColors.border,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: borderColor, width: featured ? 1.2 : 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Icon(
+                  featured
+                      ? Icons.workspace_premium_rounded
+                      : Icons.local_offer_rounded,
+                  color: accent,
+                  size: 31,
                 ),
               ),
-              child: Icon(
-                featured
-                    ? Icons.workspace_premium_rounded
-                    : Icons.local_offer_rounded,
-                color: accent,
-                size: 31,
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (featured) ...[
-                        const _OfferBadge(text: 'طبيب مميز', featured: true),
-                        const SizedBox(width: 7),
-                      ] else if (offer.badgeText?.isNotEmpty == true) ...[
-                        _OfferBadge(text: offer.badgeText!),
-                        const SizedBox(width: 7),
-                      ],
-                      Expanded(
-                        child: Text(
-                          offer.priceText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: accent,
-                            fontWeight: FontWeight.w900,
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (featured) ...[
+                          const _OfferBadge(text: 'طبيب مميز', featured: true),
+                          const SizedBox(width: 7),
+                        ] else if (offer.badgeText?.isNotEmpty == true) ...[
+                          _OfferBadge(text: offer.badgeText!),
+                          const SizedBox(width: 7),
+                        ],
+                        Expanded(
+                          child: Text(
+                            offer.priceText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: accent,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    offer.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    offer.doctorName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 5,
-                    children: [
-                      _MiniMeta(icon: Icons.apartment_rounded, text: offer.scope),
-                      _MiniMeta(
-                        icon: Icons.schedule_rounded,
-                        text: '${offer.remainingDays} يوم متبقي',
+                    const SizedBox(height: 5),
+                    Text(
+                      offer.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      offer.doctorName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 5,
+                      children: [
+                        _MiniMeta(
+                          icon: Icons.apartment_rounded,
+                          text: offer.scope,
+                        ),
+                        _MiniMeta(
+                          icon: Icons.schedule_rounded,
+                          text: '${offer.remainingDays} يوم متبقي',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: 17,
-              color: featured ? premiumColor : AppColors.text,
-            ),
-          ],
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 17,
+                color: featured ? premiumColor : context.appText,
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }
 
 class _OfferBadge extends StatelessWidget {
@@ -324,10 +328,13 @@ class _OfferBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = featured ? const Color(0xFFD49A00) : AppColors.primary;
+    final background = featured
+        ? (context.isDark ? const Color(0xFF2F2817) : const Color(0xFFFFFBF0))
+        : context.appSoftBlue;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: featured ? const Color(0xFFFFFBF0) : const Color(0xFFEAF6F8),
+        color: background,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: .45)),
       ),
@@ -352,12 +359,9 @@ class _MiniMeta extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 15, color: AppColors.muted),
+      Icon(icon, size: 15, color: context.appMuted),
       const SizedBox(width: 3),
-      Text(
-        text,
-        style: const TextStyle(color: AppColors.muted, fontSize: 12),
-      ),
+      Text(text, style: TextStyle(color: context.appMuted, fontSize: 12)),
     ],
   );
 }
@@ -381,7 +385,7 @@ class _OfferMessage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(icon, size: 44, color: AppColors.muted),
+          Icon(icon, size: 44, color: context.appMuted),
           const SizedBox(height: 10),
           Text(
             title,
@@ -391,7 +395,7 @@ class _OfferMessage extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.appMuted),
           ),
           if (action != null) ...[
             const SizedBox(height: 12),

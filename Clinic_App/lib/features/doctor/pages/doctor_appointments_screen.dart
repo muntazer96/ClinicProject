@@ -122,8 +122,8 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: Color(0xFFDDE9E7)),
-                    backgroundColor: Colors.white,
+                    side: BorderSide(color: context.appBorder),
+                    backgroundColor: context.appSurface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -274,20 +274,24 @@ class _AppointmentCard extends StatelessWidget {
     final isGuest = item.isGuestBooking;
     final sourceColor = isGuest ? const Color(0xFFD6A20B) : AppColors.primary;
     final sourceBg = isGuest
-        ? const Color(0xFFFFF7DF)
-        : const Color(0xFFEAF7F5);
+        ? (context.isDark ? const Color(0xFF3A2A16) : const Color(0xFFFFF7DF))
+        : context.appSoftBlue;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isGuest ? const Color(0xFFE8CF83) : const Color(0xFFDDE9E7),
+          color: isGuest
+              ? (context.isDark
+                    ? const Color(0xFF6F5818)
+                    : const Color(0xFFE8CF83))
+              : context.appBorder,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.035),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .035),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
@@ -335,7 +339,7 @@ class _AppointmentCard extends StatelessWidget {
                           Icon(
                             Icons.phone_rounded,
                             size: 14,
-                            color: Colors.grey.shade600,
+                            color: context.appMuted,
                           ),
                           const SizedBox(width: 4),
                           Expanded(
@@ -344,7 +348,7 @@ class _AppointmentCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade700,
+                                color: context.appMuted,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -375,18 +379,22 @@ class _AppointmentCard extends StatelessWidget {
                   bg: sourceBg,
                 ),
                 if (item.isPhoneConfirmed)
-                  const _SmallSourceBadge(
+                  _SmallSourceBadge(
                     text: 'الهاتف مؤكد',
                     icon: Icons.verified_rounded,
                     color: AppColors.success,
-                    bg: Color(0xFFEAF8EF),
+                    bg: context.isDark
+                        ? const Color(0xFF12382F)
+                        : const Color(0xFFEAF8EF),
                   ),
                 if (item.hasReview)
-                  const _SmallSourceBadge(
+                  _SmallSourceBadge(
                     text: 'قيّم الطبيب',
                     icon: Icons.star_rounded,
                     color: Color(0xFFD6A20B),
-                    bg: Color(0xFFFFF7DF),
+                    bg: context.isDark
+                        ? const Color(0xFF3A2A16)
+                        : const Color(0xFFFFF7DF),
                   ),
               ],
             ),
@@ -566,9 +574,9 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -580,7 +588,7 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: context.appMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -621,7 +629,7 @@ class _InfoLine extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 12.5,
-                color: Colors.grey.shade800,
+                color: context.appMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -685,10 +693,10 @@ class _ClinicChip extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 76, maxWidth: 170),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryDark : Colors.white,
+          color: isSelected ? AppColors.primaryDark : context.appSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.primaryDark : const Color(0xFFDDE9E7),
+            color: isSelected ? AppColors.primaryDark : context.appBorder,
           ),
         ),
         child: Text(
@@ -699,7 +707,9 @@ class _ClinicChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: isSelected ? Colors.white : AppColors.primaryDark,
+            color: isSelected
+                ? Colors.white
+                : Theme.of(context).colorScheme.primary,
           ),
         ),
       ),
@@ -727,10 +737,10 @@ class _StatusChip extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 74),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.primary : context.appSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.primary : const Color(0xFFDDE9E7),
+            color: isSelected ? AppColors.primary : context.appBorder,
           ),
         ),
         child: Text(
@@ -740,7 +750,9 @@ class _StatusChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: isSelected ? Colors.white : AppColors.primaryDark,
+            color: isSelected
+                ? Colors.white
+                : Theme.of(context).colorScheme.primary,
           ),
         ),
       ),

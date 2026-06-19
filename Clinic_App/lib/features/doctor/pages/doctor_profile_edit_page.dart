@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
 import '../services/doctor_service.dart';
@@ -51,6 +53,11 @@ class _DoctorProfileEditPageState extends State<DoctorProfileEditPage> {
   }
 
   Future<void> _save() async {
+    if (!isValidIraqiPhone(_phone.text)) {
+      showAppSnackBar(context, iraqiPhoneError, type: AppSnackBarType.warning);
+      return;
+    }
+
     setState(() => _saving = true);
 
     try {
@@ -224,6 +231,7 @@ class _DoctorProfileEditPageState extends State<DoctorProfileEditPage> {
               label: 'رقم الهاتف',
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
+              inputFormatters: iraqiPhoneInputFormatters,
             ),
             const SizedBox(height: 12),
             _AppTextField(
@@ -383,12 +391,12 @@ class _FormSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -441,18 +449,21 @@ class _AppTextField extends StatelessWidget {
     required this.label,
     required this.icon,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
   final String label;
   final IconData icon;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
     );
   }

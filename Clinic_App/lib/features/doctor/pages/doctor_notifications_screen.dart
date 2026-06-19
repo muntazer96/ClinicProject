@@ -53,26 +53,26 @@ class _DoctorNotificationsScreenState extends State<DoctorNotificationsScreen> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'الإشعارات',
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _items.isEmpty
-                  ? const DoctorEmptyState(
-                      icon: Icons.notifications_none_rounded,
-                      message: 'لا توجد إشعارات حالياً.',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                      itemCount: _items.length,
-                      itemBuilder: (context, index) => _NotificationCard(
-                        item: _items[index],
-                        onTap: () => _markRead(_items[index]),
-                      ),
-                    ),
-        ),
-      );
+    title: 'الإشعارات',
+    child: RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _items.isEmpty
+          ? const DoctorEmptyState(
+              icon: Icons.notifications_none_rounded,
+              message: 'لا توجد إشعارات حالياً.',
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+              itemCount: _items.length,
+              itemBuilder: (context, index) => _NotificationCard(
+                item: _items[index],
+                onTap: () => _markRead(_items[index]),
+              ),
+            ),
+    ),
+  );
 }
 
 class _NotificationCard extends StatelessWidget {
@@ -83,12 +83,12 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.isRead ? AppColors.muted : AppColors.primary;
+    final color = item.isRead ? context.appMuted : AppColors.primary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
@@ -99,7 +99,7 @@ class _NotificationCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: item.isRead
-                    ? const Color(0xFFE3ECEA)
+                    ? context.appBorder
                     : AppColors.primary.withOpacity(.26),
               ),
             ),
@@ -120,18 +120,20 @@ class _NotificationCard extends StatelessWidget {
                       Text(
                         item.message,
                         style: TextStyle(
-                          fontWeight:
-                              item.isRead ? FontWeight.w700 : FontWeight.w900,
-                          color: AppColors.text,
+                          fontWeight: item.isRead
+                              ? FontWeight.w700
+                              : FontWeight.w900,
+                          color: context.appText,
                           height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        DateFormat('yyyy/MM/dd - hh:mm a')
-                            .format(item.createdAt),
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        DateFormat(
+                          'yyyy/MM/dd - hh:mm a',
+                        ).format(item.createdAt),
+                        style: TextStyle(
+                          color: context.appMuted,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),

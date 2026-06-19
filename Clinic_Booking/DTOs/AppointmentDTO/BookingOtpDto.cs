@@ -5,8 +5,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
     public class BookingOtpDto
     {
         [Required]
-        [Phone]
-        [StringLength(30)]
+        [RegularExpression(@"^07\d{9}$", ErrorMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.")]
         public string PhoneNumber { get; set; }
 
         [Required]

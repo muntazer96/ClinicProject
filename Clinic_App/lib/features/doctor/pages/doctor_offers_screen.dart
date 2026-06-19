@@ -64,7 +64,10 @@ class _DoctorOffersScreenState extends State<DoctorOffersScreen> {
                   itemBuilder: (context, index) => _OfferCard(
                     item: _items[index],
                     onEdit: () async {
-                      await context.push('/doctor/offers/form', extra: _items[index]);
+                      await context.push(
+                        '/doctor/offers/form',
+                        extra: _items[index],
+                      );
                       await _load();
                     },
                     onDelete: () => _deleteOffer(_items[index]),
@@ -106,20 +109,18 @@ class _OfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final visible = item.isCurrentlyVisible;
     final expired = item.remainingDays <= 0 || !visible;
-    final accent = visible ? AppColors.primary : AppColors.muted;
-    final bg = visible ? const Color(0xFFEAF7F5) : const Color(0xFFF2F4F4);
+    final accent = visible ? AppColors.primary : context.appMuted;
+    final bg = visible ? context.appSoftBlue : context.appSurfaceMuted;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: visible ? const Color(0xFFDDE9E7) : const Color(0xFFE1E5E4),
-        ),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.035),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .035),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -220,10 +221,12 @@ class _OfferCard extends StatelessWidget {
                     Expanded(
                       child: _BigOfferBox(
                         title: 'السعر الأصلي',
-                        value: item.originalPrice == null? 'غير محدد': '${item.originalPrice!.toStringAsFixed(0)} د.ع',
+                        value: item.originalPrice == null
+                            ? 'غير محدد'
+                            : '${item.originalPrice!.toStringAsFixed(0)} د.ع',
                         icon: Icons.payments_outlined,
                         color: AppColors.primary,
-                        bg: const Color(0xFFEAF7F5),
+                        bg: context.appSoftBlue,
                       ),
                     ),
                   ],
@@ -259,8 +262,9 @@ class _OfferCard extends StatelessWidget {
                       child: _OfferInfoLine(
                         icon: Icons.local_hospital_rounded,
                         text: item.clinicName == null
-    ? 'يشمل كل العيادات'
-    : item.clinicName!,),
+                            ? 'يشمل كل العيادات'
+                            : item.clinicName!,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -271,7 +275,7 @@ class _OfferCard extends StatelessWidget {
                         text: expired
                             ? 'العرض منتهي'
                             : 'متبقي ${item.remainingDays} يوم',
-                        color: expired ? AppColors.muted : AppColors.primary,
+                        color: expired ? context.appMuted : AppColors.primary,
                       ),
                     ),
                   ],
@@ -281,7 +285,6 @@ class _OfferCard extends StatelessWidget {
                 //   const SizedBox(height: 10),
                 //   _TermsBox(text: item.terms!),
                 // ],
-
                 const SizedBox(height: 14),
 
                 Row(
@@ -296,7 +299,7 @@ class _OfferCard extends StatelessWidget {
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: Color(0xFFDDE9E7)),
+                          side: BorderSide(color: context.appBorder),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(13),
@@ -351,10 +354,7 @@ class _OfferCard extends StatelessWidget {
 }
 
 class _OfferStatusBadge extends StatelessWidget {
-  const _OfferStatusBadge({
-    required this.text,
-    required this.active,
-  });
+  const _OfferStatusBadge({required this.text, required this.active});
 
   final String text;
   final bool active;
@@ -416,7 +416,7 @@ class _BigOfferBox extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade700,
+                    color: context.appMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -456,9 +456,9 @@ class _MiniInfoBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -470,7 +470,7 @@ class _MiniInfoBox extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: context.appMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -542,9 +542,15 @@ class _TermsBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E7),
+        color: context.isDark
+            ? const Color(0xFF2F2817)
+            : const Color(0xFFFFF8E7),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFE8CF83)),
+        border: Border.all(
+          color: context.isDark
+              ? const Color(0xFF715A1D)
+              : const Color(0xFFE8CF83),
+        ),
       ),
       child: Row(
         children: [

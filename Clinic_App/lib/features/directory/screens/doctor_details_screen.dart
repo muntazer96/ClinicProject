@@ -81,7 +81,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   Future<void> _toggleFavorite() async {
     final auth = context.read<AuthController>();
     if (!auth.isAuthenticated) {
-      context.push('/login?redirect=${Uri.encodeComponent('/doctors/${widget.doctorId}')}');
+      context.push(
+        '/login?redirect=${Uri.encodeComponent('/doctors/${widget.doctorId}')}',
+      );
       return;
     }
 
@@ -94,9 +96,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       if (mounted) setState(() => _isFavorite = !_isFavorite);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ApiClient.errorMessage(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(ApiClient.errorMessage(error))));
       }
     }
   }
@@ -245,7 +247,7 @@ class _ProfileCard extends StatelessWidget {
     }
 
     return Card(
-      color: Colors.white,
+      color: context.appSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
@@ -258,16 +260,22 @@ class _ProfileCard extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
               gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [
-                  Color(0xFFFFD86B),
-                  Color(0xFFFFF9E8),
-                  Color(0xFFF8E2A8),
-                ],
+                colors: context.isDark
+                    ? const [
+                        Color(0xFF5C4311),
+                        Color(0xFF2B2518),
+                        Color(0xFF4A3814),
+                      ]
+                    : const [
+                        Color(0xFFFFD86B),
+                        Color(0xFFFFF9E8),
+                        Color(0xFFF8E2A8),
+                      ],
               ),
             ),
             child: Column(
@@ -282,17 +290,19 @@ class _ProfileCard extends StatelessWidget {
                         imageName: doctor.imageName,
                         size: 138,
                         foreground: AppColors.primary,
-                        background: const Color(0xFFEAF6F8),
+                        background: context.appSoftBlue,
                       ),
                     ),
                     Container(
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.appSurface,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFFF0C253),
+                          color: context.isDark
+                              ? const Color(0xFF8D6B17)
+                              : const Color(0xFFF0C253),
                           width: 1.2,
                         ),
                         boxShadow: [
@@ -352,9 +362,9 @@ class _ProfileCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.appSurfaceMuted,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.appBorder),
                   ),
                   child: Row(
                     children: [
@@ -407,16 +417,18 @@ class _StandardProfileCard extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.only(top: 18),
-          decoration: const BoxDecoration(
-            color: AppColors.softBlue,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+          decoration: BoxDecoration(
+            color: context.appSoftBlue,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Center(
             child: DoctorAvatar(
               imageName: doctor.imageName,
               size: 174,
               foreground: AppColors.primary,
-              background: Color(0xFFD7FFFA),
+              background: context.isDark
+                  ? const Color(0xFF183A3F)
+                  : const Color(0xFFD7FFFA),
             ),
           ),
         ),
@@ -487,9 +499,14 @@ class _PremiumDoctorBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFFBF0),
+      color: context.isDark ? const Color(0xFF2F2817) : const Color(0xFFFFFBF0),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: const Color(0xFFE4B23C), width: 1.1),
+      border: Border.all(
+        color: context.isDark
+            ? const Color(0xFF715A1D)
+            : const Color(0xFFE4B23C),
+        width: 1.1,
+      ),
     ),
     child: const Row(
       mainAxisSize: MainAxisSize.min,
@@ -513,7 +530,7 @@ class _MetricDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 72, color: AppColors.border);
+      Container(width: 1, height: 72, color: context.appBorder);
 }
 
 // class _PremiumBenefitsPanel extends StatelessWidget {
@@ -608,10 +625,7 @@ class _DoctorMetric extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.muted, fontSize: 11),
-        ),
+        Text(label, style: TextStyle(color: context.appMuted, fontSize: 11)),
       ],
     ),
   );
@@ -754,9 +768,9 @@ class _AvailabilityChip extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -776,7 +790,7 @@ class _AvailabilityChip extends StatelessWidget {
         const SizedBox(width: 9),
         Text(
           '${item.maxAppointments} دور',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          style: TextStyle(color: context.appMuted, fontSize: 12),
         ),
       ],
     ),
@@ -800,7 +814,7 @@ class _InfoRow extends StatelessWidget {
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 7),
         Expanded(
-          child: Text(text, style: const TextStyle(color: AppColors.muted)),
+          child: Text(text, style: TextStyle(color: context.appMuted)),
         ),
       ],
     ),

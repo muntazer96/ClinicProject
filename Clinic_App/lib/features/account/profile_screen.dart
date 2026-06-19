@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/app_snack_bar.dart';
 import '../../core/app_theme.dart';
+import '../../core/theme_controller.dart';
 import '../auth/auth_controller.dart';
 import 'profile_service.dart';
 
@@ -328,6 +329,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          const _ThemeModeSection(),
           if (!isDoctor) ...[
             const SizedBox(height: 12),
             _SectionCard(
@@ -572,7 +575,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.primary),
+              Icon(icon, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -609,12 +612,12 @@ class _InfoTile extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
       children: [
-        Icon(icon, color: AppColors.primary),
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -622,7 +625,7 @@ class _InfoTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.appMuted, fontSize: 12),
               ),
               Text(
                 value.isEmpty ? '-' : value,
@@ -655,8 +658,8 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
     leading: CircleAvatar(
-      backgroundColor: AppColors.softBlue,
-      child: Icon(icon, color: AppColors.primary),
+      backgroundColor: context.appSoftBlue,
+      child: Icon(icon, color: Theme.of(context).colorScheme.primary),
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
     subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -665,28 +668,73 @@ class _ActionTile extends StatelessWidget {
   );
 }
 
+class _ThemeModeSection extends StatelessWidget {
+  const _ThemeModeSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<ThemeController>();
+    return _SectionCard(
+      title: 'مظهر التطبيق',
+      icon: Icons.contrast_rounded,
+      child: SegmentedButton<ThemeMode>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(
+            value: ThemeMode.system,
+            icon: Icon(Icons.phone_android_rounded, size: 18),
+            label: Text('النظام'),
+          ),
+          ButtonSegment(
+            value: ThemeMode.light,
+            icon: Icon(Icons.light_mode_rounded, size: 18),
+            label: Text('فاتح'),
+          ),
+          ButtonSegment(
+            value: ThemeMode.dark,
+            icon: Icon(Icons.dark_mode_rounded, size: 18),
+            label: Text('داكن'),
+          ),
+        ],
+        selected: {controller.mode},
+        onSelectionChanged: (selection) {
+          controller.setMode(selection.first);
+        },
+      ),
+    );
+  }
+}
+
 class _Notice extends StatelessWidget {
   const _Notice({required this.text, this.error = false});
   final String text;
   final bool error;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F3),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: error ? Colors.red.shade100 : const Color(0xFFCDECE4),
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final background = error
+        ? (isDark ? const Color(0xFF3F1518) : Colors.red.shade50)
+        : context.appSoftBlue;
+    final border = error
+        ? (isDark ? const Color(0xFF7F1D1D) : Colors.red.shade100)
+        : context.appBorder;
+    final foreground = error
+        ? (isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800)
+        : Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
       ),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error ? Colors.red.shade800 : AppColors.primaryDark,
+      child: Text(
+        text,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ProfileMessage extends StatelessWidget {
@@ -726,7 +774,7 @@ class _ProfileMessage extends StatelessWidget {
               Text(
                 text,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.appMuted),
               ),
               const SizedBox(height: 16),
               _FullWidthButton(

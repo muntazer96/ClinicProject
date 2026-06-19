@@ -87,6 +87,7 @@ class _UpdateOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasUpdateUrl = version.updateUrl?.trim().isNotEmpty == true;
+    final muted = context.appMuted;
 
     return PopScope(
       canPop: !version.updateRequired,
@@ -117,15 +118,16 @@ class _UpdateOverlay extends StatelessWidget {
                       Text(
                         version.title,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Text(
                         version.message,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.muted,
+                        style: TextStyle(
+                          color: muted,
                           fontWeight: FontWeight.w700,
                           height: 1.6,
                         ),
@@ -134,14 +136,14 @@ class _UpdateOverlay extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.softBlue,
+                          color: context.appSoftBlue,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'نسختك الحالية ${version.currentVersion}+${version.currentBuildNumber}\nالنسخة المتوفرة ${version.latestVersion}+${version.latestBuildNumber}',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                          style: TextStyle(
+                            color: muted,
                             fontWeight: FontWeight.w800,
                             height: 1.5,
                           ),

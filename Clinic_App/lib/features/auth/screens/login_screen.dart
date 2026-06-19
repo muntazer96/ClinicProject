@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../../widgets/auth_shell.dart';
 import '../../../widgets/developer_credit.dart';
 import '../auth_controller.dart';
@@ -69,6 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => error = 'أدخل رقم الهاتف وكلمة المرور.');
       return;
     }
+    if (!isValidIraqiPhone(phone.text)) {
+      setState(() => error = iraqiPhoneError);
+      return;
+    }
     setState(() => error = null);
     try {
       await context.read<AuthController>().login(
@@ -119,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextField(
             controller: phone,
             keyboardType: TextInputType.phone,
+            inputFormatters: iraqiPhoneInputFormatters,
             textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
               labelText: 'رقم الهاتف',

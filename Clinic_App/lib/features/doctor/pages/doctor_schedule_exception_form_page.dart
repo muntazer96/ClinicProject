@@ -51,12 +51,12 @@ class _DoctorScheduleExceptionFormPageState
 
   DateTime get _today => DateUtils.dateOnly(DateTime.now());
   DateTime get _maxMoveDate => _today.add(
-        Duration(
-          days: widget.clinic.bookingWindowDays <= 0
-              ? 6
-              : widget.clinic.bookingWindowDays - 1,
-        ),
-      );
+    Duration(
+      days: widget.clinic.bookingWindowDays <= 0
+          ? 6
+          : widget.clinic.bookingWindowDays - 1,
+    ),
+  );
   Set<String> get _closedExceptionDates => widget.exceptions
       .where((exception) => exception.isClosed)
       .map((exception) => _dateKey(exception.exceptionDate))
@@ -76,10 +76,7 @@ class _DoctorScheduleExceptionFormPageState
     final moveDate = _moveDate == null ? null : DateUtils.dateOnly(_moveDate!);
     final minMoveDate = DateUtils.dateOnly(_date).add(const Duration(days: 1));
     if (moveDate == null) {
-      showAppSnackBar(
-        context,
-        'يجب تحديد تاريخ جديد عند نقل الحجوزات.',
-      );
+      showAppSnackBar(context, 'يجب تحديد تاريخ جديد عند نقل الحجوزات.');
       return false;
     }
     if (moveDate.isBefore(minMoveDate) || moveDate.isAfter(_maxMoveDate)) {
@@ -142,8 +139,8 @@ class _DoctorScheduleExceptionFormPageState
         currentMoveDate.isBefore(firstDate) ||
             currentMoveDate.isAfter(lastDate) ||
             _closedExceptionDates.contains(_dateKey(currentMoveDate))
-            ? firstAvailableDate
-            : currentMoveDate;
+        ? firstAvailableDate
+        : currentMoveDate;
     final picked = await showDatePicker(
       context: context,
       firstDate: firstDate,
@@ -176,8 +173,9 @@ class _DoctorScheduleExceptionFormPageState
         isClosed: _closed,
         reason: _reason.text.trim(),
         appointmentConflictAction: _closed ? _conflictAction : null,
-        moveAppointmentsToDate:
-            _closed && _conflictAction == 'move' ? _moveDate : null,
+        moveAppointmentsToDate: _closed && _conflictAction == 'move'
+            ? _moveDate
+            : null,
       );
 
       if (!mounted) return;
@@ -192,140 +190,131 @@ class _DoctorScheduleExceptionFormPageState
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'استثناء دوام',
-        showBackButton: true,
-        backRoute: '/doctor/schedule',
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          children: [
-            _HeroExceptionCard(
-              clinicName: widget.clinic.name,
-              closed: _closed,
-            ),
+    title: 'استثناء دوام',
+    showBackButton: true,
+    backRoute: '/doctor/schedule',
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        _HeroExceptionCard(clinicName: widget.clinic.name, closed: _closed),
 
-            const SizedBox(height: 14),
+        const SizedBox(height: 14),
 
-            _SectionCard(
-              title: 'تاريخ الاستثناء',
-              icon: Icons.calendar_month_rounded,
-              child: _DatePickerBox(
-                date: _date,
-                onTap: _pickDate,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'نوع الاستثناء',
-              icon: Icons.tune_rounded,
-              child: _ClosedSwitchCard(
-                value: _closed,
-                onChanged: (value) => setState(() => _closed = value),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            _SectionCard(
-              title: 'سبب الاستثناء',
-              icon: Icons.notes_rounded,
-              child: TextField(
-                controller: _reason,
-                maxLines: 4,
-                minLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'مثال: عطلة، ظرف طارئ، صيانة العيادة...',
-                  prefixIcon: Icon(Icons.edit_note_rounded),
-                  alignLabelWithHint: true,
-                ),
-              ),
-            ),
-
-            if (_closed) ...[
-              const SizedBox(height: 14),
-              _SectionCard(
-                title: 'الحجوزات الموجودة في هذا اليوم',
-                icon: Icons.event_repeat_rounded,
-                child: Column(
-                  children: [
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(
-                          value: 'move',
-                          icon: Icon(Icons.redo_rounded),
-                          label: Text('نقل'),
-                        ),
-                        ButtonSegment(
-                          value: 'cancel',
-                          icon: Icon(Icons.cancel_outlined),
-                          label: Text('إلغاء'),
-                        ),
-                      ],
-                      selected: {_conflictAction},
-                      onSelectionChanged: (values) =>
-                          setState(() => _conflictAction = values.first),
-                    ),
-                    if (_conflictAction == 'move') ...[
-                      const SizedBox(height: 12),
-                      _DatePickerBox(
-                        date: _moveDate ?? _date.add(const Duration(days: 1)),
-                        onTap: _pickMoveDate,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'سيتم نقل وتوزيع الحجوزات على الأيام المتاحة ابتداءً '
-                        'من التاريخ المختار وضمن نافذة الحجز '
-                        '(${widget.clinic.bookingWindowDays} يوم).',
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 18),
-
-            SizedBox(
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(
-                  _saving ? 'جاري الحفظ...' : 'حفظ الاستثناء',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(.55),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        _SectionCard(
+          title: 'تاريخ الاستثناء',
+          icon: Icons.calendar_month_rounded,
+          child: _DatePickerBox(date: _date, onTap: _pickDate),
         ),
-      );
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'نوع الاستثناء',
+          icon: Icons.tune_rounded,
+          child: _ClosedSwitchCard(
+            value: _closed,
+            onChanged: (value) => setState(() => _closed = value),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        _SectionCard(
+          title: 'سبب الاستثناء',
+          icon: Icons.notes_rounded,
+          child: TextField(
+            controller: _reason,
+            maxLines: 4,
+            minLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'مثال: عطلة، ظرف طارئ، صيانة العيادة...',
+              prefixIcon: Icon(Icons.edit_note_rounded),
+              alignLabelWithHint: true,
+            ),
+          ),
+        ),
+
+        if (_closed) ...[
+          const SizedBox(height: 14),
+          _SectionCard(
+            title: 'الحجوزات الموجودة في هذا اليوم',
+            icon: Icons.event_repeat_rounded,
+            child: Column(
+              children: [
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'move',
+                      icon: Icon(Icons.redo_rounded),
+                      label: Text('نقل'),
+                    ),
+                    ButtonSegment(
+                      value: 'cancel',
+                      icon: Icon(Icons.cancel_outlined),
+                      label: Text('إلغاء'),
+                    ),
+                  ],
+                  selected: {_conflictAction},
+                  onSelectionChanged: (values) =>
+                      setState(() => _conflictAction = values.first),
+                ),
+                if (_conflictAction == 'move') ...[
+                  const SizedBox(height: 12),
+                  _DatePickerBox(
+                    date: _moveDate ?? _date.add(const Duration(days: 1)),
+                    onTap: _pickMoveDate,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'سيتم نقل وتوزيع الحجوزات على الأيام المتاحة ابتداءً '
+                    'من التاريخ المختار وضمن نافذة الحجز '
+                    '(${widget.clinic.bookingWindowDays} يوم).',
+                    style: TextStyle(
+                      color: context.appMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 18),
+
+        SizedBox(
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(
+              _saving ? 'جاري الحفظ...' : 'حفظ الاستثناء',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withOpacity(.55),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class DoctorScheduleExceptionFormArgs {
@@ -339,10 +328,7 @@ class DoctorScheduleExceptionFormArgs {
 }
 
 class _HeroExceptionCard extends StatelessWidget {
-  const _HeroExceptionCard({
-    required this.clinicName,
-    required this.closed,
-  });
+  const _HeroExceptionCard({required this.clinicName, required this.closed});
 
   final String clinicName;
   final bool closed;
@@ -380,9 +366,7 @@ class _HeroExceptionCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
-              closed
-                  ? Icons.event_busy_rounded
-                  : Icons.event_available_rounded,
+              closed ? Icons.event_busy_rounded : Icons.event_available_rounded,
               color: Colors.white,
               size: 31,
             ),
@@ -438,12 +422,12 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -474,10 +458,7 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _DatePickerBox extends StatelessWidget {
-  const _DatePickerBox({
-    required this.date,
-    required this.onTap,
-  });
+  const _DatePickerBox({required this.date, required this.onTap});
 
   final DateTime date;
   final VoidCallback onTap;
@@ -485,7 +466,7 @@ class _DatePickerBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF7FAFA),
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -494,7 +475,7 @@ class _DatePickerBox extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE3ECEA)),
+            border: Border.all(color: context.appBorder),
           ),
           child: Row(
             children: [
@@ -526,10 +507,7 @@ class _DatePickerBox extends StatelessWidget {
 }
 
 class _ClosedSwitchCard extends StatelessWidget {
-  const _ClosedSwitchCard({
-    required this.value,
-    required this.onChanged,
-  });
+  const _ClosedSwitchCard({required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -556,9 +534,7 @@ class _ClosedSwitchCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              value
-                  ? 'إغلاق العيادة في هذا اليوم'
-                  : 'فتح العيادة في هذا اليوم',
+              value ? 'إغلاق العيادة في هذا اليوم' : 'فتح العيادة في هذا اليوم',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
@@ -566,11 +542,7 @@ class _ClosedSwitchCard extends StatelessWidget {
               ),
             ),
           ),
-          Switch(
-            value: value,
-            activeColor: color,
-            onChanged: onChanged,
-          ),
+          Switch(value: value, activeColor: color, onChanged: onChanged),
         ],
       ),
     );

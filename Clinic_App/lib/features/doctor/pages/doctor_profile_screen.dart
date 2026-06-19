@@ -62,8 +62,9 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
             margin: const EdgeInsets.fromLTRB(16, 10, 16, 8),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F7F6),
+              color: context.appSurfaceMuted,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.appBorder),
             ),
             child: TabBar(
               indicator: BoxDecoration(
@@ -71,7 +72,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
                 borderRadius: BorderRadius.circular(13),
               ),
               labelColor: Colors.white,
-              unselectedLabelColor: AppColors.primaryDark,
+              unselectedLabelColor: context.appText,
               labelStyle: Theme.of(
                 context,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
@@ -327,7 +328,7 @@ class _DoctorAvatarFallback extends StatelessWidget {
     color: Colors.white.withOpacity(.12),
     child: Icon(
       Icons.medical_services_rounded,
-      color: Colors.white,
+      color: context.appSurface,
       size: iconSize,
     ),
   );
@@ -351,7 +352,7 @@ class _QuickTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -360,10 +361,10 @@ class _QuickTile extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFDDE9E7)),
+            border: Border.all(color: context.appBorder),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(.025),
+                color: Colors.black.withOpacity(context.isDark ? .18 : .025),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -396,7 +397,7 @@ class _QuickTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: context.appMuted,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -404,7 +405,7 @@ class _QuickTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              Icon(Icons.chevron_right_rounded, color: context.appMuted),
             ],
           ),
         ),
@@ -432,12 +433,12 @@ class _SubscriptionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -462,15 +463,15 @@ class _SubscriptionCard extends StatelessWidget {
               ),
               _SmallBadge(
                 text: hasSub ? 'فعال' : 'غير متاح',
-                color: hasSub ? AppColors.primary : AppColors.muted,
+                color: hasSub ? AppColors.primary : context.appMuted,
               ),
             ],
           ),
           const SizedBox(height: 13),
           if (!hasSub)
-            const Text(
+            Text(
               'لا توجد بيانات اشتراك متاحة لهذا الحساب.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.appMuted),
             )
           else ...[
             Text(
@@ -482,7 +483,7 @@ class _SubscriptionCard extends StatelessWidget {
               Text(
                 englishName,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: context.appMuted,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                 ),
@@ -589,9 +590,9 @@ class _SubscriptionMetric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -603,7 +604,7 @@ class _SubscriptionMetric extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: context.appMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -640,9 +641,9 @@ class _DateInfoBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -654,7 +655,7 @@ class _DateInfoBox extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 11, color: context.appMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -686,12 +687,12 @@ class _FeaturesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -719,9 +720,9 @@ class _FeaturesCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (enabledFeatures.isEmpty)
-            const Text(
+            Text(
               'لا توجد بيانات مميزات متاحة من صلاحيات الـ API الحالية.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.appMuted),
             )
           else
             Wrap(
@@ -747,7 +748,7 @@ class _FeaturePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF7F5),
+        color: context.appSoftBlue,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.primary.withOpacity(.16)),
       ),
@@ -762,8 +763,8 @@ class _FeaturePill extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             text,
-            style: const TextStyle(
-              color: AppColors.primaryDark,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),

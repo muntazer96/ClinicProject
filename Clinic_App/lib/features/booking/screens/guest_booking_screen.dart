@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
@@ -130,6 +131,11 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
       return;
     }
 
+    if (!isValidIraqiPhone(_phone.text)) {
+      showAppSnackBar(context, iraqiPhoneError, type: AppSnackBarType.warning);
+      return;
+    }
+
     if (!_validateCaptcha()) return;
 
     setState(() {
@@ -205,14 +211,14 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
     child: ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
       children: [
-        const Text(
+        Text(
           'متابعة حجز الزائر',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'استخدم الهاتف وكود الحجز لعرض دورك أو إلغائه.',
-          style: TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.appMuted),
         ),
 
         if (_hasSavedLookup) ...[
@@ -228,6 +234,7 @@ class _GuestBookingScreenState extends State<GuestBookingScreen> {
         TextField(
           controller: _phone,
           keyboardType: TextInputType.phone,
+          inputFormatters: iraqiPhoneInputFormatters,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
             labelText: 'رقم الهاتف',
@@ -296,18 +303,18 @@ class _CaptchaBox extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.softBlue,
+      color: context.appSoftBlue,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.appBorder),
           ),
           child: Text(
             '$captchaA + $captchaB = ؟',
@@ -351,9 +358,9 @@ class _SavedLookupNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.softBlue,
+      color: context.appSoftBlue,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [

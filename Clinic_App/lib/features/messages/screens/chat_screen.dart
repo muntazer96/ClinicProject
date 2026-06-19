@@ -274,235 +274,228 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 76,
-          titleSpacing: 16,
-          leading: IconButton(
-            tooltip: 'رجوع',
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
+    appBar: AppBar(
+      toolbarHeight: 76,
+      titleSpacing: 16,
+      leading: IconButton(
+        tooltip: 'رجوع',
+        onPressed: () => context.pop(),
+        icon: const Icon(Icons.arrow_back_rounded),
+      ),
+      title: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: context.appSoftAmber,
+            child: Text(
+              widget.otherUserName.isNotEmpty ? widget.otherUserName[0] : '?',
+              style: const TextStyle(
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+              ),
+            ),
           ),
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.softAmber,
-                child: Text(
-                  widget.otherUserName.isNotEmpty
-                      ? widget.otherUserName[0]
-                      : '?',
-                  style: const TextStyle(
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
+          const SizedBox(width: 10),
+          Text(
+            widget.otherUserName,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    ),
+    body: Column(
+      children: [
+        if (!_canSend && _canSendLoaded)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: context.isDark
+                ? const Color(0xFF2F2817)
+                : AppColors.softAmber,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: context.isDark
+                      ? const Color(0xFFF3C969)
+                      : AppColors.primaryDark,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'تم تعطيل إرسال الرسائل من قبل الطبيب.',
+                    style: TextStyle(
+                      color: context.isDark
+                          ? const Color(0xFFF7E7B6)
+                          : AppColors.primaryDark,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                widget.otherUserName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+              ],
+            ),
+          ),
+        const _MessageRetentionNotice(),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  child: ListView.builder(
+                    reverse: true,
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    itemCount:
+                        _messages.length +
+                        (_typingUserId != null ? 1 : 0) +
+                        (_loadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      final lastIndex =
+                          _messages.length +
+                          (_typingUserId != null ? 1 : 0) +
+                          (_loadingMore ? 1 : 0) -
+                          1;
+
+                      if (_loadingMore && index == lastIndex) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (_typingUserId != null && index == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Row(
+                            children: [
+                              SizedBox(width: 40),
+                              Text(
+                                'يكتب...',
+                                style: TextStyle(
+                                  color: AppColors.muted,
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final msgOffset = _typingUserId != null ? 1 : 0;
+                      final msgIndex = index - msgOffset;
+                      final msg = _messages[msgIndex];
+                      final isMe = msg.senderId == _myUserId;
+
+                      return _MessageBubble(message: msg, isMe: isMe);
+                    },
+                  ),
                 ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: context.appSurface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: context.isDark ? .28 : .05,
+                ),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
               ),
             ],
           ),
-        ),
-        body: Column(
-          children: [
-            if (!_canSend && _canSendLoaded)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                color: AppColors.softAmber,
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: AppColors.primaryDark),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'تم تعطيل إرسال الرسائل من قبل الطبيب.',
-                        style: TextStyle(
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const _MessageRetentionNotice(),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : GestureDetector(
-                      onTap: () => FocusScope.of(context).unfocus(),
-                      child: ListView.builder(
-                        reverse: true,
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        itemCount: _messages.length +
-                            (_typingUserId != null ? 1 : 0) +
-                            (_loadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          final lastIndex = _messages.length +
-                              (_typingUserId != null ? 1 : 0) +
-                              (_loadingMore ? 1 : 0) -
-                              1;
-
-                          if (_loadingMore && index == lastIndex) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-
-                          if (_typingUserId != null &&
-                              index == 0) {
-                            return const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Row(
-                                children: [
-                                  SizedBox(width: 40),
-                                  Text(
-                                    'يكتب...',
-                                    style: TextStyle(
-                                      color: AppColors.muted,
-                                      fontSize: 13,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-
-                          final msgOffset =
-                              _typingUserId != null ? 1 : 0;
-                          final msgIndex = index - msgOffset;
-                          final msg = _messages[msgIndex];
-                          final isMe = msg.senderId == _myUserId;
-
-                          return _MessageBubble(
-                            message: msg,
-                            isMe: isMe,
-                          );
-                        },
-                      ),
-                    ),
-            ),
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0D000000),
-                    blurRadius: 8,
-                    offset: Offset(0, -2),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'إرسال صورة',
+                    onPressed: (_sendingImage || !_canSend)
+                        ? null
+                        : _pickAndSendImage,
+                    icon: _sendingImage
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.image_rounded),
+                    color: _canSend ? AppColors.primary : context.appMuted,
                   ),
-                ],
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: 'إرسال صورة',
-                        onPressed: (_sendingImage || !_canSend)
-                            ? null
-                            : _pickAndSendImage,
-                        icon: _sendingImage
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      onChanged: !_canSend ? null : _onTyping,
+                      onSubmitted: (_sending || !_canSend)
+                          ? null
+                          : (_) => _sendMessage(),
+                      textInputAction: TextInputAction.send,
+                      enabled: _canSend,
+                      decoration: InputDecoration(
+                        hintText: !_canSend
+                            ? 'المراسلة معطلة'
+                            : 'اكتب رسالتك...',
+                        filled: true,
+                        fillColor: context.appSurfaceMuted,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: _canSend ? AppColors.primary : context.appMuted,
+                    borderRadius: BorderRadius.circular(24),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: (_sending || !_canSend) ? null : _sendMessage,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        child: _sending
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.image_rounded),
-                        color: _canSend ? AppColors.primary : AppColors.muted,
+                            : const Icon(
+                                Icons.send_rounded,
+                                color: Colors.white,
+                              ),
                       ),
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          onChanged: !_canSend ? null : _onTyping,
-                          onSubmitted: (_sending || !_canSend)
-                              ? null
-                              : (_) => _sendMessage(),
-                          textInputAction: TextInputAction.send,
-                          enabled: _canSend,
-                          decoration: InputDecoration(
-                            hintText: !_canSend
-                                ? 'المراسلة معطلة'
-                                : 'اكتب رسالتك...',
-                            filled: true,
-                            fillColor: const Color(0xFFF5F7FA),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Material(
-                        color: _canSend
-                            ? AppColors.primary
-                            : AppColors.muted,
-                        borderRadius: BorderRadius.circular(24),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap:
-                              (_sending || !_canSend) ? null : _sendMessage,
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            child: _sending
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.send_rounded,
-                                    color: Colors.white,
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _MessageRetentionNotice extends StatelessWidget {
@@ -510,37 +503,41 @@ class _MessageRetentionNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: AppColors.softAmber,
-          borderRadius: BorderRadius.circular(8),
+    width: double.infinity,
+    margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    decoration: BoxDecoration(
+      color: context.isDark ? const Color(0xFF2F2817) : context.appSoftAmber,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      children: [
+        Icon(
+          Icons.info_outline_rounded,
+          color: context.isDark
+              ? const Color(0xFFF3C969)
+              : AppColors.primaryDark,
         ),
-        child: const Row(
-          children: [
-            Icon(Icons.info_outline_rounded, color: AppColors.primaryDark),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'تنبيه: يتم حذف الرسائل والصور المرسلة تلقائيا بعد مرور 30 يوم.',
+            style: TextStyle(
+              color: context.isDark
+                  ? const Color(0xFFF7E7B6)
+                  : AppColors.primaryDark,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({
-    required this.message,
-    required this.isMe,
-  });
+  const _MessageBubble({required this.message, required this.isMe});
 
   final MessageDto message;
   final bool isMe;
@@ -555,18 +552,17 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
             CircleAvatar(
               radius: 14,
-              backgroundColor: AppColors.softAmber,
+              backgroundColor: context.appSoftAmber,
               child: Text(
-                message.senderName.isNotEmpty
-                    ? message.senderName[0]
-                    : '?',
+                message.senderName.isNotEmpty ? message.senderName[0] : '?',
                 style: const TextStyle(
                   color: AppColors.primaryDark,
                   fontSize: 11,
@@ -581,12 +577,9 @@ class _MessageBubble extends StatelessWidget {
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.7,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? AppColors.primary : const Color(0xFFF0F0F0),
+                color: isMe ? AppColors.primary : context.appSurfaceMuted,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -620,7 +613,7 @@ class _MessageBubble extends StatelessWidget {
                             color: Colors.black12,
                             child: Icon(
                               Icons.broken_image_rounded,
-                              color: isMe ? Colors.white70 : AppColors.muted,
+                              color: isMe ? Colors.white70 : context.appMuted,
                             ),
                           ),
                         ),
@@ -633,7 +626,7 @@ class _MessageBubble extends StatelessWidget {
                     Text(
                       message.content,
                       style: TextStyle(
-                        color: isMe ? Colors.white : AppColors.text,
+                        color: isMe ? Colors.white : context.appText,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -647,7 +640,7 @@ class _MessageBubble extends StatelessWidget {
                         style: TextStyle(
                           color: isMe
                               ? Colors.white.withOpacity(.7)
-                              : AppColors.muted,
+                              : context.appMuted,
                           fontSize: 10,
                         ),
                       ),

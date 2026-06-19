@@ -24,6 +24,8 @@ class AppScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final surface = context.appSurface;
+    final muted = context.appMuted;
     final auth = context.watch<AuthController>();
     final hub = context.watch<MessageHubService>();
     final unreadCount = hub.unreadCount;
@@ -84,9 +86,8 @@ class AppScaffold extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11,
-                      color: AppColors.muted,
                       fontWeight: FontWeight.w700,
-                    ),
+                    ).copyWith(color: muted),
                   ),
                 ],
               ),
@@ -108,11 +109,13 @@ class AppScaffold extends StatelessWidget {
             icon: auth.isAuthenticated
                 ? CircleAvatar(
                     radius: 15,
-                    backgroundColor: AppColors.softAmber,
+                    backgroundColor: context.appSoftAmber,
                     child: Text(
                       auth.profile?.initials ?? fallbackInitial,
-                      style: const TextStyle(
-                        color: AppColors.primaryDark,
+                      style: TextStyle(
+                        color: context.isDark
+                            ? AppColors.accent
+                            : AppColors.primaryDark,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),
@@ -125,11 +128,13 @@ class AppScaffold extends StatelessWidget {
       ),
       body: child,
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: surface,
           boxShadow: [
             BoxShadow(
-              color: Color(0x121D4A44),
+              color: context.isDark
+                  ? Colors.black.withValues(alpha: .30)
+                  : const Color(0x121D4A44),
               blurRadius: 22,
               offset: Offset(0, -7),
             ),

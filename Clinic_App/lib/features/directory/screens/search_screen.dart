@@ -160,11 +160,14 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     for (final doctor in items) {
       _analytics.trackOnce(
-        key: 'search-${doctor.id}-$_page-${searchText}_${_province}_${_specialization}_$_sort',
+        key:
+            'search-${doctor.id}-$_page-${searchText}_${_province}_${_specialization}_$_sort',
         eventType: 'doctor_shown_in_search',
         doctorId: doctor.id,
         specializationId: _specialization,
-        province: doctor.clinics.isNotEmpty ? doctor.clinics.first.provinceName : provinceName,
+        province: doctor.clinics.isNotEmpty
+            ? doctor.clinics.first.provinceName
+            : provinceName,
         searchText: searchText,
         source: 'search',
         page: 'search',
@@ -193,9 +196,9 @@ class _SearchScreenState extends State<SearchScreen> {
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'اختر ما يناسبك واعرض الأطباء المتاحين للحجز.',
-          style: TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.appMuted),
         ),
         const SizedBox(height: 14),
         _FiltersCard(
@@ -241,7 +244,8 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: _DoctorCard(
                 doctor: doctor,
-                onTap: () => context.push('/doctors/${doctor.id}?source=search'),
+                onTap: () =>
+                    context.push('/doctors/${doctor.id}?source=search'),
               ),
             ),
           ),
@@ -406,11 +410,11 @@ class _DoctorCard extends StatelessWidget {
     const premiumColor = Color(0xFFD49A00);
 
     return Card(
-      color: Colors.white,
+      color: context.appSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: featured ? premiumColor : AppColors.border,
+          color: featured ? premiumColor : context.appBorder,
           width: featured ? 1.5 : 1,
         ),
       ),
@@ -427,8 +431,10 @@ class _DoctorCard extends StatelessWidget {
                 size: 76,
                 foreground: featured ? premiumColor : AppColors.primary,
                 background: featured
-                    ? const Color(0xFFFFF4D8)
-                    : const Color(0xFFEAF6F8),
+                    ? (context.isDark
+                          ? const Color(0xFF33270F)
+                          : const Color(0xFFFFF4D8))
+                    : context.appSoftBlue,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -539,13 +545,13 @@ class _InlineLocation extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      const Icon(Icons.location_on_outlined, color: AppColors.muted, size: 18),
+      Icon(Icons.location_on_outlined, color: context.appMuted, size: 18),
       const SizedBox(width: 4),
       Flexible(
         child: Text(
           text,
-          style: const TextStyle(
-            color: AppColors.muted,
+          style: TextStyle(
+            color: context.appMuted,
             fontWeight: FontWeight.w700,
           ),
           maxLines: 1,
@@ -563,7 +569,7 @@ class _PremiumDoctorBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFFBF0),
+      color: context.isDark ? const Color(0xFF33270F) : const Color(0xFFFFFBF0),
       borderRadius: BorderRadius.circular(8),
       border: Border.all(color: const Color(0xFFE4B23C), width: 1.1),
     ),
@@ -595,11 +601,11 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 15, color: color ?? AppColors.muted),
+      Icon(icon, size: 15, color: color ?? context.appMuted),
       const SizedBox(width: 3),
       Text(
         text,
-        style: TextStyle(fontSize: 12, color: color ?? AppColors.muted),
+        style: TextStyle(fontSize: 12, color: color ?? context.appMuted),
       ),
     ],
   );
@@ -623,7 +629,7 @@ class _MessageCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(icon, size: 42, color: AppColors.muted),
+          Icon(icon, size: 42, color: context.appMuted),
           const SizedBox(height: 10),
           Text(
             title,
@@ -633,7 +639,7 @@ class _MessageCard extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted),
+            style: TextStyle(color: context.appMuted),
           ),
           if (action != null) ...[
             const SizedBox(height: 12),

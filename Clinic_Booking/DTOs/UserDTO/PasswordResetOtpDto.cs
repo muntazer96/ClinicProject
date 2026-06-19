@@ -5,16 +5,14 @@ namespace Clinic_Booking.DTOs.UserDTO
     public class PasswordResetOtpRequestDto
     {
         [Required]
-        [Phone]
-        [StringLength(30)]
+        [RegularExpression(@"^07\d{9}$", ErrorMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.")]
         public string PhoneNumber { get; set; }
     }
 
     public class PasswordResetOtpVerifyDto
     {
         [Required]
-        [Phone]
-        [StringLength(30)]
+        [RegularExpression(@"^07\d{9}$", ErrorMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.")]
         public string PhoneNumber { get; set; }
 
         [Required]

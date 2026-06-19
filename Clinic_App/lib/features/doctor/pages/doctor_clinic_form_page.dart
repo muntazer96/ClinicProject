@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../auth/auth_controller.dart';
 import '../models/doctor_models.dart';
 import '../services/doctor_service.dart';
@@ -95,6 +97,10 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
       showAppSnackBar(context, 'أكمل بيانات العيادة.');
       return;
     }
+    if (_phone.text.trim().isNotEmpty && !isValidIraqiPhone(_phone.text)) {
+      showAppSnackBar(context, iraqiPhoneError, type: AppSnackBarType.warning);
+      return;
+    }
 
     setState(() => _saving = true);
 
@@ -130,162 +136,160 @@ class _DoctorClinicFormPageState extends State<DoctorClinicFormPage> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: _editing ? 'تعديل عيادة' : 'إضافة عيادة',
-        showBackButton: true,
-        backRoute: '/doctor/clinics',
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+    title: _editing ? 'تعديل عيادة' : 'إضافة عيادة',
+    showBackButton: true,
+    backRoute: '/doctor/clinics',
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        _HeaderCard(editing: _editing),
+
+        const SizedBox(height: 14),
+
+        _FormSection(
+          title: 'معلومات العيادة',
+          icon: Icons.local_hospital_rounded,
           children: [
-            _HeaderCard(editing: _editing),
-
-            const SizedBox(height: 14),
-
-            _FormSection(
-              title: 'معلومات العيادة',
-              icon: Icons.local_hospital_rounded,
-              children: [
-                _AppTextField(
-                  controller: _name,
-                  label: 'اسم العيادة',
-                  icon: Icons.apartment_rounded,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int>(
-                  value: _provinces.any((item) => item.id == _provinceId)
-                      ? _provinceId
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: 'المحافظة',
-                    prefixIcon: const Icon(Icons.map_rounded),
-                    suffixIcon: _loadingProvinces
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : null,
-                  ),
-                  items: _provinces
-                      .map(
-                        (province) => DropdownMenuItem<int>(
-                          value: province.id,
-                          child: Text(province.name),
+            _AppTextField(
+              controller: _name,
+              label: 'اسم العيادة',
+              icon: Icons.apartment_rounded,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              value: _provinces.any((item) => item.id == _provinceId)
+                  ? _provinceId
+                  : null,
+              decoration: InputDecoration(
+                labelText: 'المحافظة',
+                prefixIcon: const Icon(Icons.map_rounded),
+                suffixIcon: _loadingProvinces
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                      .toList(),
-                  onChanged: _loadingProvinces
-                      ? null
-                      : (value) => setState(() => _provinceId = value),
-                ),
-                const SizedBox(height: 12),
-                _AppTextField(
-                  controller: _address,
-                  label: 'العنوان التفصيلي',
-                  icon: Icons.place_rounded,
-                ),
-                const SizedBox(height: 12),
-                _AppTextField(
-                  controller: _phone,
-                  label: 'رقم هاتف العيادة',
-                  icon: Icons.phone_rounded,
-                  keyboardType: TextInputType.phone,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            _FormSection(
-              title: 'السعر والموقع',
-              icon: Icons.payments_rounded,
-              children: [
-                _AppTextField(
-                  controller: _price,
-                  label: 'سعر الكشف',
-                  icon: Icons.payments_outlined,
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                _AppTextField(
-                  controller: _mapUrl,
-                  label: 'رابط الخريطة',
-                  icon: Icons.location_on_rounded,
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 12),
-                _AppTextField(
-                  controller: _bookingWindowDays,
-                  label: 'عدد أيام الحجز المتاحة',
-                  icon: Icons.event_repeat_rounded,
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            _FormSection(
-              title: 'إعدادات الظهور',
-              icon: Icons.tune_rounded,
-              children: [
-                _PrettySwitchTile(
-                  title: 'إظهار السعر للمستخدمين',
-                  subtitle: 'يعرض سعر الكشف داخل صفحة العيادة',
-                  icon: Icons.visibility_rounded,
-                  value: _showPrice,
-                  onChanged: (value) => setState(() => _showPrice = value),
-                ),
-                const SizedBox(height: 10),
-                _PrettySwitchTile(
-                  title: 'العيادة ظاهرة',
-                  subtitle: 'تظهر العيادة للمرضى ضمن التطبيق',
-                  icon: Icons.storefront_rounded,
-                  value: _visible,
-                  onChanged: (value) => setState(() => _visible = value),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 18),
-
-            SizedBox(
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(
-                  _saving ? 'جاري الحفظ...' : 'حفظ العيادة',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(.55),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
+                    : null,
               ),
+              items: _provinces
+                  .map(
+                    (province) => DropdownMenuItem<int>(
+                      value: province.id,
+                      child: Text(province.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _loadingProvinces
+                  ? null
+                  : (value) => setState(() => _provinceId = value),
+            ),
+            const SizedBox(height: 12),
+            _AppTextField(
+              controller: _address,
+              label: 'العنوان التفصيلي',
+              icon: Icons.place_rounded,
+            ),
+            const SizedBox(height: 12),
+            _AppTextField(
+              controller: _phone,
+              label: 'رقم هاتف العيادة',
+              icon: Icons.phone_rounded,
+              keyboardType: TextInputType.phone,
+              inputFormatters: iraqiPhoneInputFormatters,
             ),
           ],
         ),
-      );
+
+        const SizedBox(height: 14),
+
+        _FormSection(
+          title: 'السعر والموقع',
+          icon: Icons.payments_rounded,
+          children: [
+            _AppTextField(
+              controller: _price,
+              label: 'سعر الكشف',
+              icon: Icons.payments_outlined,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 12),
+            _AppTextField(
+              controller: _mapUrl,
+              label: 'رابط الخريطة',
+              icon: Icons.location_on_rounded,
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+            _AppTextField(
+              controller: _bookingWindowDays,
+              label: 'عدد أيام الحجز المتاحة',
+              icon: Icons.event_repeat_rounded,
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 14),
+
+        _FormSection(
+          title: 'إعدادات الظهور',
+          icon: Icons.tune_rounded,
+          children: [
+            _PrettySwitchTile(
+              title: 'إظهار السعر للمستخدمين',
+              subtitle: 'يعرض سعر الكشف داخل صفحة العيادة',
+              icon: Icons.visibility_rounded,
+              value: _showPrice,
+              onChanged: (value) => setState(() => _showPrice = value),
+            ),
+            const SizedBox(height: 10),
+            _PrettySwitchTile(
+              title: 'العيادة ظاهرة',
+              subtitle: 'تظهر العيادة للمرضى ضمن التطبيق',
+              icon: Icons.storefront_rounded,
+              value: _visible,
+              onChanged: (value) => setState(() => _visible = value),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        SizedBox(
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(
+              _saving ? 'جاري الحفظ...' : 'حفظ العيادة',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withOpacity(.55),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _HeaderCard extends StatelessWidget {
@@ -315,7 +319,9 @@ class _HeaderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
-              editing ? Icons.edit_location_alt_rounded : Icons.add_business_rounded,
+              editing
+                  ? Icons.edit_location_alt_rounded
+                  : Icons.add_business_rounded,
               color: Colors.white,
               size: 29,
             ),
@@ -356,9 +362,9 @@ class _FormSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -390,22 +396,22 @@ class _AppTextField extends StatelessWidget {
     required this.label,
     required this.icon,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
   final String label;
   final IconData icon;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-      ),
+      inputFormatters: inputFormatters,
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
     );
   }
 }
@@ -430,9 +436,9 @@ class _PrettySwitchTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFA),
+        color: context.appSurfaceMuted,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFE3ECEA)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
@@ -454,7 +460,7 @@ class _PrettySwitchTile extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: Colors.grey.shade600,
+                    color: context.appMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

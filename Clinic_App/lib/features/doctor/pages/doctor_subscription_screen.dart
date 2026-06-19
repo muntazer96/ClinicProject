@@ -45,28 +45,28 @@ class _DoctorSubscriptionScreenState extends State<DoctorSubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'الاشتراكات',
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
-                  itemCount: _items.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return _SubscriptionOverview(subscription: _current);
-                    }
-                    final item = _items[index - 1];
-                    return _SubscriptionBanner(
-                      item: item,
-                      isCurrent: _current?.packageId == item.id,
-                    );
-                  },
-                ),
-        ),
-      );
+    title: 'الاشتراكات',
+    child: RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+              itemCount: _items.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _SubscriptionOverview(subscription: _current);
+                }
+                final item = _items[index - 1];
+                return _SubscriptionBanner(
+                  item: item,
+                  isCurrent: _current?.packageId == item.id,
+                );
+              },
+            ),
+    ),
+  );
 }
 
 class _SubscriptionOverview extends StatelessWidget {
@@ -85,11 +85,9 @@ class _SubscriptionOverview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(.08),
@@ -107,11 +105,7 @@ class _SubscriptionOverview extends StatelessWidget {
               color: color.withOpacity(.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              Icons.verified_outlined,
-              color: color,
-              size: 29,
-            ),
+            child: Icon(Icons.verified_outlined, color: color, size: 29),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -120,9 +114,9 @@ class _SubscriptionOverview extends StatelessWidget {
               children: [
                 Text(
                   active ? 'اشتراكك الحالي' : 'حالة الاشتراك',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.muted,
+                    color: context.appMuted,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -133,17 +127,14 @@ class _SubscriptionOverview extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 18,
-                    color: AppColors.text,
+                    color: context.appText,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
-          _Badge(
-            text: active ? 'فعال' : 'غير مفعل',
-            color: color,
-          ),
+          _Badge(text: active ? 'فعال' : 'غير مفعل', color: color),
         ],
       ),
     );
@@ -151,17 +142,14 @@ class _SubscriptionOverview extends StatelessWidget {
 }
 
 class _SubscriptionBanner extends StatelessWidget {
-  const _SubscriptionBanner({
-    required this.item,
-    required this.isCurrent,
-  });
+  const _SubscriptionBanner({required this.item, required this.isCurrent});
 
   final SubscriptionPackage item;
   final bool isCurrent;
 
   @override
   Widget build(BuildContext context) {
-    final style = _PackageStyle.from(item.normalizedName);
+    final style = _PackageStyle.from(context, item.normalizedName);
 
     return Container(
       decoration: BoxDecoration(
@@ -316,9 +304,11 @@ class _SubscriptionBanner extends StatelessWidget {
                 SizedBox(
                   height: 46,
                   child: ElevatedButton.icon(
-                    onPressed: isCurrent ? null : () {
-                      // TODO: افتح صفحة الدفع او طلب الاشتراك
-                    },
+                    onPressed: isCurrent
+                        ? null
+                        : () {
+                            // TODO: افتح صفحة الدفع او طلب الاشتراك
+                          },
                     icon: Icon(
                       isCurrent
                           ? Icons.check_circle_rounded
@@ -371,16 +361,23 @@ class _PackageStyle {
     required this.badge,
   });
 
-  factory _PackageStyle.from(String normalizedName) {
+  factory _PackageStyle.from(BuildContext context, String normalizedName) {
     final key = normalizedName.trim().toLowerCase();
+    final surface = context.appSurface;
+    final soft = context.appSoftBlue;
+    final border = context.appBorder;
+    final title = context.appText;
 
     if (key == 'basic') {
-      return const _PackageStyle(
-        gradient: [Color(0xFFFFFFFF), Color(0xFFF3F8F7)],
+      return _PackageStyle(
+        gradient: [
+          surface,
+          context.isDark ? const Color(0xFF112B2D) : const Color(0xFFF3F8F7),
+        ],
         accent: AppColors.primary,
-        borderColor: Color(0xFFDDE8E6),
+        borderColor: border,
         shadowColor: AppColors.primary,
-        titleColor: Color(0xFF172524),
+        titleColor: title,
         icon: Icons.spa_outlined,
         subtitle: 'بداية بسيطة لإدارة عيادتك',
         badge: 'أساسي',
@@ -388,12 +385,12 @@ class _PackageStyle {
     }
 
     if (key == 'gold') {
-      return const _PackageStyle(
-        gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+      return _PackageStyle(
+        gradient: [surface, soft],
         accent: AppColors.primary,
-        borderColor: Color(0xFFDDE9E7),
+        borderColor: border,
         shadowColor: AppColors.primary,
-        titleColor: AppColors.primaryDark,
+        titleColor: title,
         icon: Icons.workspace_premium_rounded,
         subtitle: 'ظهور أفضل ومميزات أكثر',
         badge: 'ذهبي',
@@ -401,24 +398,24 @@ class _PackageStyle {
     }
 
     if (key == 'diamond') {
-      return const _PackageStyle(
-        gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+      return _PackageStyle(
+        gradient: [surface, soft],
         accent: AppColors.primary,
-        borderColor: Color(0xFFDDE9E7),
+        borderColor: border,
         shadowColor: AppColors.primary,
-        titleColor: AppColors.primaryDark,
+        titleColor: title,
         icon: Icons.diamond_outlined,
         subtitle: 'حجز إلكتروني وعروض وميزات متقدمة',
         badge: 'ألماس',
       );
     }
 
-    return const _PackageStyle(
-      gradient: [Color(0xFFFFFFFF), Color(0xFFEAF7F5)],
+    return _PackageStyle(
+      gradient: [surface, soft],
       accent: AppColors.primary,
-      borderColor: Color(0xFFDDE9E7),
+      borderColor: border,
       shadowColor: AppColors.primary,
-      titleColor: AppColors.primaryDark,
+      titleColor: title,
       icon: Icons.emoji_events_rounded,
       subtitle: 'أعلى ظهور وأقوى مميزات للطبيب',
       badge: 'فاخر',
@@ -437,7 +434,7 @@ class _IconBox extends StatelessWidget {
       width: 54,
       height: 54,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.78),
+        color: context.appSurface.withOpacity(context.isDark ? .82 : .78),
         borderRadius: BorderRadius.circular(17),
         border: Border.all(color: style.borderColor),
       ),
@@ -489,7 +486,7 @@ class _FeaturePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.72),
+        color: context.appSurface.withOpacity(context.isDark ? .82 : .72),
         borderRadius: BorderRadius.circular(13),
         border: Border.all(color: color.withOpacity(.16)),
       ),
@@ -500,10 +497,7 @@ class _FeaturePill extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
           ),
         ],
       ),

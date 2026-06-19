@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../../widgets/auth_shell.dart';
 import '../../../widgets/developer_credit.dart';
 import 'login_screen.dart';
@@ -80,6 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (!isValidIraqiPhone(phone.text)) {
+      setState(() => error = iraqiPhoneError);
+      return;
+    }
+
     if (password.text != confirm.text) {
       setState(() => error = 'كلمتا المرور غير متطابقتين.');
       return;
@@ -145,6 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         TextField(
           controller: phone,
           keyboardType: TextInputType.phone,
+          inputFormatters: iraqiPhoneInputFormatters,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
             labelText: 'رقم الهاتف',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_theme.dart';
+import '../../core/phone_number_validator.dart';
 import '../auth/auth_controller.dart';
 import 'profile_service.dart';
 
@@ -38,6 +39,10 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
       setState(() => _error = 'أدخل رقم الهاتف حتى نرسل رمز التأكيد.');
+      return;
+    }
+    if (!isValidIraqiPhone(phone)) {
+      setState(() => _error = iraqiPhoneError);
       return;
     }
 
@@ -104,6 +109,7 @@ class _PhoneSetupScreenState extends State<PhoneSetupScreen> {
         controller: _phoneController,
         autofocus: true,
         keyboardType: TextInputType.phone,
+        inputFormatters: iraqiPhoneInputFormatters,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _saveAndSendOtp(),
         decoration: const InputDecoration(
@@ -133,20 +139,28 @@ class _Notice extends StatelessWidget {
   final bool error;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F3),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: error ? Colors.red.shade100 : const Color(0xFFCDECE4),
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final background = error
+        ? (isDark ? const Color(0xFF3F1518) : Colors.red.shade50)
+        : context.appSoftBlue;
+    final border = error
+        ? (isDark ? const Color(0xFF7F1D1D) : Colors.red.shade100)
+        : context.appBorder;
+    final foreground = error
+        ? (isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800)
+        : Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
       ),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error ? Colors.red.shade800 : AppColors.primaryDark,
+      child: Text(
+        text,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../../widgets/auth_shell.dart';
 import 'login_screen.dart';
 
@@ -91,6 +92,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _sendOtp() async {
     if (!canSend) return;
+    if (!isValidIraqiPhone(phone.text)) {
+      setState(() => error = iraqiPhoneError);
+      return;
+    }
     setState(() {
       loading = true;
       error = null;
@@ -123,10 +128,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       final response = await context.read<ApiClient>().dio.post(
         '/User/password/forgot/verify-otp',
-        data: {
-          'phoneNumber': phone.text.trim(),
-          'otpCode': _otpCode,
-        },
+        data: {'phoneNumber': phone.text.trim(), 'otpCode': _otpCode},
       );
       final data = response.data['data'] as Map<String, dynamic>? ?? {};
       final resetToken = data['resetToken'] as String? ?? '';
@@ -164,7 +166,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: phone,
           enabled: !loading && !codeSent,
           keyboardType: TextInputType.phone,
-          textInputAction: codeSent ? TextInputAction.next : TextInputAction.done,
+          inputFormatters: iraqiPhoneInputFormatters,
+          textInputAction: codeSent
+              ? TextInputAction.next
+              : TextInputAction.done,
           onSubmitted: (_) {
             if (!codeSent) _sendOtp();
           },
@@ -203,8 +208,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       onSubmitted: (_) => _verifyOtp(),
                       onTap: () => _otpControllers[index].selection =
                           TextSelection.collapsed(
-                        offset: _otpControllers[index].text.length,
-                      ),
+                            offset: _otpControllers[index].text.length,
+                          ),
                     ),
                   ),
                 ),
@@ -221,8 +226,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             loading
                 ? 'جاري المعالجة...'
                 : codeSent
-                    ? 'تأكيد الرمز'
-                    : 'إرسال رمز التحقق',
+                ? 'تأكيد الرمز'
+                : 'إرسال رمز التحقق',
           ),
         ),
         if (codeSent)
