@@ -21,7 +21,7 @@ class AuthController extends ChangeNotifier {
   static const _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
     defaultValue:
-        '242254582280-k2v2k9c7jf1fuap5f8qun4e4ncn556fo.apps.googleusercontent.com',
+        '376580756051-kkide42qu74rqvo3fis1p1n28qeh3g50.apps.googleusercontent.com',
   );
   final ApiClient api;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
