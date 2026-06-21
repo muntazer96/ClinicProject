@@ -207,10 +207,10 @@ namespace Clinic_Booking.Services.UserServices
                         Data = null
                     });
                 }
-                if (!IsValidIraqiPhone(phoneNumber))
-                {
-                    return InvalidPhoneNumber();
-                }
+                //if (!IsValidIraqiPhone(phoneNumber))
+                //{
+                //    return InvalidPhoneNumber();
+                //}
 
                 var user = await _userManager.FindByNameAsync(phoneNumber);
 

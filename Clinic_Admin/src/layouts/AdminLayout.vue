@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
   BadgePercent, BarChart3, Bell, BellRing, Building2, CalendarDays, ChevronDown, ChevronLeft, ClipboardList, HeartPulse,
-  House, KeyRound, LogOut, Menu, MessageCircle, MessageSquareText, Smartphone, Stethoscope, UserRound, UsersRound, X,
+  House, KeyRound, LogOut, Menu, MessageCircle, MessageSquareText, PackageOpen, Stethoscope, UserRound, UsersRound, X,
 } from '@lucide/vue'
 import AppModal from '../components/AppModal.vue'
 import api from '../services/api'
@@ -32,7 +32,8 @@ const links = computed(() => [
   { label: 'الاشتراكات', to: '/subscriptions', icon: ClipboardList, roles: ['SuperAdmin'] },
   { label: 'WhatsApp OTP', to: '/whatsapp', icon: MessageCircle, roles: ['SuperAdmin'] },
   { label: 'العروض', to: '/offers', icon: BadgePercent, roles: ['SuperAdmin', 'DoctorUser'] },
-  { label: 'إصدارات التطبيق', to: '/app-versions', icon: Smartphone, roles: ['SuperAdmin'] },
+  { label: 'إصدارات APK', to: '/app-releases', icon: PackageOpen, roles: ['SuperAdmin'] },
+  { label: 'سياسات التحديث', to: '/app-versions', icon: KeyRound, roles: ['SuperAdmin'] },
   { label: 'الحجوزات', to: '/appointments', icon: CalendarDays, roles: ['SuperAdmin', 'DoctorUser'] },
   { label: 'عياداتي', to: '/clinics', icon: Building2, roles: ['DoctorUser'] },
   { label: 'الإجازات', to: '/exceptions', icon: Bell, roles: ['DoctorUser'] },

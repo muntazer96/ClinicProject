@@ -1,4 +1,5 @@
 using Clinic_Booking.Entities.Appointment;
+using Clinic_Booking.Entities.AppRelease;
 using Clinic_Booking.Entities.AppVersion;
 using Clinic_Booking.Entities.Analytics;
 using Clinic_Booking.Entities.AuditLog;
@@ -67,6 +68,7 @@ namespace Clinic_Booking.Data
         public DbSet<DoctorFeature> DoctorFeature { get; set; }
         public DbSet<DoctorOffer> DoctorOffers { get; set; }
         public DbSet<AppVersionPolicy> AppVersionPolicies { get; set; }
+        public DbSet<AppRelease> AppReleases { get; set; }
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
 
@@ -133,6 +135,15 @@ namespace Clinic_Booking.Data
             });
 
             // DoctorOffer
+            modelBuilder.Entity<AppRelease>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.VersionName).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.FileName).IsRequired().HasMaxLength(260);
+                entity.Property(e => e.ReleaseNotes).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.IsActive, e.IsDeleted });
+            });
+
             modelBuilder.Entity<DoctorOffer>(entity =>
             {
                 entity.HasKey(e => e.Id);

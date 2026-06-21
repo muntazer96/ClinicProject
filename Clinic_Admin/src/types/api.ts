@@ -371,6 +371,31 @@ export interface AppVersionCheck {
   updateUrl?: string
 }
 
+export interface AppReleaseItem {
+  id: number
+  versionName: string
+  versionCode: number
+  fileSize: number
+  releaseNotes?: string
+  isActive: boolean
+  createdAt: string
+  downloadCount: number
+  fileName: string
+  createdBy: string
+}
+
+export interface AppReleaseResponse {
+  id: number
+  versionName: string
+  versionCode: number
+  downloadUrl: string
+  fileSize: string
+  releaseNotes: string[]
+  isActive: boolean
+  createdAt: string
+  downloadCount: number
+}
+
 export interface AnalyticsMetric {
   key: string
   label: string
