@@ -112,7 +112,7 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
                     doctorId,
                     "انتهى الاشتراك",
                     "تمت إعادة الحساب إلى الخطة المجانية وإيقاف الميزات المدفوعة.",
-                    cancellationToken);
+                    cancellationToken: cancellationToken);
             }
         }
 
@@ -144,7 +144,7 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
                 var alreadySent = await context.Notifications.AnyAsync(
                     notification =>
                         notification.DoctorId == subscription.DoctorId &&
-                        notification.Message.Contains(marker) &&
+                        notification.ReferenceKey == marker &&
                         !notification.IsDeleted,
                     cancellationToken);
                 if (alreadySent)
@@ -157,7 +157,8 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
                     push,
                     subscription.DoctorId,
                     "قرب انتهاء الاشتراك",
-                    $"تبقى {daysLeft} يوم على انتهاء اشتراك {subscription.Package.Name}. [{marker}]",
+                    $"تبقى {daysLeft} يوم على انتهاء اشتراك {subscription.Package.Name}.",
+                    referenceKey: marker,
                     cancellationToken);
             }
         }
@@ -168,12 +169,14 @@ namespace Clinic_Booking.Services.SubscriptionExpirationServices
             int doctorId,
             string title,
             string body,
-            CancellationToken cancellationToken)
+            string? referenceKey = null,
+            CancellationToken cancellationToken = default)
         {
             context.Notifications.Add(new Notification
             {
                 DoctorId = doctorId,
                 Message = body,
+                ReferenceKey = referenceKey,
                 CreatedAt = BusinessClock.Now(),
                 Status = NotificationStatus.Unread
             });

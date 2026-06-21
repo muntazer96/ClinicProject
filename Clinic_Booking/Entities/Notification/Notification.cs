@@ -6,6 +6,7 @@ namespace Clinic_Booking.Entities.Notification
     public class Notification : BaseEntity<int>
     {
         public string Message { get; set; } // نص الإشعار
+        public string? ReferenceKey { get; set; } // مفتاح داخلي لمنع التكرار (مثال: [appointment-reminder:4:2026-09-20])
         public DateTime CreatedAt { get; set; } // وقت الإنشاء
         public NotificationStatus Status { get; set; } = NotificationStatus.Unread; // حالة الإشعار (مقروء، غير مقروء)
         public DateTime? ReadAt { get; set; }

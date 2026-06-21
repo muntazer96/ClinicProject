@@ -584,6 +584,12 @@ namespace Clinic_Booking.Data
             {
                 entity.HasKey(e => e.Id);
 
+                entity.Property(n => n.ReferenceKey)
+                    .HasMaxLength(200);
+
+                entity.HasIndex(n => n.ReferenceKey)
+                    .HasDatabaseName("IX_Notifications_ReferenceKey");
+
                 entity.HasOne(n => n.User)
                     .WithMany()
                     .HasForeignKey(n => n.UserId)
