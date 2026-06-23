@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>خطوات تحديث مشروع العيادة على السيرفر</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --paper: #ffffff;
+      --ink: #17212b;
+      --muted: #5f6b76;
+      --primary: #0f766e;
+      --primary-soft: #e7f6f4;
+      --line: #dce4e8;
+      --code-bg: #111827;
+      --code-fg: #e5e7eb;
+      --warn-bg: #fff7ed;
+      --warn-border: #fed7aa;
+      --warn-ink: #9a3412;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Tahoma, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.8;
+    }
+
+    .page {
+      width: min(100% - 32px, 980px);
+      margin: 32px auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 30px 34px;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.35;
+    }
+
+    header p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 15px;
+    }
+
+    main {
+      padding: 28px 34px 36px;
+    }
+
+    section {
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    section:last-child {
+      border-bottom: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      color: var(--primary);
+      font-size: 21px;
+    }
+
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    ol {
+      margin: 0;
+      padding: 0 24px 0 0;
+    }
+
+    li {
+      margin: 0 0 18px;
+    }
+
+    code {
+      direction: ltr;
+      unicode-bidi: embed;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      direction: ltr;
+      text-align: left;
+      margin: 10px 0 0;
+      padding: 16px;
+      overflow-x: auto;
+      color: var(--code-fg);
+      background: var(--code-bg);
+      border-radius: 8px;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .note {
+      margin: 12px 0 0;
+      padding: 13px 15px;
+      background: var(--primary-soft);
+      border: 1px solid #bde7e0;
+      border-radius: 8px;
+      color: #115e59;
+    }
+
+    .warn {
+      margin: 12px 0 0;
+      padding: 13px 15px;
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      border-radius: 8px;
+      color: var(--warn-ink);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .meta div {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+    }
+
+    .meta strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .meta span {
+      direction: ltr;
+      display: block;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    .quick {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+      }
+
+      header,
+      main {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .meta {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <article class="page">
+    <header>
+      <h1>خطوات تحديث مشروع العيادة على السيرفر</h1>
+      <p>استخدم هذا الملف كل مرة ترفع تحديث جديد على GitHub وتريد تحدث السيرفر.</p>
+      <div class="meta">
+        <div>
+          <strong>مسار المشروع</strong>
+          <span>/opt/clinic/ClinicProject</span>
+        </div>
+        <div>
+          <strong>البرانج</strong>
+          <span>message-version</span>
+        </div>
+        <div>
+          <strong>عنوان السيرفر</strong>
+          <span>167.86.119.12</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>1. الدخول للسيرفر</h2>
+        <p>ادخل إلى السيرفر عن طريق SSH:</p>
+        <pre><code>ssh root@167.86.119.12</code></pre>
+      </section>
+
+      <section>
+        <h2>2. الانتقال إلى المشروع</h2>
+        <pre><code>cd /opt/clinic/ClinicProject</code></pre>
+      </section>
+
+      <section>
+        <h2>3. التأكد من البرانج الصحيح</h2>
+        <p>تأكد أنك على برانج <code>message-version</code>:</p>
+        <pre><code>git branch</code></pre>
+        <p>إذا لم تكن عليه، نفذ:</p>
+        <pre><code>git checkout message-version</code></pre>
+      </section>
+
+      <section>
+        <h2>4. سحب آخر تحديث من GitHub</h2>
+        <pre><code>git pull origin message-version</code></pre>
+        <div class="warn">
+          إذا ظهر تعارض بسبب ملفات السيرفر مثل <code>.env.production</code> أو <code>package-lock.json</code>، لا تستخدم <code>git reset</code> مباشرة. انسخ الخطأ وراجعه قبل المتابعة.
+        </div>
+      </section>
+
+      <section>
+        <h2>5. تحديث الباكند .NET</h2>
+        <pre><code>cd /opt/clinic/ClinicProject/Clinic_Booking
+dotnet restore
+dotnet publish -c Release -o /var/www/clinic-api
+systemctl restart clinic-api</code></pre>
+        <p>تأكد أن الخدمة اشتغلت بدون مشاكل:</p>
+        <pre><code>systemctl status clinic-api</code></pre>
+      </section>
+
+      <section>
+        <h2>6. تحديث الفرونت Vue</h2>
+        <pre><code>cd /opt/clinic/ClinicProject/Clinic_Admin
+npm install
+npm run build
+rm -rf /var/www/clinic-admin/*
+cp -r dist/* /var/www/clinic-admin/
+chown -R www-data:www-data /var/www/clinic-admin
+systemctl reload nginx</code></pre>
+        <div class="note">
+          بعد تحديث الفرونت، افتح الموقع من نافذة Incognito أو استخدم <code>Ctrl + Shift + R</code> حتى تتجاوز كاش المتصفح.
+        </div>
+      </section>
+
+      <section>
+        <h2>7. تحديث WhatsApp Bridge</h2>
+        <p>نفذ هذه الخطوات إذا كان التحديث يشمل ملفات داخل <code>WhatsApp_Bridge</code>:</p>
+        <pre><code>cd /opt/clinic/ClinicProject/WhatsApp_Bridge
+npm install --omit=dev
+systemctl restart clinic-whatsapp</code></pre>
+        <p>تأكد أن الخدمة تعمل:</p>
+        <pre><code>systemctl status clinic-whatsapp</code></pre>
+      </section>
+
+      <section>
+        <h2>8. فحص Nginx والخدمات</h2>
+        <pre><code>nginx -t
+systemctl reload nginx
+curl -I http://167.86.119.12
+curl -I http://167.86.119.12/api/Health</code></pre>
+        <p>إذا لم يكن endpoint <code>/api/Health</code> متاحاً، افحص Swagger أو أي endpoint موجود:</p>
+        <pre><code>curl -I http://167.86.119.12/swagger</code></pre>
+      </section>
+
+      <section>
+        <h2>9. مراقبة الأخطاء</h2>
+        <p>إذا ظهرت مشكلة بعد التحديث، استخدم هذه الأوامر لمعرفة السبب:</p>
+        <pre><code>journalctl -u clinic-api -n 120 --no-pager
+journalctl -u clinic-whatsapp -n 120 --no-pager
+journalctl -u nginx -n 120 --no-pager</code></pre>
+        <p>وللمتابعة المباشرة أثناء التجربة:</p>
+        <pre><code>journalctl -u clinic-api -f</code></pre>
+      </section>
+
+      <section>
+        <h2>مختصر التحديث اليومي</h2>
+        <div class="quick">
+          <pre><code>cd /opt/clinic/ClinicProject
+git pull origin message-version
+
+cd Clinic_Booking
+dotnet publish -c Release -o /var/www/clinic-api
+systemctl restart clinic-api
+
+cd ../Clinic_Admin
+npm install
+npm run build
+rm -rf /var/www/clinic-admin/*
+cp -r dist/* /var/www/clinic-admin/
+systemctl reload nginx
+
+cd ../WhatsApp_Bridge
+npm install --omit=dev
+systemctl restart clinic-whatsapp</code></pre>
+        </div>
+      </section>
+    </main>
+  </article>
+</body>
+</html>
