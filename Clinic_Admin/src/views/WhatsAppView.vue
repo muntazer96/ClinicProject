@@ -58,6 +58,7 @@ function defaultBridgeEndpoint() {
   const protocol = window.location.protocol || 'http:'
   const host = window.location.hostname || '127.0.0.1'
   return `${protocol}//${host}:3001`
+  //return `${protocol}//${host}/whatsapp-bridge`
 }
 
 function headers(): Record<string, string> {
