@@ -63,7 +63,8 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore(pinia)
-  const hasSession = await auth.ensureSession()
+  const needsSession = Boolean(to.meta.requiresAuth || to.meta.guestOnly || to.meta.roles)
+  const hasSession = needsSession ? await auth.ensureSession() : false
 
   if (to.meta.guestOnly && hasSession) return { name: 'dashboard' }
   if (to.meta.requiresAuth && !hasSession) return { name: 'login' }

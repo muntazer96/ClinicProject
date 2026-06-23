@@ -20,5 +20,11 @@ namespace Clinic_Booking.Controllers
         {
             return await _service.GetListAsync(page, pageSize);
         }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateSubscriptionPackageAsync(UpdateSubscriptionPackagesDto form)
+        {
+            return await _service.UpdateAsync(form);
+        }
     }
 }

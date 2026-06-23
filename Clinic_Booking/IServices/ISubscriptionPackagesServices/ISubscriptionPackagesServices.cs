@@ -7,5 +7,6 @@ namespace Clinic_Booking.IServices.ISubscriptionPackagesServices
     public interface ISubscriptionPackagesServices
     {
         Task<ActionResult<PaginationDto.PageResult<GetSubscriptionPackages>>> GetListAsync(int page = 1, int pageSize = 10);
+        Task<IActionResult> UpdateAsync(UpdateSubscriptionPackagesDto form);
     }
 }

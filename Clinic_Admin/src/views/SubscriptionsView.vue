@@ -24,7 +24,23 @@ const totalPages = ref(1)
 const totalItems = ref(0)
 const packagePage = ref(1)
 const packagePageSize = 6
-const modal = ref<'create' | 'renew' | 'upgrade'>()
+const modal = ref<'create' | 'renew' | 'upgrade' | 'editPackage'>()
+const editPackageForm = reactive({
+  id: 0,
+  name: '',
+  normalizedName: '',
+  price: 0,
+  yearlyPrice: 0,
+  maxClinics: 0,
+  maxWeeklyDays: 0,
+  maxDailyAppointments: 0,
+  showReviews: false,
+  showMessages: false,
+  eBooking: false,
+  ePayments: false,
+  makeOffers: false,
+  maxActiveOffers: 0,
+})
 const selectedSubscription = ref<DoctorSubscription>()
 const confirmation = ref<Confirmation>()
 const filters = reactive({ doctorId: '', packageId: '', status: '', isActive: '' })
@@ -141,6 +157,35 @@ function selectTab(tab: Tab) {
 
 function changePackagePage(newPage: number) {
   packagePage.value = newPage
+}
+
+function openEditPackage(item: SubscriptionPackage) {
+  editPackageForm.id = item.id
+  editPackageForm.name = item.name
+  editPackageForm.normalizedName = item.normalizedName
+  editPackageForm.price = item.price
+  editPackageForm.yearlyPrice = item.yearlyPrice
+  editPackageForm.maxClinics = item.maxClinics
+  editPackageForm.maxWeeklyDays = item.maxWeeklyDays
+  editPackageForm.maxDailyAppointments = item.maxDailyAppointments
+  editPackageForm.showReviews = item.showReviews
+  editPackageForm.showMessages = item.showMessages
+  editPackageForm.eBooking = item.eBooking
+  editPackageForm.ePayments = item.ePayments
+  editPackageForm.makeOffers = item.makeOffers
+  editPackageForm.maxActiveOffers = item.maxActiveOffers
+  modal.value = 'editPackage'
+}
+
+async function updatePackage() {
+  try {
+    const response = await api.put<ApiResponse<object>>('/SubscriptionPackages', { ...editPackageForm })
+    notifications.show(response.data.message)
+    modal.value = undefined
+    await loadLookups()
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  }
 }
 
 async function createSubscription() {
@@ -299,7 +344,7 @@ onMounted(initialize)
 
     <section v-if="activeTab === 'packages'" class="package-grid">
       <article v-for="item in paginatedPackages" :key="item.id" class="package-card">
-        <div class="package-header"><span><Crown :size="20" /></span><div><h3>{{ item.name }}</h3><small>{{ item.normalizedName }}</small></div></div>
+        <div class="package-header"><span><Crown :size="20" /></span><div><h3>{{ item.name }}</h3><small>{{ item.normalizedName }}</small></div><button class="edit-package-btn" type="button" title="تعديل الباقة" @click="openEditPackage(item)"><SlidersHorizontal :size="16" /></button></div>
         <div class="package-price"><strong>{{ money(item.price) }}</strong><span>د.ع / شهر</span></div>
         <small class="yearly-price">{{ money(item.yearlyPrice) }} د.ع سنوياً</small>
         <div class="package-limits"><span>{{ item.maxClinics }} عيادات</span><span>{{ item.maxWeeklyDays }} أيام أسبوعية</span><span>{{ item.maxDailyAppointments }} دور يومي</span></div>
@@ -354,6 +399,27 @@ onMounted(initialize)
         <p class="modal-copy">اختر باقة أعلى لاشتراك الطبيب <strong>{{ selectedSubscription.doctor.name }}</strong>.</p>
         <label><span>الباقة الجديدة</span><select v-model="upgradePackageId" required><option disabled value="">اختر الباقة</option><option v-for="item in packages" :key="item.id" :value="item.id">{{ item.name }}</option></select></label>
         <div class="modal-actions"><button class="secondary-button" type="button" @click="modal = undefined">تراجع</button><button class="compact-primary" type="submit">ترقية</button></div>
+      </form>
+    </AppModal>
+
+    <AppModal v-if="modal === 'editPackage'" title="تعديل الباقة" @close="modal = undefined">
+      <form class="modal-form" @submit.prevent="updatePackage">
+        <label><span>اسم الباقة</span><input v-model="editPackageForm.name" type="text" required /></label>
+        <label><span>الاسم الموحد</span><input v-model="editPackageForm.normalizedName" type="text" required /></label>
+        <label><span>السعر الشهري</span><input v-model.number="editPackageForm.price" type="number" min="0" step="0.01" required /></label>
+        <label><span>السعر السنوي</span><input v-model.number="editPackageForm.yearlyPrice" type="number" min="0" step="0.01" required /></label>
+        <label><span>عدد العيادات</span><input v-model.number="editPackageForm.maxClinics" type="number" min="0" required /></label>
+        <label><span>أيام الاستقبال الأسبوعية</span><input v-model.number="editPackageForm.maxWeeklyDays" type="number" min="0" required /></label>
+        <label><span>الحجوزات اليومية القصوى</span><input v-model.number="editPackageForm.maxDailyAppointments" type="number" min="0" required /></label>
+        <label><span>الحد الأقصى للعروض النشطة</span><input v-model.number="editPackageForm.maxActiveOffers" type="number" min="0" required /></label>
+        <div class="modal-grid">
+          <label class="checkbox-field"><input v-model="editPackageForm.eBooking" type="checkbox" /><span>الحجز الإلكتروني</span></label>
+          <label class="checkbox-field"><input v-model="editPackageForm.showReviews" type="checkbox" /><span>التقييمات</span></label>
+          <label class="checkbox-field"><input v-model="editPackageForm.showMessages" type="checkbox" /><span>الرسائل</span></label>
+          <label class="checkbox-field"><input v-model="editPackageForm.ePayments" type="checkbox" /><span>الدفع الإلكتروني</span></label>
+          <label class="checkbox-field"><input v-model="editPackageForm.makeOffers" type="checkbox" /><span>العروض</span></label>
+        </div>
+        <div class="modal-actions"><button class="secondary-button" type="button" @click="modal = undefined">تراجع</button><button class="compact-primary" type="submit">حفظ التعديلات</button></div>
       </form>
     </AppModal>
 

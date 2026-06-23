@@ -3,6 +3,7 @@ using Clinic_Booking.DTOs.SubscriptionPackagesDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.ISubscriptionPackagesServices;
+using Clinic_Booking.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -105,5 +106,70 @@ namespace Clinic_Booking.Services.SubscriptionPackagesServices
             }
         }
 
+        public async Task<IActionResult> UpdateAsync(UpdateSubscriptionPackagesDto form)
+        {
+            try
+            {
+                var package = await _context.SubscriptionPackages
+                    .FirstOrDefaultAsync(p => p.Id == form.Id && !p.IsDeleted);
+                if (package == null)
+                {
+                    return new NotFoundObjectResult(new ResponseDto<string>
+                    {
+                        Status = "Error",
+                        Code = 404,
+                        Message = "الباقة غير موجودة.",
+                        Data = null
+                    });
+                }
+
+                package.Name = form.Name;
+                package.NormalizedName = form.NormalizedName;
+                package.Price = form.Price;
+                package.YearlyPrice = form.YearlyPrice;
+                package.MaxClinics = form.MaxClinics;
+                package.MaxWeeklyDays = form.MaxWeeklyDays;
+                package.MaxDailyAppointments = form.MaxDailyAppointments;
+                package.ShowReviews = form.ShowReviews;
+                package.ShowMessages = form.ShowMessages;
+                package.EBooking = form.EBooking;
+                package.EPayments = form.EPayments;
+                package.MakeOffers = form.MakeOffers;
+                package.MaxActiveOffers = form.MaxActiveOffers;
+                package.ModifierId = _load.GetCurrentUserId();
+                package.ModifiedAt = BusinessClock.Now();
+
+                _context.SubscriptionPackages.Update(package);
+                await _context.SaveChangesAsync();
+
+                return new OkObjectResult(new ResponseDto<string>
+                {
+                    Status = "Success",
+                    Code = 200,
+                    Message = "تم تحديث الباقة بنجاح!",
+                    Data = null
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ أثناء حفظ البيانات في قاعدة البيانات.",
+                    Data = null
+                });
+            }
+            catch (Exception ex)
+            {
+                return new ObjectResult(new ResponseDto<string>
+                {
+                    Status = "Error",
+                    Code = 500,
+                    Message = "حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.",
+                    Data = null
+                });
+            }
+        }
     }
 }
