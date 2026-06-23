@@ -3,6 +3,7 @@ using Clinic_Booking.Entities.Role;
 using Clinic_Booking.Entities.User;
 using Clinic_Booking.Configuration;
 using Clinic_Booking.IServices.IAnalyticsServices;
+using Clinic_Booking.IServices.IAppReleaseServices;
 using Clinic_Booking.IServices.IAppVersionServices;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IAppointmentReschedulingServices;
@@ -15,7 +16,6 @@ using Clinic_Booking.IServices.IDoctorFeatureServices;
 using Clinic_Booking.IServices.IDoctorOfferServices;
 using Clinic_Booking.IServices.IDoctorServices;
 using Clinic_Booking.IServices.IDoctorSubscriptionServices;
-using Clinic_Booking.IServices.IEmailServices;
 using Clinic_Booking.IServices.IFeatureServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -25,10 +25,12 @@ using Clinic_Booking.IServices.ISubscriptionPackagesServices;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.IServices.IWhatsAppMessageServices;
 using Clinic_Booking.IServices.INotificationDeliveryHelper;
+using Clinic_Booking.IServices.IMessageServices;
 using Clinic_Booking.Services.AnalyticsServices;
 using Clinic_Booking.Services.AppointmentReminderServices;
 using Clinic_Booking.Services.AppointmentReschedulingServices;
 using Clinic_Booking.Services.AppointmentServices;
+using Clinic_Booking.Services.AppReleaseServices;
 using Clinic_Booking.Services.AppVersionServices;
 using Clinic_Booking.Services.BookingSmsServices;
 using Clinic_Booking.Services.ClinicServices;
@@ -39,7 +41,6 @@ using Clinic_Booking.Services.DoctorFeatureServices;
 using Clinic_Booking.Services.DoctorOfferServices;
 using Clinic_Booking.Services.DoctorServices;
 using Clinic_Booking.Services.DoctorSubscriptionServices;
-using Clinic_Booking.Services.EmailServices;
 using Clinic_Booking.Services.FeatureServices;
 using Clinic_Booking.Services.LoadServices;
 using Clinic_Booking.Services.MaintenanceServices;
@@ -52,6 +53,8 @@ using Clinic_Booking.Services.SubscriptionExpirationServices;
 using Clinic_Booking.Services.UserServices;
 using Clinic_Booking.Services.WhatsAppMessageServices;
 using Clinic_Booking.Services.NotificationDeliveryHelper;
+using Clinic_Booking.Hubs;
+using Clinic_Booking.Services.MessageServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -60,8 +63,10 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
+
 ConfigurationManager configuration = builder.Configuration;
 
 // Add services to the container.
@@ -80,11 +85,15 @@ builder.Services.AddScoped<IDoctorAvailabilityServices, DoctorAvailabilityServic
 builder.Services.AddScoped<INotificationDeliveryHelper, NotificationDeliveryHelper>();
 builder.Services.AddScoped<IAppointmentServices, AppointmentServices>();
 builder.Services.AddScoped<IAppointmentReschedulingServices, AppointmentReschedulingServices>();
+builder.Services.AddScoped<IAppReleaseServices, AppReleaseServices>();
 builder.Services.AddScoped<IAppVersionServices, AppVersionServices>();
 builder.Services.AddScoped<IBookingSmsServices, DevelopmentBookingSmsServices>();
 builder.Services.AddScoped<IClinicServices, ClinicServices>();
 builder.Services.AddScoped<IClinicExceptionServices, ClinicExceptionServices>();
 builder.Services.AddScoped<IReviewServices, ReviewServices>();
+builder.Services.AddScoped<IMessageServices, MessageServices>();
+builder.Services.AddSingleton<OnlineUserTracker>();
+builder.Services.AddSignalR();
 builder.Services.AddHttpClient<IPushNotificationServices, PushNotificationServices>();
 builder.Services.AddHttpClient<IWhatsAppMessageServices, WhatsAppMessageServices>();
 builder.Services.AddHostedService<SubscriptionExpirationService>();
@@ -101,7 +110,6 @@ builder.Services.Configure<AppointmentReminderOptions>(
     builder.Configuration.GetSection(AppointmentReminderOptions.SectionName));
 
 
-builder.Services.AddTransient<IEmailServices, EmailServices>();
 
 
 
@@ -149,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(5),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy("Messaging", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User?.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                httpContext.Connection.RemoteIpAddress?.ToString() ??
+                "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -178,6 +198,19 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = configuration["JWT:ValidAudience"],
         ValidIssuer = configuration["JWT:ValidIssuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:Secret"])),
+    };
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -224,7 +257,7 @@ builder.Services.AddSwaggerGen(option =>
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
-    options.SignIn.RequireConfirmedEmail = true;
+    options.SignIn.RequireConfirmedEmail = false;
     options.Password.RequiredLength = 8;
     options.Password.RequireUppercase = true;
     options.Password.RequireLowercase = true;
@@ -250,11 +283,11 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseMiddleware<Clinic_Booking.Middleware.ExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+//{
+app.UseSwagger();
+app.UseSwaggerUI();
+//}
 
 app.UseHttpsRedirection();
 
@@ -267,6 +300,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessageHub>("/hubs/message");
 
 app.UseStaticFiles();
 

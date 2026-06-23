@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorDTO;
 using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Entities.Doctor;
@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Clinic_Booking.Authorization;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.DoctorServices
 {
@@ -40,7 +41,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var query = GetPublicDoctorsQuery(form);
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
@@ -155,7 +156,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
         public async Task<IActionResult> GetPublicProfileAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var doctor = await GetPublicDoctorsQuery(new SearchDoctorDto { Id = doctorId })
                 .Select(d => new PublicDoctorProfileDto
                 {
@@ -234,6 +235,17 @@ namespace Clinic_Booking.Services.DoctorServices
                             subscription.EndDate >= now)
                         .Select(subscription => (decimal?)subscription.Package.YearlyPrice)
                         .Max() ?? 0,
+                    CanMessage =
+                        d.DoctorSubscriptions.Any(subscription =>
+                            subscription.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            subscription.StartDate <= now &&
+                            subscription.EndDate >= now &&
+                            subscription.Package.ShowMessages) &&
+                        d.DoctorFeatures.Any(feature =>
+                            !feature.IsDeleted &&
+                            feature.IsEnabled &&
+                            feature.Feature.NormalizedName == "ShowMessages"),
+                    UserId = d.UserId,
                     Clinics = d.Clinics
                         .Where(clinic => !clinic.IsDeleted && clinic.IsVisible)
                         .OrderBy(clinic => clinic.Id)
@@ -278,6 +290,11 @@ namespace Clinic_Booking.Services.DoctorServices
                     Message = "الطبيب غير موجود أو غير متاح للعرض العام."
                 });
             }
+
+            var currentUserId = _load.GetCurrentUserId();
+            doctor.CanMessage = doctor.CanMessage &&
+                currentUserId.HasValue &&
+                await HasRecentCompletedAppointmentAsync(currentUserId.Value, doctor.Id);
 
             return new OkObjectResult(new ResponseDto<PublicDoctorProfileDto>
             {
@@ -444,6 +461,16 @@ namespace Clinic_Booking.Services.DoctorServices
                     Location = d.Location,
                     PhoneNumber = d.PhoneNumber,
                     IsPubliclyVisible = d.IsPubliclyVisible,
+                    CanMessage =
+                        d.DoctorSubscriptions.Any(s =>
+                            s.Status == Clinic_Booking.Enums.SubscriptionStatus.Active &&
+                            s.StartDate <= BusinessClock.Now() &&
+                            s.EndDate >= BusinessClock.Now() &&
+                            s.Package.ShowMessages) &&
+                        d.DoctorFeatures.Any(f =>
+                            !f.IsDeleted &&
+                            f.IsEnabled &&
+                            f.Feature.NormalizedName == "ShowMessages"),
                     UserId = d.UserId,
                     LinkedUser = d.User == null ? null : new LinkedDoctorUserDto
                     {
@@ -451,7 +478,6 @@ namespace Clinic_Booking.Services.DoctorServices
                         Name = d.User.Name,
                         UserName = d.User.UserName,
                         PhoneNumber = d.User.PhoneNumber,
-                        Email = d.User.Email,
                     },
                 })
                 .FirstOrDefaultAsync();
@@ -569,7 +595,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
                 doctor.ImageName = fileName;
                 doctor.ModifierId = userId;
-                doctor.ModifiedAt = DateTime.UtcNow;
+                doctor.ModifiedAt = BusinessClock.Now();
                 _context.Doctors.Update(doctor);
                 await _context.SaveChangesAsync();
 
@@ -652,7 +678,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.UserId = form.UserId;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
 
             var roleResult = await ReplaceUserRolesAsync(user, AppRoles.DoctorUser);
 
@@ -710,7 +736,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.UserId = null;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
 
             await _context.SaveChangesAsync();
             await tx.CommitAsync();
@@ -738,7 +764,7 @@ namespace Clinic_Booking.Services.DoctorServices
 
             doctor.IsPubliclyVisible = form.IsPubliclyVisible;
             doctor.ModifierId = _load.GetCurrentUserId();
-            doctor.ModifiedAt = DateTime.UtcNow;
+            doctor.ModifiedAt = BusinessClock.Now();
             await _context.SaveChangesAsync();
 
             return new OkObjectResult(new ResponseDto<object>
@@ -825,7 +851,6 @@ namespace Clinic_Booking.Services.DoctorServices
                             Name = d.User.Name,
                             UserName = d.User.UserName,
                             PhoneNumber = d.User.PhoneNumber,
-                            Email = d.User.Email,
                         },
                     })
                     .ToListAsync();
@@ -898,6 +923,19 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     await form.ImageName.CopyToAsync(stream);
                 }
+
+                //if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                //    ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                //    ProfanityFilterServices.ContainsProfanity(form.Location))
+                //{
+                //    return new BadRequestObjectResult(new ResponseDto<object>
+                //    {
+                //        Status = "Error",
+                //        Code = 400,
+                //        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                //        Data = null
+                //    });
+                //}
 
                 var doctor = new Doctor
                 {
@@ -993,6 +1031,19 @@ namespace Clinic_Booking.Services.DoctorServices
                     });
                 }
 
+                if (ProfanityFilterServices.ContainsProfanity(form.Name) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Description) ||
+                    ProfanityFilterServices.ContainsProfanity(form.Location))
+                {
+                    return new BadRequestObjectResult(new ResponseDto<object>
+                    {
+                        Status = "Error",
+                        Code = 400,
+                        Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                        Data = null
+                    });
+                }
+
                 doctor.Name = form.Name;
                 doctor.NormalizedName = form.NormalizedName;
                 doctor.SpecializationId = form.SpecializationId;
@@ -1002,7 +1053,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 doctor.PhoneNumber = form.PhoneNumber;
                 doctor.Location = form.Location;
                 doctor.ModifierId = _load.GetCurrentUserId();
-                doctor.ModifiedAt = DateTime.UtcNow;
+                doctor.ModifiedAt = BusinessClock.Now();
 
                 if (form.ImageName != null)
                 {
@@ -1083,7 +1134,7 @@ namespace Clinic_Booking.Services.DoctorServices
                 {
                     doctor.IsDeleted = true;
                     doctor.DeleterId = _load.GetCurrentUserId();
-                    doctor.DeletedAt = DateTime.UtcNow;
+                    doctor.DeletedAt = BusinessClock.Now();
                     _context.Doctors.Update(doctor);
                     await _context.SaveChangesAsync();
                     return new OkObjectResult(new ResponseDto<string>
@@ -1167,6 +1218,17 @@ namespace Clinic_Booking.Services.DoctorServices
             }
 
             return null;
+        }
+        private async Task<bool> HasRecentCompletedAppointmentAsync(Guid userId, int doctorId)
+        {
+            var now = BusinessClock.Now();
+            var earliestAllowed = now.AddDays(-3);
+            return await _context.Appointments.AnyAsync(a =>
+                a.UserId == userId &&
+                a.DoctorId == doctorId &&
+                a.Status == Clinic_Booking.Enums.AppointmentStatus.Completed &&
+                a.AppointmentDate >= earliestAllowed &&
+                a.AppointmentDate <= now);
         }
         private async Task<IdentityResult> ReplaceUserRolesAsync(AspNetUsers user, string newRole)
         {

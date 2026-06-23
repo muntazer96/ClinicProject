@@ -46,9 +46,9 @@ namespace Clinic_Booking.Controllers
         }
         [HttpGet("my")]
         [Authorize]
-        public async Task<IActionResult> GetMyAppointmentsAsync()
+        public async Task<IActionResult> GetMyAppointmentsAsync([FromQuery] DateOnly? fromDate, [FromQuery] DateOnly? toDate)
         {
-            return await _service.GetMyAppointmentsAsync();
+            return await _service.GetMyAppointmentsAsync(fromDate, toDate);
         }
         [HttpGet("my/{appointmentId}")]
         [Authorize]
@@ -96,6 +96,12 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> ToggleAppointmentStatusAsync([FromQuery] int appointmentId)
         {
             return await _service.ToggleAppointmentStatusAsync(appointmentId);
+        }
+        [HttpPost("reject-pending")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> RejectPendingAppointmentAsync([FromQuery] int appointmentId)
+        {
+            return await _service.RejectPendingAppointmentAsync(appointmentId);
         }
         [HttpPost("complete")]
         [Authorize(Roles = AppRoles.DoctorUser)]

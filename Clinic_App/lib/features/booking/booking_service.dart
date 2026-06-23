@@ -71,12 +71,16 @@ class BookingService {
   Future<List<BookingDetails>> getMyBookings({
     int page = 1,
     int pageSize = 50,
+    DateTime? fromDate,
+    DateTime? toDate,
   }) async {
     final response = await _client.dio.get(
       '/Appointment/my',
       queryParameters: {
         'page': page,
         'pageSize': pageSize,
+        if (fromDate != null) 'fromDate': _dateOnly(fromDate),
+        if (toDate != null) 'toDate': _dateOnly(toDate),
       },
     );
     final data = response.data['data'] as List? ?? const [];

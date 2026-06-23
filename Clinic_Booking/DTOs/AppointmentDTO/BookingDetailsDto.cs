@@ -15,6 +15,7 @@ namespace Clinic_Booking.DTOs.AppointmentDTO
         public bool IsGuestBooking { get; set; }
         public string BookingSource { get; set; } = string.Empty;
         public bool HasReview { get; set; }
+        public Guid? PatientUserId { get; set; }
         public string? CancellationReason { get; set; }
         public DateTime? CancelledAt { get; set; }
         public int DoctorId { get; set; }

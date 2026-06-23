@@ -4,19 +4,20 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
 import '../../../widgets/auth_shell.dart';
+import '../auth_controller.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
 class PasswordResetScreen extends StatefulWidget {
-  const PasswordResetScreen({super.key, this.userId, this.token});
-  final String? userId, token;
+  const PasswordResetScreen({super.key, this.phoneNumber, this.resetToken});
+  final String? phoneNumber, resetToken;
   @override
   State<PasswordResetScreen> createState() => _PasswordResetScreenState();
 }
 
 class _PasswordResetScreenState extends State<PasswordResetScreen> {
   final password = TextEditingController(), confirm = TextEditingController();
-  bool loading = false, done = false;
+  bool loading = false;
   bool showPassword = false, showConfirm = false;
   String? error;
 
@@ -45,8 +46,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   Future<void> submit() async {
     if (!canSubmit) return;
-    if (widget.userId == null || widget.token == null) {
-      setState(() => error = 'رابط إعادة التعيين غير صالح.');
+    if (widget.phoneNumber == null || widget.resetToken == null) {
+      setState(() => error = 'رمز إعادة التعيين غير صالح.');
       return;
     }
     if (password.text.length < 6) {
@@ -62,15 +63,26 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       error = null;
     });
     try {
-      await context.read<ApiClient>().dio.post(
+      final response = await context.read<ApiClient>().dio.post(
         '/User/password/reset',
         data: {
-          'userId': widget.userId,
-          'token': widget.token,
+          'phoneNumber': widget.phoneNumber,
+          'resetToken': widget.resetToken,
           'newPassword': password.text,
         },
       );
-      if (mounted) setState(() => done = true);
+      final data = response.data['data'] as Map<String, dynamic>? ?? {};
+      final token = data['token'] as String? ?? '';
+      final refreshToken = data['refreshToken'] as String?;
+      if (!mounted) return;
+      await context.read<AuthController>().completeLoginFromTokens(
+        phoneNumber: widget.phoneNumber!,
+        token: token,
+        refreshToken: refreshToken,
+      );
+      if (!mounted) return;
+      final auth = context.read<AuthController>();
+      context.go(auth.isDoctor ? '/doctor' : '/');
     } catch (e) {
       if (mounted) setState(() => error = ApiClient.errorMessage(e));
     } finally {
@@ -82,14 +94,9 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   Widget build(BuildContext context) => AuthShell(
     title: 'كلمة مرور جديدة',
     subtitle: 'اختر كلمة مرور جديدة لا تقل عن ستة أحرف.',
-    child: done
-        ? FilledButton(
-            onPressed: () => context.go('/login'),
-            child: const Text('تم الحفظ، سجّل الدخول'),
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
               if (error != null) ErrorText(error!),
               TextField(
                 controller: password,
@@ -144,7 +151,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                   loading ? 'جارِ الحفظ...' : 'حفظ كلمة المرور',
                 ),
               ),
-            ],
-          ),
+      ],
+    ),
   );
 }

@@ -230,7 +230,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             CancellationToken cancellationToken)
         {
             if (!string.IsNullOrWhiteSpace(_cachedAccessToken) &&
-                _cachedAccessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(2))
+                _cachedAccessTokenExpiresAt > BusinessClock.NowOffset().AddMinutes(2))
             {
                 return _cachedAccessToken;
             }
@@ -239,7 +239,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             try
             {
                 if (!string.IsNullOrWhiteSpace(_cachedAccessToken) &&
-                    _cachedAccessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(2))
+                    _cachedAccessTokenExpiresAt > BusinessClock.NowOffset().AddMinutes(2))
                 {
                     _logger.LogDebug("Using cached Firebase access token. ExpiresAt={ExpiresAt}", _cachedAccessTokenExpiresAt);
                     return _cachedAccessToken;
@@ -276,7 +276,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
                 }
 
                 _cachedAccessToken = tokenResponse.AccessToken;
-                _cachedAccessTokenExpiresAt = DateTimeOffset.UtcNow.AddSeconds(tokenResponse.ExpiresIn);
+                _cachedAccessTokenExpiresAt = BusinessClock.NowOffset().AddSeconds(tokenResponse.ExpiresIn);
                 _logger.LogInformation("Firebase access token acquired. ExpiresAt={ExpiresAt}", _cachedAccessTokenExpiresAt);
                 return _cachedAccessToken;
             }
@@ -311,7 +311,7 @@ namespace Clinic_Booking.Services.PushNotificationServices
             using var rsa = RSA.Create();
             rsa.ImportFromPem(serviceAccount.PrivateKey);
 
-            var now = DateTimeOffset.UtcNow;
+            var now = BusinessClock.NowOffset();
             var payload = new JwtPayload
             {
                 { "iss", serviceAccount.ClientEmail },

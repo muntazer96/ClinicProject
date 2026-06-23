@@ -72,10 +72,7 @@ class _DoctorScheduleDayFormPageState extends State<DoctorScheduleDayFormPage> {
       context: context,
       initialTime: initial,
       builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
     );
 
@@ -116,165 +113,164 @@ class _DoctorScheduleDayFormPageState extends State<DoctorScheduleDayFormPage> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'تعديل الدوام',
-        showBackButton: true,
-        backRoute: '/doctor/schedule',
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          children: [
-            _DayHeroCard(
-              dayName: widget.day.dayName,
-              available: _available,
-              onChanged: (value) => setState(() => _available = value),
-            ),
+    title: 'تعديل الدوام',
+    showBackButton: true,
+    backRoute: '/doctor/schedule',
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+      children: [
+        _DayHeroCard(
+          dayName: widget.day.dayName,
+          available: _available,
+          onChanged: (value) => setState(() => _available = value),
+        ),
 
-            const SizedBox(height: 14),
+        const SizedBox(height: 14),
 
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: _available ? 1 : .45,
-              child: IgnorePointer(
-                ignoring: !_available,
-                child: Column(
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _available ? 1 : .45,
+          child: IgnorePointer(
+            ignoring: !_available,
+            child: Column(
+              children: [
+                _SectionCard(
+                  title: 'وقت الدوام',
+                  icon: Icons.access_time_rounded,
                   children: [
-                    _SectionCard(
-                      title: 'وقت الدوام',
-                      icon: Icons.access_time_rounded,
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _TimeBox(
-                                title: 'بداية الدوام',
-                                time: _displayTime(_startTime),
-                                icon: Icons.play_arrow_rounded,
-                                onTap: () => _pickTime(
-                                  initial: _startTime,
-                                  onPicked: (value) => _startTime = value,
-                                ),
-                              ),
+                        Expanded(
+                          child: _TimeBox(
+                            title: 'بداية الدوام',
+                            time: _displayTime(_startTime),
+                            icon: Icons.play_arrow_rounded,
+                            onTap: () => _pickTime(
+                              initial: _startTime,
+                              onPicked: (value) => _startTime = value,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _TimeBox(
-                                title: 'نهاية الدوام',
-                                time: _displayTime(_endTime),
-                                icon: Icons.stop_rounded,
-                                onTap: () => _pickTime(
-                                  initial: _endTime,
-                                  onPicked: (value) => _endTime = value,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    _SectionCard(
-                      title: 'سعة الحجوزات',
-                      icon: Icons.groups_rounded,
-                      children: [
-                        TextField(
-                          controller: _max,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'أقصى عدد حجوزات لهذا اليوم',
-                            prefixIcon: Icon(Icons.confirmation_number_rounded),
-                            suffixText: 'حجز',
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'هذا العدد يحدد أعلى رقم دور يمكن حجزه في هذا اليوم.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _TimeBox(
+                            title: 'نهاية الدوام',
+                            time: _displayTime(_endTime),
+                            icon: Icons.stop_rounded,
+                            onTap: () => _pickTime(
+                              initial: _endTime,
+                              onPicked: (value) => _endTime = value,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
-            ),
 
-            if (!_available) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7E6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFF2D49C)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 14),
+
+                _SectionCard(
+                  title: 'سعة الحجوزات',
+                  icon: Icons.groups_rounded,
                   children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      color: Color(0xFFB45309),
-                      size: 20,
+                    TextField(
+                      controller: _max,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'أقصى عدد حجوزات لهذا اليوم',
+                        prefixIcon: Icon(Icons.confirmation_number_rounded),
+                        suffixText: 'حجز',
+                      ),
                     ),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        'عند تعطيل هذا اليوم، سينقل النظام الحجوزات المستقبلية '
-                        'ويوزعها على الأيام المتاحة. إذا لم توجد سعة كافية، '
-                        'سيتم إلغاء الحجوزات المتبقية مع إشعار المرضى.',
-                        style: TextStyle(
-                          color: Colors.orange.shade900,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          height: 1.5,
-                        ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'هذا العدد يحدد أعلى رقم دور يمكن حجزه في هذا اليوم.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.appMuted,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ),
 
-            const SizedBox(height: 18),
-
-            SizedBox(
-              height: 52,
-              child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(
-                  _saving ? 'جاري الحفظ...' : 'حفظ وقت الدوام',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+        if (!_available) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: context.isDark
+                  ? const Color(0xFF3A2A16)
+                  : const Color(0xFFFFF7E6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF2D49C)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFFB45309),
+                  size: 20,
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'عند تعطيل هذا اليوم، سينقل النظام الحجوزات المستقبلية '
+                    'ويوزعها على الأيام المتاحة. إذا لم توجد سعة كافية، '
+                    'سيتم إلغاء الحجوزات المتبقية مع إشعار المرضى.',
+                    style: TextStyle(
+                      color: Colors.orange.shade900,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.5,
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(.55),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 18),
+
+        SizedBox(
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(
+              _saving ? 'جاري الحفظ...' : 'حفظ وقت الدوام',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withOpacity(.55),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
-          ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _DayHeroCard extends StatelessWidget {
@@ -321,7 +317,9 @@ class _DayHeroCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
-              available ? Icons.event_available_rounded : Icons.event_busy_rounded,
+              available
+                  ? Icons.event_available_rounded
+                  : Icons.event_busy_rounded,
               color: Colors.white,
               size: 31,
             ),
@@ -383,12 +381,12 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -434,7 +432,7 @@ class _TimeBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFF7FAFA),
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -443,7 +441,7 @@ class _TimeBox extends StatelessWidget {
           padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE3ECEA)),
+            border: Border.all(color: context.appBorder),
           ),
           child: Column(
             children: [
@@ -453,7 +451,7 @@ class _TimeBox extends StatelessWidget {
                 title,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: context.appMuted,
                   fontWeight: FontWeight.w700,
                 ),
               ),

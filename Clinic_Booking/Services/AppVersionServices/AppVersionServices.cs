@@ -119,7 +119,7 @@ namespace Clinic_Booking.Services.AppVersionServices
             policy.Title = dto.Title.Trim();
             policy.Message = dto.Message.Trim();
             policy.UpdateUrl = string.IsNullOrWhiteSpace(dto.UpdateUrl) ? null : dto.UpdateUrl.Trim();
-            policy.ModifiedAt = DateTime.UtcNow;
+            policy.ModifiedAt = BusinessClock.Now();
 
             await _context.SaveChangesAsync();
 

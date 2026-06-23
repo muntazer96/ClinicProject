@@ -18,7 +18,7 @@ namespace Clinic_Booking.Services.NotificationDeliveryServices
             int? appointmentId = null,
             string? error = null)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             context.NotificationDeliveryAttempts.Add(new NotificationDeliveryAttempt
             {
                 Channel = "Push",
@@ -49,7 +49,7 @@ namespace Clinic_Booking.Services.NotificationDeliveryServices
             string? error = null,
             bool retryOnFailure = true)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             context.NotificationDeliveryAttempts.Add(new NotificationDeliveryAttempt
             {
                 Channel = "WhatsApp",

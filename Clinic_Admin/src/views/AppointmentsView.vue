@@ -30,7 +30,8 @@ interface AppointmentRow {
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
+const isDoctor = computed(() => auth.hasAnyRole(['DoctorUser']))
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']) && !isDoctor.value)
 const appointments = ref<AppointmentRow[]>([])
 const clinics = ref<ClinicItem[]>([])
 const doctors = ref<DoctorItem[]>([])
@@ -62,7 +63,7 @@ const canCreateManual = computed(() => {
 })
 const doctorTotalPages = computed(() => Math.max(1, Math.ceil(appointments.value.length / doctorPageSize)))
 const visibleAppointments = computed(() => {
-  if (isAdmin) return appointments.value
+  if (isAdmin.value) return appointments.value
   return appointments.value.slice((doctorPage.value - 1) * doctorPageSize, doctorPage.value * doctorPageSize)
 })
 
@@ -159,15 +160,27 @@ function mapAdminAppointment(item: any): AppointmentRow {
 }
 
 async function loadClinics() {
-  if (isAdmin) return
-  const response = await api.get<ApiResponse<ClinicItem[]>>('/Clinic/my')
-  clinics.value = response.data.data
+  console.log('[AppointmentsView] loadClinics isAdmin=', isAdmin.value)
+  if (isAdmin.value) return
+  try {
+    const response = await api.get<ApiResponse<ClinicItem[]>>('/Clinic/my')
+    clinics.value = response.data.data
+  } catch (error: any) {
+    if (error.response?.status === 404) clinics.value = []
+    else notifications.show(getErrorMessage(error), 'error')
+  }
 }
 
 async function loadDoctors() {
-  if (!isAdmin) return
-  const response = await api.get<ApiResponse<PageResult<DoctorItem>>>('/Doctor', { params: { page: 1, pageSize: 100 } })
-  doctors.value = response.data.data.items
+  console.log('[AppointmentsView] loadDoctors called isAdmin=', isAdmin.value)
+  if (!isAdmin.value) return
+  try {
+    const response = await api.get<ApiResponse<PageResult<DoctorItem>>>('/Doctor', { params: { page: 1, pageSize: 100 } })
+    doctors.value = response.data.data.items
+  } catch (error: any) {
+    if (error.response?.status === 404) doctors.value = []
+    else notifications.show(getErrorMessage(error), 'error')
+  }
 }
 
 async function loadAdminClinics(doctorId: string) {
@@ -184,8 +197,9 @@ async function loadAdminClinics(doctorId: string) {
 
 async function loadAppointments() {
   loading.value = true
+  console.log('[AppointmentsView] loadAppointments isAdmin=', isAdmin.value)
   try {
-    if (isAdmin) {
+    if (isAdmin.value) {
       const response = await api.get<ApiResponse<PageResult<any>>>('/Appointment/GetListAsync', {
         params: {
           doctorId: filters.doctorId || undefined,
@@ -251,9 +265,20 @@ async function toggleStatus(appointment: AppointmentRow) {
   }
 }
 
+async function rejectPending(appointment: AppointmentRow) {
+  try {
+    const response = await api.post<ApiResponse<object>>('/Appointment/reject-pending', null, { params: { appointmentId: appointment.id } })
+    notifications.show(response.data.message)
+    await loadAppointments()
+  } catch (error) {
+    notifications.show(getErrorMessage(error), 'error')
+  }
+}
+
 async function confirmCancel() {
   if (!cancelAppointment.value) return
-  await toggleStatus(cancelAppointment.value)
+  if (cancelAppointment.value.status === 0) await rejectPending(cancelAppointment.value)
+  else await toggleStatus(cancelAppointment.value)
   cancelAppointment.value = undefined
 }
 
@@ -306,7 +331,7 @@ function applyFilters() {
 }
 
 function changePage(newPage: number) {
-  if (isAdmin) {
+  if (isAdmin.value) {
     page.value = newPage
     loadAppointments()
   } else {
@@ -315,11 +340,12 @@ function changePage(newPage: number) {
 }
 
 watch(() => filters.doctorId, (doctorId) => {
-  if (isAdmin) loadAdminClinics(doctorId)
+  if (isAdmin.value) loadAdminClinics(doctorId)
 })
 watch(() => [manualForm.clinicId, manualForm.appointmentDate], loadQueueAvailability)
 
 onMounted(async () => {
+  console.log('[AppointmentsView] isAdmin:', isAdmin.value, 'isDoctor:', isDoctor.value, 'roles:', auth.roles)
   try {
     await Promise.all([loadClinics(), loadDoctors()])
     await loadAppointments()
@@ -402,7 +428,7 @@ onMounted(async () => {
                 <div class="row-actions">
                   <button v-if="appointment.status === 0" type="button" title="تأكيد الحجز" @click="toggleStatus(appointment)"><Check :size="16" /></button>
                   <a v-if="appointment.patientPhoneNumber" class="row-link" :href="`tel:${appointment.patientPhoneNumber}`" title="اتصال بالمريض"><PhoneCall :size="16" /></a>
-                  <LongPressButton v-if="appointment.status === 1" button-class="danger-action" title="اضغط مطولاً لإلغاء الحجز" @confirm="cancelAppointment = appointment"><X :size="16" /></LongPressButton>
+                  <LongPressButton v-if="appointment.status === 0 || appointment.status === 1" button-class="danger-action" title="اضغط مطولاً لإلغاء الحجز" @confirm="cancelAppointment = appointment"><X :size="16" /></LongPressButton>
                   <button v-if="appointment.status === 1" type="button" title="إكمال الحجز" @click="complete(appointment)"><CheckCheck :size="16" /></button>
                 </div>
               </td>
@@ -440,8 +466,9 @@ onMounted(async () => {
 
 <style scoped>
 .admin-appointment-filters { grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 150px 150px 140px auto; }
-.appointment-filter-actions { display: grid; gap: 8px; align-self: end; }
-.appointment-filter-actions button { width: 100%; }
+.appointment-filter-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: end; }
+.appointment-filter-actions .compact-primary,
+.appointment-filter-actions .secondary-button { flex: 1; white-space: nowrap; justify-content: center; }
 .queue-box { display: grid; gap: 4px; padding: 11px; color: #167163; border: 1px solid #c8eadf; border-radius: 9px; background: #f0faf6; font-size: 13px; }
 .queue-box.unavailable { color: #a23d3d; border-color: #ffd6d6; background: #fff3f3; }
 @media (max-width: 760px) { .admin-appointment-filters { grid-template-columns: 1fr; } }

@@ -11,7 +11,7 @@ namespace Clinic_Booking.IServices.IAppointmentServices
         Task<IActionResult> GetMineForDoctorAsync(SearchAppointmentDto form);
         Task<IActionResult> GetQueueAvailabilityAsync(int clinicId, DateOnly? fromDate, int days = 7);
         Task<IActionResult> GetGuestAppointmentAsync(string phoneNumber, string code);
-        Task<IActionResult> GetMyAppointmentsAsync();
+        Task<IActionResult> GetMyAppointmentsAsync(DateOnly? fromDate, DateOnly? toDate);
         Task<IActionResult> GetMyAppointmentAsync(int appointmentId);
         Task<IActionResult> CreateAppointmentAsync(AddAppointmentDto form);
         Task<IActionResult> CreateManualAppointmentAsync(ManualAppointmentDto form);
@@ -20,6 +20,7 @@ namespace Clinic_Booking.IServices.IAppointmentServices
         Task<IActionResult> CancelGuestAppointmentAsync(CancelGuestAppointmentDto form);
         Task<IActionResult> CancelMyAppointmentAsync(CancelMyAppointmentDto form);
         Task<IActionResult> ToggleAppointmentStatusAsync(int appointmentId);
+        Task<IActionResult> RejectPendingAppointmentAsync(int appointmentId);
         Task<IActionResult> CompleteAppointmentAsync(int appointmentId);
     }
 }

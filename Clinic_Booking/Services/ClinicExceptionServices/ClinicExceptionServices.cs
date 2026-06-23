@@ -12,6 +12,7 @@ using Clinic_Booking.IServices.INotificationDeliveryHelper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Clinic_Booking.Utilities;
+using Clinic_Booking.Services.ProfanityFilterService;
 
 namespace Clinic_Booking.Services.ClinicExceptionServices
 {
@@ -126,12 +127,18 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             else
             {
                 exception.ModifierId = _load.GetCurrentUserId();
-                exception.ModifiedAt = DateTime.UtcNow;
+                exception.ModifiedAt = BusinessClock.Now();
+            }
+
+            var closureReason = form.ClosureReason?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(closureReason))
+            {
+                return BadRequest("سبب الإغلاق يحتوي على كلمات ممنوعة.");
             }
 
             exception.ExceptionDate = exceptionDate;
             exception.IsClosed = form.IsClosed;
-            exception.ClosureReason = form.ClosureReason?.Trim();
+            exception.ClosureReason = closureReason;
             exception.MaxAppointments = form.MaxAppointments;
             exception.StartTime = form.StartTime;
             exception.EndTime = form.EndTime;
@@ -190,7 +197,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
 
             exception.IsDeleted = true;
             exception.DeleterId = _load.GetCurrentUserId();
-            exception.DeletedAt = DateTime.UtcNow;
+            exception.DeletedAt = BusinessClock.Now();
             AddAuditLog(
                 "ClinicExceptionDeleted",
                 "ClinicException",
@@ -233,7 +240,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 return BadRequest("يجب إدخال وقت البداية والنهاية معاً، ويجب أن يكون وقت النهاية بعد وقت البداية.");
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var packageLimit = await _context.DoctorSubscriptions
                 .Where(subscription =>
                     subscription.DoctorId == doctorId &&
@@ -367,7 +374,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             List<Entities.Appointment.Appointment> appointments,
             string? reason)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var notifications = new List<PendingAppointmentNotification>();
             foreach (var appointment in appointments)
             {
@@ -428,7 +435,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
             Entities.Appointment.Appointment appointment,
             string reason)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             appointment.Status = AppointmentStatus.Cancelled;
             appointment.CancellationReason = reason;
             appointment.CancelledAt = now;
@@ -446,7 +453,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
         {
             appointment.AppointmentDate = moveTarget.Date;
             appointment.QueueNumber = moveTarget.QueueNumber;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
         }
 
@@ -487,7 +494,7 @@ namespace Clinic_Booking.Services.ClinicExceptionServices
                 AppointmentId = appointmentId,
                 SubscriptionId = subscriptionId,
                 Details = details,
-                OccurredAt = DateTime.UtcNow
+                OccurredAt = BusinessClock.Now()
             });
         }
 

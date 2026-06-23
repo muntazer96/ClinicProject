@@ -20,21 +20,78 @@ abstract final class AppColors {
   static const softCoral = Color(0xFFFFECEB);
 }
 
-ThemeData buildAppTheme() {
+abstract final class AppDarkColors {
+  static const background = Color(0xFF071312);
+  static const surface = Color(0xFF101C1B);
+  static const surfaceRaised = Color(0xFF172725);
+  static const surfaceMuted = Color(0xFF1D302E);
+  static const text = Color(0xFFEAF5F2);
+  static const muted = Color(0xFF9DB2AD);
+  static const border = Color(0xFF29413E);
+  static const primary = Color(0xFF2DD4BF);
+  static const primaryDeep = Color(0xFF0F766E);
+  static const softBlue = Color(0xFF12363D);
+  static const softAmber = Color(0xFF3F2E12);
+  static const softCoral = Color(0xFF462220);
+}
+
+extension AppThemeX on BuildContext {
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get appSurface =>
+      isDark ? AppDarkColors.surfaceRaised : AppColors.surface;
+  Color get appSurfaceMuted =>
+      isDark ? AppDarkColors.surfaceMuted : AppColors.surfaceMuted;
+  Color get appBorder => isDark ? AppDarkColors.border : AppColors.border;
+  Color get appMuted => isDark ? AppDarkColors.muted : AppColors.muted;
+  Color get appText => isDark ? AppDarkColors.text : AppColors.text;
+  Color get appSoftBlue => isDark ? AppDarkColors.softBlue : AppColors.softBlue;
+  Color get appSoftAmber =>
+      isDark ? AppDarkColors.softAmber : AppColors.softAmber;
+  Color get appSoftCoral =>
+      isDark ? AppDarkColors.softCoral : AppColors.softCoral;
+}
+
+ThemeData buildAppTheme({Brightness brightness = Brightness.light}) {
+  final dark = brightness == Brightness.dark;
+  final colors = dark
+      ? const ColorScheme.dark(
+          primary: AppDarkColors.primary,
+          onPrimary: Color(0xFF042F2B),
+          secondary: AppColors.accent,
+          onSecondary: Color(0xFF271A02),
+          error: Color(0xFFF87171),
+          onError: Color(0xFF3B0707),
+          surface: AppDarkColors.surface,
+          onSurface: AppDarkColors.text,
+        )
+      : ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
+          error: AppColors.danger,
+          surface: AppColors.surface,
+        );
+
+  final background = dark ? AppDarkColors.background : AppColors.background;
+  final surface = dark ? AppDarkColors.surface : AppColors.surface;
+  final surfaceRaised = dark ? AppDarkColors.surfaceRaised : AppColors.surface;
+  final surfaceMuted = dark
+      ? AppDarkColors.surfaceMuted
+      : AppColors.surfaceMuted;
+  final text = dark ? AppDarkColors.text : AppColors.text;
+  final muted = dark ? AppDarkColors.muted : AppColors.muted;
+  final border = dark ? AppDarkColors.border : AppColors.border;
+  final primary = dark ? AppDarkColors.primary : AppColors.primary;
+
   final base = ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      primary: AppColors.primary,
-      secondary: AppColors.accent,
-      error: AppColors.danger,
-      surface: AppColors.surface,
-    ),
-    scaffoldBackgroundColor: AppColors.background,
+    brightness: brightness,
+    colorScheme: colors,
+    scaffoldBackgroundColor: background,
     useMaterial3: true,
   );
   final textTheme = GoogleFonts.cairoTextTheme(
     base.textTheme,
-  ).apply(bodyColor: AppColors.text, displayColor: AppColors.text);
+  ).apply(bodyColor: text, displayColor: text);
 
   final rounded10 = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(10),
@@ -43,32 +100,40 @@ ThemeData buildAppTheme() {
   return base.copyWith(
     textTheme: textTheme,
     visualDensity: VisualDensity.standard,
+    canvasColor: background,
+    dividerColor: border,
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: AppColors.text,
+      backgroundColor: surface,
+      foregroundColor: text,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: GoogleFonts.cairo(
-        color: AppColors.text,
+        color: text,
         fontSize: 18,
         fontWeight: FontWeight.w800,
       ),
+      iconTheme: IconThemeData(color: text),
+      actionsIconTheme: IconThemeData(color: text),
     ),
     cardTheme: CardThemeData(
-      color: Colors.white,
+      color: surfaceRaised,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: border),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: primary,
+        foregroundColor: dark ? const Color(0xFF042F2B) : Colors.white,
+        disabledBackgroundColor: dark
+            ? AppDarkColors.surfaceMuted
+            : const Color(0xFFE5E7EB),
+        disabledForegroundColor: muted,
         minimumSize: const Size(0, 52),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
         shape: rounded10,
@@ -76,25 +141,26 @@ ThemeData buildAppTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
+        foregroundColor: primary,
         minimumSize: const Size(0, 48),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: border),
         textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w800),
         shape: rounded10,
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.primary,
+        foregroundColor: primary,
         textStyle: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w800),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
-      hintStyle: const TextStyle(color: AppColors.muted),
-      labelStyle: const TextStyle(color: AppColors.muted),
-      prefixIconColor: AppColors.primary,
+      fillColor: surfaceRaised,
+      hintStyle: TextStyle(color: muted),
+      labelStyle: TextStyle(color: muted),
+      prefixIconColor: primary,
+      suffixIconColor: muted,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -102,23 +168,27 @@ ThemeData buildAppTheme() {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.danger),
+        borderSide: BorderSide(color: colors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colors.error, width: 1.5),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
-      backgroundColor: AppColors.surfaceMuted,
-      selectedColor: AppColors.softBlue,
-      side: const BorderSide(color: AppColors.border),
+      backgroundColor: surfaceMuted,
+      selectedColor: dark ? AppDarkColors.softBlue : AppColors.softBlue,
+      side: BorderSide(color: border),
       labelStyle: GoogleFonts.cairo(
-        color: AppColors.text,
+        color: text,
         fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
@@ -126,26 +196,47 @@ ThemeData buildAppTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       height: 72,
-      backgroundColor: Colors.white,
-      indicatorColor: AppColors.surfaceMuted,
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: surfaceMuted,
       labelTextStyle: WidgetStatePropertyAll(
-        GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.w800),
+        GoogleFonts.cairo(
+          color: text,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
       ),
-      iconTheme: const WidgetStatePropertyAll(
-        IconThemeData(color: AppColors.primary),
-      ),
+      iconTheme: WidgetStatePropertyAll(IconThemeData(color: primary)),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: AppColors.text,
-      contentTextStyle: GoogleFonts.cairo(color: Colors.white),
+      backgroundColor: dark ? const Color(0xFFEAF5F2) : AppColors.text,
+      contentTextStyle: GoogleFonts.cairo(
+        color: dark ? const Color(0xFF071312) : Colors.white,
+      ),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Colors.white,
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
+      modalBackgroundColor: surface,
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? primary : muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? primary.withValues(alpha: .32)
+            : surfaceMuted,
       ),
     ),
   );

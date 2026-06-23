@@ -60,40 +60,38 @@ class _DoctorFeaturesPageState extends State<DoctorFeaturesPage> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'إدارة المميزات',
-        showBackButton: true,
-        backRoute: '/doctor/profile',
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _items.isEmpty
-                  ? const DoctorEmptyState(
-                      icon: Icons.toggle_off_outlined,
-                      message:
-                          'لا توجد مميزات متاحة أو أن الـ API لا يسمح للطبيب بعرضها.',
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-                      children: [
-                        _FeaturesHeroCard(
-                          doctorName: widget.profile.name,
-                          enabled: _enabledCount,
-                          total: _items.length,
-                        ),
-                        const SizedBox(height: 14),
-                        const _SectionTitle(title: 'المميزات المتاحة'),
-                        const SizedBox(height: 10),
-                        ..._items.map(
-                          (item) => _FeatureCard(
-                            item: item,
-                            onToggle: () => _toggle(item),
-                          ),
-                        ),
-                      ],
-                    ),
-        ),
-      );
+    title: 'إدارة المميزات',
+    showBackButton: true,
+    backRoute: '/doctor/profile',
+    child: RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _items.isEmpty
+          ? const DoctorEmptyState(
+              icon: Icons.toggle_off_outlined,
+              message:
+                  'لا توجد مميزات متاحة أو أن الـ API لا يسمح للطبيب بعرضها.',
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+              children: [
+                _FeaturesHeroCard(
+                  doctorName: widget.profile.name,
+                  enabled: _enabledCount,
+                  total: _items.length,
+                ),
+                const SizedBox(height: 14),
+                const _SectionTitle(title: 'المميزات المتاحة'),
+                const SizedBox(height: 10),
+                ..._items.map(
+                  (item) =>
+                      _FeatureCard(item: item, onToggle: () => _toggle(item)),
+                ),
+              ],
+            ),
+    ),
+  );
 }
 
 class _FeaturesHeroCard extends StatelessWidget {
@@ -176,8 +174,10 @@ class _FeaturesHeroCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(.15),
                     borderRadius: BorderRadius.circular(999),
@@ -203,10 +203,7 @@ class _FeaturesHeroCard extends StatelessWidget {
 }
 
 class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.item,
-    required this.onToggle,
-  });
+  const _FeatureCard({required this.item, required this.onToggle});
 
   final DoctorFeatureItem item;
   final VoidCallback onToggle;
@@ -214,21 +211,21 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = item.isEnabled;
-    final color = enabled ? AppColors.primary : AppColors.muted;
+    final color = enabled ? AppColors.primary : context.appMuted;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: enabled ? const Color(0xFFDDE9E7) : const Color(0xFFE2E6E5),
-        ),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(enabled ? .035 : .018),
+            color: Colors.black.withOpacity(
+              context.isDark ? .18 : (enabled ? .035 : .018),
+            ),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
@@ -274,7 +271,7 @@ class _FeatureCard extends StatelessWidget {
                   style: TextStyle(
                     height: 1.4,
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: context.appMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -302,7 +299,7 @@ class _FeatureStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? AppColors.primary : AppColors.muted;
+    final color = enabled ? AppColors.primary : context.appMuted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -330,10 +327,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-        ),
-      );
+    title,
+    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+  );
 }

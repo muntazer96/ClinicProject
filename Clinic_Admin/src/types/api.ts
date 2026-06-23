@@ -18,8 +18,6 @@ export interface UserItem {
   name?: string
   phoneNumber?: string
   phoneNumberConfirmed: boolean
-  email?: string
-  emailConfirmed: boolean
   userName?: string
   imageName?: string
   isLocked: boolean
@@ -63,7 +61,6 @@ export interface DoctorItem {
     name?: string
     userName?: string
     phoneNumber?: string
-    email?: string
   }
 }
 
@@ -372,6 +369,31 @@ export interface AppVersionCheck {
   title: string
   message: string
   updateUrl?: string
+}
+
+export interface AppReleaseItem {
+  id: number
+  versionName: string
+  versionCode: number
+  fileSize: number
+  releaseNotes?: string
+  isActive: boolean
+  createdAt: string
+  downloadCount: number
+  fileName: string
+  createdBy: string
+}
+
+export interface AppReleaseResponse {
+  id: number
+  versionName: string
+  versionCode: number
+  downloadUrl: string
+  fileSize: string
+  releaseNotes: string[]
+  isActive: boolean
+  createdAt: string
+  downloadCount: number
 }
 
 export interface AnalyticsMetric {

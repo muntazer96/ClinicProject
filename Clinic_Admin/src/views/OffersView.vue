@@ -30,7 +30,8 @@ type OfferForm = {
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
+const isDoctor = computed(() => auth.hasAnyRole(['DoctorUser']))
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']) && !isDoctor.value)
 const offers = ref<DoctorOfferItem[]>([])
 const doctors = ref<DoctorItem[]>([])
 const clinics = ref<ClinicItem[]>([])
@@ -55,7 +56,7 @@ const offerTypes = [
 const selectedOfferType = computed(() => offerTypes.find((item) => item.value === form.offerType) ?? offerTypes[0])
 const canSave = computed(() => {
   if (!form.title.trim() || !form.startsAt || !form.endsAt) return false
-  if (isAdmin && !form.doctorId) return false
+  if (isAdmin.value && !form.doctorId) return false
   if (!form.appliesToAllClinics && !form.clinicId) return false
   return !saving.value
 })
@@ -147,17 +148,23 @@ function resetForm(item?: DoctorOfferItem) {
 }
 
 async function loadDoctors() {
-  if (!isAdmin) return
-  const response = await api.get<ApiResponse<PageResult<DoctorItem>>>('/Doctor', { params: { page: 1, pageSize: 200 } })
-  doctors.value = response.data.data.items
+  console.log('[OffersView] loadDoctors isAdmin=', isAdmin.value)
+  if (!isAdmin.value) return
+  try {
+    const response = await api.get<ApiResponse<PageResult<DoctorItem>>>('/Doctor', { params: { page: 1, pageSize: 200 } })
+    doctors.value = response.data.data.items
+  } catch (error: any) {
+    if (error.response?.status === 404) doctors.value = []
+    else notifications.show(getErrorMessage(error), 'error')
+  }
 }
 
 async function loadClinics(doctorId?: string) {
   clinics.value = []
   const targetDoctorId = doctorId || filters.doctorId || form.doctorId
-  if (isAdmin && !targetDoctorId) return
+  if (isAdmin.value && !targetDoctorId) return
   try {
-    const url = isAdmin ? `/Clinic/doctor/${targetDoctorId}/admin` : '/Clinic/my'
+    const url = isAdmin.value ? `/Clinic/doctor/${targetDoctorId}/admin` : '/Clinic/my'
     const response = await api.get<ApiResponse<ClinicItem[]>>(url)
     clinics.value = response.data.data
   } catch (error: any) {
@@ -168,9 +175,9 @@ async function loadClinics(doctorId?: string) {
 async function loadQuota(doctorId?: string) {
   quota.value = undefined
   const targetDoctorId = doctorId || filters.doctorId || form.doctorId
-  if (isAdmin && !targetDoctorId) return
+  if (isAdmin.value && !targetDoctorId) return
   try {
-    const url = isAdmin ? `/DoctorOffer/quota/${targetDoctorId}` : '/DoctorOffer/my/quota'
+    const url = isAdmin.value ? `/DoctorOffer/quota/${targetDoctorId}` : '/DoctorOffer/my/quota'
     const response = await api.get<ApiResponse<DoctorOfferQuota>>(url)
     quota.value = response.data.data
   } catch (error: any) {
@@ -181,12 +188,12 @@ async function loadQuota(doctorId?: string) {
 async function loadOffers() {
   loading.value = true
   try {
-    const response = await api.get<ApiResponse<PageResult<DoctorOfferItem>>>(isAdmin ? '/DoctorOffer' : '/DoctorOffer/my', {
+    const response = await api.get<ApiResponse<PageResult<DoctorOfferItem>>>(isAdmin.value ? '/DoctorOffer' : '/DoctorOffer/my', {
       params: {
         page: page.value,
         pageSize: 10,
         search: filters.search || undefined,
-        doctorId: isAdmin && filters.doctorId ? filters.doctorId : undefined,
+        doctorId: isAdmin.value && filters.doctorId ? filters.doctorId : undefined,
         clinicId: filters.clinicId || undefined,
         isActive: filters.isActive === '' ? undefined : filters.isActive,
         currentlyVisible: filters.currentlyVisible === '' ? undefined : filters.currentlyVisible,
@@ -213,7 +220,7 @@ function applyFilters() {
 
 async function openEditor(item?: DoctorOfferItem) {
   resetForm(item)
-  if (!item && isAdmin && filters.doctorId) form.doctorId = filters.doctorId
+  if (!item && isAdmin.value && filters.doctorId) form.doctorId = filters.doctorId
   editorOpen.value = true
   await Promise.all([loadClinics(form.doctorId), loadQuota(form.doctorId)])
 }
@@ -244,7 +251,7 @@ async function saveOffer() {
   try {
     const payload = {
       id: form.id,
-      doctorId: isAdmin ? Number(form.doctorId) : undefined,
+      doctorId: isAdmin.value ? Number(form.doctorId) : undefined,
       appliesToAllClinics: form.appliesToAllClinics,
       clinicId: form.appliesToAllClinics ? null : Number(form.clinicId),
       title: form.title.trim(),
@@ -259,7 +266,7 @@ async function saveOffer() {
       endsAt: `${form.endsAt}T23:59:59`,
       isActive: form.isActive,
     }
-    const url = isAdmin ? '/DoctorOffer' : '/DoctorOffer/my'
+    const url = isAdmin.value ? '/DoctorOffer' : '/DoctorOffer/my'
     const response = form.id
       ? await api.put<ApiResponse<boolean>>(url, payload)
       : await api.post<ApiResponse<boolean>>(url, payload)
@@ -277,7 +284,7 @@ async function confirmDelete() {
   if (!deleting.value) return
   saving.value = true
   try {
-    const url = isAdmin ? `/DoctorOffer/${deleting.value.id}` : `/DoctorOffer/my/${deleting.value.id}`
+    const url = isAdmin.value ? `/DoctorOffer/${deleting.value.id}` : `/DoctorOffer/my/${deleting.value.id}`
     const response = await api.delete<ApiResponse<boolean>>(url)
     notifications.show(response.data.message)
     deleting.value = undefined
@@ -299,6 +306,7 @@ watch(() => form.startsAt, () => {
 })
 
 onMounted(async () => {
+  console.log('[OffersView] isAdmin:', isAdmin.value, 'isDoctor:', isDoctor.value, 'roles:', auth.roles)
   await Promise.all([loadDoctors(), loadClinics(), loadQuota(), loadOffers()])
 })
 </script>

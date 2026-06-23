@@ -32,8 +32,8 @@ public class NotificationDeliveryRetryServiceTests
                 Title = "Test",
                 Body = "Retry me",
                 AttemptCount = 1,
-                LastAttemptAt = DateTime.UtcNow.AddMinutes(-20),
-                NextAttemptAt = DateTime.UtcNow.AddMinutes(-1)
+                LastAttemptAt = BusinessClock.Now().AddMinutes(-20),
+                NextAttemptAt = BusinessClock.Now().AddMinutes(-1)
             });
             await context.SaveChangesAsync();
         }

@@ -57,7 +57,7 @@ public class AuthorizationTests
     [Theory]
     [InlineData(typeof(UserController), nameof(UserController.SignInAsync), "Auth")]
     [InlineData(typeof(UserController), nameof(UserController.RefreshTokenAsync), "Auth")]
-    [InlineData(typeof(UserController), nameof(UserController.SendResetPasswordLinkAsync), "AccountRecovery")]
+    //[InlineData(typeof(UserController), nameof(UserController.SendResetPasswordLinkAsync), "AccountRecovery")]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.CreateAppointmentAsync), "Booking")]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.ResendBookingOtpAsync), "Otp")]
     [InlineData(typeof(AppointmentController), nameof(AppointmentController.ConfirmBookingOtpAsync), "Otp")]

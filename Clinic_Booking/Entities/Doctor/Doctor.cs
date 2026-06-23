@@ -31,9 +31,6 @@ namespace Clinic_Booking.Entities.Doctor
         // اشتراكات الدكتور
         public ICollection<DoctorSubscription.DoctorSubscription> DoctorSubscriptions { get; set; }
 
-        // الرسائل المرسلة إليه
-        public ICollection<Message.Message> ReceivedMessages { get; set; }
-
         // الإشعارات المرسلة إليه
         public ICollection<Notification.Notification> Notifications { get; set; }
         public ICollection<DoctorFeature.DoctorFeature> DoctorFeatures { get; set; }

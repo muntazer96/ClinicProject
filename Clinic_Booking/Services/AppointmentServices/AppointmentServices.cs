@@ -7,26 +7,36 @@ using Clinic_Booking.Entities.Appointment;
 using Clinic_Booking.Entities.BookingOtpRequest;
 using Clinic_Booking.Enums;
 using Clinic_Booking.Extensions;
+using Clinic_Booking.Hubs;
 using Clinic_Booking.IServices.IAppointmentServices;
 using Clinic_Booking.IServices.IBookingSmsServices;
 using Clinic_Booking.IServices.ILoadServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
+using Clinic_Booking.Services.MessageServices;
 using Clinic_Booking.Services.NotificationDeliveryServices;
 using Clinic_Booking.Utilities;
+using Clinic_Booking.Services.ProfanityFilterService;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Clinic_Booking.Services.AppointmentServices
 {
     public class AppointmentServices : IAppointmentServices
     {
+        private const string IraqiPhonePattern = @"^07\d{9}$";
+        private const string IraqiPhoneValidationMessage = "رقم الهاتف يجب أن يكون 11 رقم ويبدأ بـ 07.";
+
         private readonly ApplicationDbContext _context;
         private readonly ILoadServices _load;
         private readonly IBookingSmsServices _bookingSmsServices;
         private readonly IPushNotificationServices _pushNotificationServices;
+        private readonly IHubContext<MessageHub> _hubContext;
+        private readonly OnlineUserTracker _onlineTracker;
         private readonly BookingOtpOptions _bookingOtpOptions;
         private readonly ILogger<AppointmentServices> _logger;
 
@@ -35,6 +45,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             ILoadServices load,
             IBookingSmsServices bookingSmsServices,
             IPushNotificationServices pushNotificationServices,
+            IHubContext<MessageHub> hubContext,
+            OnlineUserTracker onlineTracker,
             IOptions<BookingOtpOptions> bookingOtpOptions,
             ILogger<AppointmentServices> logger)
         {
@@ -42,6 +54,8 @@ namespace Clinic_Booking.Services.AppointmentServices
             _load = load;
             _bookingSmsServices = bookingSmsServices;
             _pushNotificationServices = pushNotificationServices;
+            _hubContext = hubContext;
+            _onlineTracker = onlineTracker;
             _bookingOtpOptions = bookingOtpOptions.Value;
             _logger = logger;
         }
@@ -386,6 +400,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Data = null
                 });
             }
+            if (!IsValidIraqiPhone(normalizedPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             var appointment = await ProjectBookingDetails(
                 _context.Appointments
@@ -416,7 +434,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             });
         }
 
-        public async Task<IActionResult> GetMyAppointmentsAsync()
+        public async Task<IActionResult> GetMyAppointmentsAsync(DateOnly? fromDate, DateOnly? toDate)
         {
             var userId = GetAuthenticatedUserId();
             if (!userId.HasValue)
@@ -424,8 +442,22 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return LoginRequired();
             }
 
+            var query = _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId);
+
+            if (fromDate.HasValue)
+            {
+                var from = fromDate.Value.ToDateTime(TimeOnly.MinValue);
+                query = query.Where(a => a.AppointmentDate.Date >= from);
+            }
+
+            if (toDate.HasValue)
+            {
+                var to = toDate.Value.ToDateTime(TimeOnly.MinValue);
+                query = query.Where(a => a.AppointmentDate.Date <= to);
+            }
+
             var appointments = await ProjectBookingDetails(
-                    _context.Appointments.Where(a => !a.IsDeleted && a.UserId == userId))
+                    query)
                 .OrderByDescending(a => a.AppointmentDate)
                 .ThenBy(a => a.QueueNumber)
                 .Take(100)
@@ -590,20 +622,19 @@ namespace Clinic_Booking.Services.AppointmentServices
                     .Select(user => new
                     {
                         user.PhoneNumber,
-                        user.PhoneNumberConfirmed,
-                        user.EmailConfirmed
+                        user.PhoneNumberConfirmed
                     })
                     .FirstOrDefaultAsync()
                 : null;
 
             if (userId.HasValue &&
-            bookingUser is { PhoneNumberConfirmed: false, EmailConfirmed: false })
+            bookingUser is { PhoneNumberConfirmed: false })
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
                     Status = "Error",
                     Code = 400,
-                    Message = "يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.",
+                    Message = "يجب تأكيد رقم الهاتف قبل الحجز.",
                     Data = null
                 });
             }
@@ -612,8 +643,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ? bookingUser?.PhoneNumber
                 : form.GuestPhoneNumber?.Trim();
 
-            var requiresOtp = _bookingOtpOptions.Enabled &&
-                (!userId.HasValue || bookingUser?.PhoneNumberConfirmed != true);
+            var requiresOtp = !userId.HasValue ||
+                (_bookingOtpOptions.Enabled && bookingUser?.PhoneNumberConfirmed != true);
 
             if (requiresOtp && string.IsNullOrWhiteSpace(bookingPhoneNumber))
             {
@@ -687,6 +718,10 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             var guestPhoneNumber = form.GuestPhoneNumber?.Trim();
+            if (!userId.HasValue && !IsValidIraqiPhone(guestPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
 
             var hasDuplicate = userId.HasValue
                 ? await _context.Appointments.AnyAsync(a =>
@@ -713,6 +748,20 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var guestName = userId.HasValue ? null : form.GuestName?.Trim();
+            var notes = form.Notes?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(guestName) ||
+                ProfanityFilterServices.ContainsProfanity(notes))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "النص المدخل يحتوي على كلمات ممنوعة.",
+                    Data = null
+                });
+            }
+
             Appointment appointment;
             try
             {
@@ -726,9 +775,9 @@ namespace Clinic_Booking.Services.AppointmentServices
                         ClinicId = clinic.Id,
                         AppointmentDate = appointmentDate,
                         QueueNumber = queueNumber,
-                        GuestName = userId.HasValue ? null : form.GuestName?.Trim(),
+                        GuestName = guestName,
                         GuestPhoneNumber = userId.HasValue ? null : guestPhoneNumber,
-                        Notes = form.Notes?.Trim(),
+                        Notes = notes,
                         IsPhoneConfirmed = !requiresOtp,
                         Status = AppointmentStatus.Pending,
                         PaymentStatus = PaymentStatus.Pending,
@@ -748,8 +797,8 @@ namespace Clinic_Booking.Services.AppointmentServices
                         appointment.Status = AppointmentStatus.Cancelled;
                         appointment.CancellationReason = "OTP delivery failed.";
                         appointment.IsDeleted = true;
-                        appointment.CancelledAt = DateTime.UtcNow;
-                        appointment.ModifiedAt = DateTime.UtcNow;
+                        appointment.CancelledAt = BusinessClock.Now();
+                        appointment.ModifiedAt = BusinessClock.Now();
                         await _context.SaveChangesAsync();
                         return OtpDeliveryFailed();
                     }
@@ -771,7 +820,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 "حجز جديد",
                 requiresOtp
                     ? "تم إنشاء حجز جديد وينتظر تأكيد رقم الهاتف."
-                    : "تم استلام حجز جديد بتأريخ " + appointmentDate + ".",
+                    : "تم استلام حجز جديد بتأريخ " + FormatAppointmentDate(appointmentDate) + ".",
                 appointment);
 
             if (!requiresOtp)
@@ -828,6 +877,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             var patientName = form.PatientName?.Trim();
             var patientPhoneNumber = form.PatientPhoneNumber?.Trim();
+            var manualNotes = form.Notes?.Trim();
             if (string.IsNullOrWhiteSpace(patientName) || string.IsNullOrWhiteSpace(patientPhoneNumber))
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -835,6 +885,22 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Status = "Error",
                     Code = 400,
                     Message = "اسم المراجع ورقم الهاتف مطلوبان.",
+                    Data = null
+                });
+            }
+            if (!IsValidIraqiPhone(patientPhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
+
+            if (ProfanityFilterServices.ContainsProfanity(patientName) ||
+                ProfanityFilterServices.ContainsProfanity(manualNotes))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "النص المدخل يحتوي على كلمات ممنوعة.",
                     Data = null
                 });
             }
@@ -944,7 +1010,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                         QueueNumber = queueNumber,
                         GuestName = patientName,
                         GuestPhoneNumber = patientPhoneNumber,
-                        Notes = form.Notes?.Trim(),
+                        Notes = manualNotes,
                         IsPhoneConfirmed = true,
                         Status = AppointmentStatus.Confirmed,
                         PaymentStatus = PaymentStatus.Pending,
@@ -963,6 +1029,12 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            await NotifyDoctorAsync(
+                clinic.DoctorId,
+                "تمت إضافة حجز يدوي",
+                $"تمت إضافة حجز يدوي للمراجع {patientName} برقم دور {appointment.QueueNumber}.",
+                appointment);
+
             return new OkObjectResult(new ResponseDto<object>
             {
                 Status = "Success",
@@ -974,6 +1046,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         public async Task<IActionResult> ResendBookingOtpAsync(ResendBookingOtpDto form)
         {
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
+
             var appointment = await GetOtpAppointmentAsync(form.PhoneNumber, form.BookingCode);
             if (appointment == null)
             {
@@ -1001,7 +1078,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .OrderByDescending(request => request.SentAt)
                 .FirstOrDefaultAsync();
 
-            if (lastRequest != null && lastRequest.ExpiresAt < DateTime.UtcNow)
+            if (lastRequest != null && lastRequest.ExpiresAt < BusinessClock.Now())
             {
                 await ExpireUnconfirmedBookingsAsync(appointment.ClinicId);
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -1016,7 +1093,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             if (lastRequest != null)
             {
                 var resendAvailableAt = lastRequest.SentAt.AddSeconds(_bookingOtpOptions.ResendCooldownSeconds);
-                if (resendAvailableAt > DateTime.UtcNow)
+                if (resendAvailableAt > BusinessClock.Now())
                 {
                     return new BadRequestObjectResult(new ResponseDto<object>
                     {
@@ -1048,6 +1125,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         public async Task<IActionResult> ConfirmBookingOtpAsync(BookingOtpDto form)
         {
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
+            }
+
             if (string.IsNullOrWhiteSpace(form.OtpCode))
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
@@ -1086,7 +1168,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .OrderByDescending(request => request.SentAt)
                 .FirstOrDefaultAsync();
 
-            if (otpRequest == null || otpRequest.ExpiresAt < DateTime.UtcNow)
+            if (otpRequest == null || otpRequest.ExpiresAt < BusinessClock.Now())
             {
                 return new BadRequestObjectResult(new ResponseDto<object>
                 {
@@ -1124,9 +1206,9 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             otpRequest.IsUsed = true;
-            otpRequest.VerifiedAt = DateTime.UtcNow;
+            otpRequest.VerifiedAt = BusinessClock.Now();
             appointment.IsPhoneConfirmed = true;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             await _context.SaveChangesAsync();
 
             await NotifyDoctorAsync(
@@ -1162,6 +1244,10 @@ namespace Clinic_Booking.Services.AppointmentServices
                     Message = "Phone number and booking code are required.",
                     Data = null
                 });
+            }
+            if (!IsValidIraqiPhone(form.PhoneNumber))
+            {
+                return InvalidPhoneNumber();
             }
 
             var appointment = await _context.Appointments.FirstOrDefaultAsync(a =>
@@ -1268,12 +1354,12 @@ namespace Clinic_Booking.Services.AppointmentServices
             appointment.Status = appointment.Status == AppointmentStatus.Confirmed
                 ? AppointmentStatus.Cancelled
                 : AppointmentStatus.Confirmed;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
 
             if (appointment.Status == AppointmentStatus.Cancelled)
             {
-                appointment.CancelledAt = DateTime.UtcNow;
+                appointment.CancelledAt = BusinessClock.Now();
                 appointment.CancelledByUserId = _load.GetCurrentUserId();
             }
 
@@ -1289,6 +1375,11 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (appointment.Status == AppointmentStatus.Confirmed)
             {
+                await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"تمت الموافقة على الحجز رقم {appointment.QueueNumber}.");
+
                 var doctorName = await GetDoctorNameAsync(appointment.DoctorId);
                 var appointmentDate = FormatAppointmentDate(appointment.AppointmentDate);
                 await NotifyPatientAsync(
@@ -1298,6 +1389,11 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
             else if (appointment.Status == AppointmentStatus.Cancelled)
             {
+                await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"تم إلغاء الحجز رقم {appointment.QueueNumber}.");
+
                 await NotifyBookingCancelledAsync(appointment, includeDoctor: false);
             }
 
@@ -1308,6 +1404,44 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Message = $"تم تحديث حالة الحجز إلى '{appointment.Status}'.",
                 Data = null
             });
+        }
+
+        public async Task<IActionResult> RejectPendingAppointmentAsync(int appointmentId)
+        {
+            var appointment = await _context.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
+            if (appointment == null)
+            {
+                return new NotFoundObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 404,
+                    Message = "Booking not found.",
+                    Data = null
+                });
+            }
+
+            if (!await IsOwnedByCurrentDoctorAsync(appointment.DoctorId))
+            {
+                return DoctorAccessDenied();
+            }
+
+            if (appointment.Status != AppointmentStatus.Pending)
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "Only pending bookings can be rejected.",
+                    Data = null
+                });
+            }
+
+            await SaveNotificationAsync(
+                userId: null,
+                doctorId: appointment.DoctorId,
+                message: $"تم رفض الحجز رقم {appointment.QueueNumber}.");
+
+            return await CancelAppointmentAsync(appointment, "Rejected by doctor.", _load.GetCurrentUserId(), includeDoctor: false);
         }
 
         public async Task<IActionResult> CompleteAppointmentAsync(int appointmentId)
@@ -1341,9 +1475,14 @@ namespace Clinic_Booking.Services.AppointmentServices
             }
 
             appointment.Status = AppointmentStatus.Completed;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = _load.GetCurrentUserId();
             await _context.SaveChangesAsync();
+
+            await SaveNotificationAsync(
+                userId: null,
+                doctorId: appointment.DoctorId,
+                message: $"تم إكمال الحجز رقم {appointment.QueueNumber}.");
 
             var doctorName = await GetDoctorNameAsync(appointment.DoctorId);
             await NotifyPatientAsync(
@@ -1399,7 +1538,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         private async Task<bool> IsElectronicBookingEnabledAsync(int doctorId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var hasActivePackage = await _context.DoctorSubscriptions
                 .AnyAsync(subscription =>
                     subscription.DoctorId == doctorId &&
@@ -1460,7 +1599,7 @@ namespace Clinic_Booking.Services.AppointmentServices
             var otpCode = GenerateNumericOtp(_bookingOtpOptions.CodeLength);
 
             var codeSalt = GenerateOtpSalt();
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var otpRequest = new BookingOtpRequest
             {
                 AppointmentId = appointment.Id,
@@ -1488,7 +1627,7 @@ namespace Clinic_Booking.Services.AppointmentServices
 
         private async Task ExpireUnconfirmedBookingsAsync(int clinicId)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var expiredAppointments = await _context.Appointments
                 .Where(appointment =>
                     appointment.ClinicId == clinicId &&
@@ -1556,27 +1695,35 @@ namespace Clinic_Booking.Services.AppointmentServices
                 .Select(doctor => doctor.UserId)
                 .FirstOrDefaultAsync();
 
+            var notificationId = await SaveNotificationAsync(
+                userId: null,
+                doctorId: doctorId,
+                message: $"{title}: {body}");
+
             if (!doctorUserId.HasValue)
             {
                 return;
             }
 
-            var data = BookingNotificationData(appointment);
-            var sent = await _pushNotificationServices.SendToUserAsync(
+            var data = BookingNotificationData(appointment, notificationId);
+            var sent = await SendBookingNotificationToUserAsync(
                 doctorUserId.Value,
                 title,
                 body,
                 data);
-            NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                _context,
-                sent,
-                doctorUserId.Value,
-                title,
-                body,
-                data,
-                doctorId: appointment.DoctorId,
-                clinicId: appointment.ClinicId,
-                appointmentId: appointment.Id);
+            if (sent.HasValue)
+            {
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent.Value,
+                    doctorUserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
+            }
             await _context.SaveChangesAsync();
         }
 
@@ -1591,28 +1738,36 @@ namespace Clinic_Booking.Services.AppointmentServices
                 return;
             }
 
+            var notificationId = await SaveNotificationAsync(
+                userId: appointment.UserId,
+                doctorId: null,
+                message: $"{title}: {body}");
+
             _logger.LogInformation(
                 "Sending patient push notification. AppointmentId={AppointmentId}, PatientUserId={PatientUserId}, Title={Title}",
                 appointment.Id,
                 appointment.UserId,
                 title);
 
-            var data = BookingNotificationData(appointment);
-            var sent = await _pushNotificationServices.SendToUserAsync(
+            var data = BookingNotificationData(appointment, notificationId);
+            var sent = await SendBookingNotificationToUserAsync(
                 appointment.UserId.Value,
                 title,
                 body,
                 data);
-            NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                _context,
-                sent,
-                appointment.UserId.Value,
-                title,
-                body,
-                data,
-                doctorId: appointment.DoctorId,
-                clinicId: appointment.ClinicId,
-                appointmentId: appointment.Id);
+            if (sent.HasValue)
+            {
+                NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                    _context,
+                    sent.Value,
+                    appointment.UserId.Value,
+                    title,
+                    body,
+                    data,
+                    doctorId: appointment.DoctorId,
+                    clinicId: appointment.ClinicId,
+                    appointmentId: appointment.Id);
+            }
             await _context.SaveChangesAsync();
         }
 
@@ -1657,22 +1812,29 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (doctorUserId.HasValue && notifiedUsers.Add(doctorUserId.Value))
             {
-                var data = BookingNotificationData(appointment);
-                var sent = await _pushNotificationServices.SendToUserAsync(
+                var doctorNotificationId = await SaveNotificationAsync(
+                    userId: null,
+                    doctorId: appointment.DoctorId,
+                    message: $"{title}: {body}");
+                var data = BookingNotificationData(appointment, doctorNotificationId);
+                var sent = await SendBookingNotificationToUserAsync(
                     doctorUserId.Value,
                     title,
                     body,
                     data);
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    _context,
-                    sent,
-                    doctorUserId.Value,
-                    title,
-                    body,
-                    data,
-                    doctorId: appointment.DoctorId,
-                    clinicId: appointment.ClinicId,
-                    appointmentId: appointment.Id);
+                if (sent.HasValue)
+                {
+                    NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                        _context,
+                        sent.Value,
+                        doctorUserId.Value,
+                        title,
+                        body,
+                        data,
+                        doctorId: appointment.DoctorId,
+                        clinicId: appointment.ClinicId,
+                        appointmentId: appointment.Id);
+                }
             }
             else
             {
@@ -1684,22 +1846,29 @@ namespace Clinic_Booking.Services.AppointmentServices
 
             if (includePatient && appointment.UserId.HasValue && notifiedUsers.Add(appointment.UserId.Value))
             {
-                var data = BookingNotificationData(appointment);
-                var sent = await _pushNotificationServices.SendToUserAsync(
+                var patientNotificationId = await SaveNotificationAsync(
+                    userId: appointment.UserId,
+                    doctorId: null,
+                    message: $"{title}: {body}");
+                var data = BookingNotificationData(appointment, patientNotificationId);
+                var sent = await SendBookingNotificationToUserAsync(
                     appointment.UserId.Value,
                     title,
                     body,
                     data);
-                NotificationDeliveryAttemptRecorder.AddPushAttempt(
-                    _context,
-                    sent,
-                    appointment.UserId.Value,
-                    title,
-                    body,
-                    data,
-                    doctorId: appointment.DoctorId,
-                    clinicId: appointment.ClinicId,
-                    appointmentId: appointment.Id);
+                if (sent.HasValue)
+                {
+                    NotificationDeliveryAttemptRecorder.AddPushAttempt(
+                        _context,
+                        sent.Value,
+                        appointment.UserId.Value,
+                        title,
+                        body,
+                        data,
+                        doctorId: appointment.DoctorId,
+                        clinicId: appointment.ClinicId,
+                        appointmentId: appointment.Id);
+                }
             }
             else if (includePatient)
             {
@@ -1735,9 +1904,51 @@ namespace Clinic_Booking.Services.AppointmentServices
             return BusinessClock.Today().AddDays(days - 1);
         }
 
-        private static Dictionary<string, string> BookingNotificationData(Appointment appointment)
+        private async Task<bool?> SendBookingNotificationToUserAsync(
+            Guid userId,
+            string title,
+            string body,
+            Dictionary<string, string> data)
         {
-            return new Dictionary<string, string>
+            if (_onlineTracker.IsUserOnline(userId))
+            {
+                await _hubContext.Clients.User(userId.ToString()).SendAsync("AppNotification", new
+                {
+                    Type = data.TryGetValue("type", out var type) ? type : "booking",
+                    Title = title,
+                    Body = body,
+                    Data = data
+                });
+                return null;
+            }
+
+            return await _pushNotificationServices.SendToUserAsync(
+                userId,
+                title,
+                body,
+                data);
+        }
+
+        private async Task<int?> SaveNotificationAsync(Guid? userId, int? doctorId, string message)
+        {
+            var notification = new Entities.Notification.Notification
+            {
+                UserId = userId,
+                DoctorId = doctorId,
+                Message = message,
+                CreatedAt = BusinessClock.Now(),
+                Status = NotificationStatus.Unread,
+                CreatorId = _load.GetCurrentUserId()
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+            return notification.Id;
+        }
+
+        private static Dictionary<string, string> BookingNotificationData(Appointment appointment, int? notificationId = null)
+        {
+            var data = new Dictionary<string, string>
             {
                 ["type"] = "booking",
                 ["appointmentId"] = appointment.Id.ToString(),
@@ -1746,6 +1957,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                 ["queueNumber"] = appointment.QueueNumber.ToString(),
                 ["status"] = appointment.Status.ToString()
             };
+
+            if (notificationId.HasValue)
+            {
+                data["notificationId"] = notificationId.Value.ToString();
+            }
+
+            return data;
         }
 
         private static UnauthorizedObjectResult DoctorAccessDenied()
@@ -1778,6 +1996,7 @@ namespace Clinic_Booking.Services.AppointmentServices
                 IsGuestBooking = !appointment.UserId.HasValue,
                 BookingSource = appointment.UserId.HasValue ? "Registered" : "Guest",
                 HasReview = appointment.Reviews.Any(review => !review.IsDeleted),
+                PatientUserId = appointment.UserId,
                 CancellationReason = appointment.CancellationReason,
                 CancelledAt = appointment.CancelledAt,
                 DoctorId = appointment.DoctorId,
@@ -1799,6 +2018,23 @@ namespace Clinic_Booking.Services.AppointmentServices
                 Status = "Error",
                 Code = 401,
                 Message = "Login is required.",
+                Data = null
+            });
+        }
+
+        private static bool IsValidIraqiPhone(string? phoneNumber)
+        {
+            return !string.IsNullOrWhiteSpace(phoneNumber) &&
+                Regex.IsMatch(phoneNumber.Trim(), IraqiPhonePattern);
+        }
+
+        private static BadRequestObjectResult InvalidPhoneNumber()
+        {
+            return new BadRequestObjectResult(new ResponseDto<object>
+            {
+                Status = "Error",
+                Code = 400,
+                Message = IraqiPhoneValidationMessage,
                 Data = null
             });
         }
@@ -1851,7 +2087,7 @@ namespace Clinic_Booking.Services.AppointmentServices
         }
 
         private async Task<IActionResult> CancelAppointmentAsync(
-            Appointment appointment, string? reason, Guid? cancelledByUserId)
+            Appointment appointment, string? reason, Guid? cancelledByUserId, bool includeDoctor = true)
         {
             if (appointment.Status == AppointmentStatus.Cancelled)
             {
@@ -1875,15 +2111,27 @@ namespace Clinic_Booking.Services.AppointmentServices
                 });
             }
 
+            var cancelReason = reason?.Trim();
+            if (ProfanityFilterServices.ContainsProfanity(cancelReason))
+            {
+                return new BadRequestObjectResult(new ResponseDto<object>
+                {
+                    Status = "Error",
+                    Code = 400,
+                    Message = "سبب الإلغاء يحتوي على كلمات ممنوعة.",
+                    Data = null
+                });
+            }
+
             appointment.Status = AppointmentStatus.Cancelled;
-            appointment.CancellationReason = reason?.Trim();
-            appointment.CancelledAt = DateTime.UtcNow;
+            appointment.CancellationReason = cancelReason;
+            appointment.CancelledAt = BusinessClock.Now();
             appointment.CancelledByUserId = cancelledByUserId;
-            appointment.ModifiedAt = DateTime.UtcNow;
+            appointment.ModifiedAt = BusinessClock.Now();
             appointment.ModifierId = cancelledByUserId;
             await _context.SaveChangesAsync();
 
-            await NotifyBookingCancelledAsync(appointment, includeDoctor: true);
+            await NotifyBookingCancelledAsync(appointment, includeDoctor);
 
             return new OkObjectResult(new ResponseDto<object>
             {

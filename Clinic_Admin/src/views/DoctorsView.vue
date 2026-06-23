@@ -240,7 +240,7 @@ onBeforeUnmount(clearImagePreview)
                 <div v-if="doctor.linkedUser" class="linked-account-cell">
                   <!-- <span class="status-badge status-success">مربوط</span>-->
                   <strong>{{ doctor.linkedUser.name || doctor.linkedUser.userName }}</strong>
-                  <small>{{ doctor.linkedUser.phoneNumber || doctor.linkedUser.email || doctor.linkedUser.id }}</small>
+                  <small>{{ doctor.linkedUser.phoneNumber || doctor.linkedUser.id }}</small>
                 </div>
                 <span v-else class="status-badge status-neutral">غير مربوط</span>
               </td>
@@ -276,12 +276,12 @@ onBeforeUnmount(clearImagePreview)
     </AppModal>
 
     <AppModal v-if="linkDoctor" title="ربط حساب الطبيب" @close="linkDoctor = undefined">
-      <p class="modal-copy">ابحث بالاسم أو الهاتف أو البريد ثم اختر الحساب الذي سيدير ملف الطبيب <strong>{{ linkDoctor.name }}</strong>.</p>
-      <div class="link-user-search"><label class="search-box"><Search :size="17" /><input v-model="linkSearch" placeholder="اسم المستخدم أو الهاتف أو البريد" @keyup.enter="searchLinkUsers" /></label><button class="compact-primary" type="button" @click="searchLinkUsers">بحث</button></div>
+      <p class="modal-copy">ابحث بالاسم أو الهاتف ثم اختر الحساب الذي سيدير ملف الطبيب <strong>{{ linkDoctor.name }}</strong>.</p>
+      <div class="link-user-search"><label class="search-box"><Search :size="17" /><input v-model="linkSearch" placeholder="اسم المستخدم أو الهاتف" @keyup.enter="searchLinkUsers" /></label><button class="compact-primary" type="button" @click="searchLinkUsers">بحث</button></div>
       <div v-if="linkLoading" class="link-user-empty">جارِ البحث...</div>
       <div v-else-if="!linkUsers.length" class="link-user-empty">اكتب عبارة البحث لعرض الحسابات المتاحة.</div>
       <div v-else class="link-user-results">
-        <label v-for="user in linkUsers" :key="user.id" class="link-user-option" :class="{ selected: userId === user.id }"><input v-model="userId" type="radio" :value="user.id" /><span class="small-avatar"><UserRound :size="17" /></span><span><strong>{{ user.name || user.userName }}</strong><small>{{ user.phoneNumber || user.email || user.id }}</small></span></label>
+        <label v-for="user in linkUsers" :key="user.id" class="link-user-option" :class="{ selected: userId === user.id }"><input v-model="userId" type="radio" :value="user.id" /><span class="small-avatar"><UserRound :size="17" /></span><span><strong>{{ user.name || user.userName }}</strong><small>{{ user.phoneNumber || user.id }}</small></span></label>
       </div>
       <div class="modal-actions"><button class="secondary-button" type="button" @click="linkDoctor = undefined">تراجع</button><button class="compact-primary" type="button" :disabled="!userId" @click="linkAccount">ربط الحساب</button></div>
     </AppModal>

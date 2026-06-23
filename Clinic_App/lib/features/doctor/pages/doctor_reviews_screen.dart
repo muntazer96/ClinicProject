@@ -38,30 +38,28 @@ class _DoctorManageReviewsScreenState extends State<DoctorManageReviewsScreen> {
 
   @override
   Widget build(BuildContext context) => DoctorScaffold(
-        title: 'التقييمات',
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : (_summary == null || _summary!.reviews.isEmpty)
-                  ? const DoctorEmptyState(
-                      icon: Icons.star_border_rounded,
-                      message: 'لا توجد تقييمات لعرضها حالياً.',
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-                      children: [
-                        _ReviewsSummaryCard(summary: _summary!),
-                        const SizedBox(height: 14),
-                        const _SectionTitle(title: 'آراء المرضى'),
-                        const SizedBox(height: 10),
-                        ..._summary!.reviews.map(
-                          (item) => _ReviewCard(item: item),
-                        ),
-                      ],
-                    ),
-        ),
-      );
+    title: 'التقييمات',
+    child: RefreshIndicator(
+      onRefresh: _load,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : (_summary == null || _summary!.reviews.isEmpty)
+          ? const DoctorEmptyState(
+              icon: Icons.star_border_rounded,
+              message: 'لا توجد تقييمات لعرضها حالياً.',
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+              children: [
+                _ReviewsSummaryCard(summary: _summary!),
+                const SizedBox(height: 14),
+                const _SectionTitle(title: 'آراء المرضى'),
+                const SizedBox(height: 10),
+                ..._summary!.reviews.map((item) => _ReviewCard(item: item)),
+              ],
+            ),
+    ),
+  );
 }
 
 class _ReviewsSummaryCard extends StatelessWidget {
@@ -155,7 +153,7 @@ class _ReviewsSummaryCard extends StatelessWidget {
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.item});
 
-final DoctorReview item;
+  final DoctorReview item;
 
   @override
   Widget build(BuildContext context) {
@@ -165,12 +163,12 @@ final DoctorReview item;
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -183,7 +181,7 @@ final DoctorReview item;
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: const Color(0xFFEAF7F5),
+                backgroundColor: context.appSoftBlue,
                 child: Text(
                   item.userName.isEmpty ? '?' : item.userName.characters.first,
                   style: const TextStyle(
@@ -216,7 +214,7 @@ final DoctorReview item;
               style: TextStyle(
                 fontSize: 13,
                 height: 1.55,
-                color: Colors.grey.shade800,
+                color: context.appText,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -225,15 +223,15 @@ final DoctorReview item;
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7FAFA),
+              color: context.appSurfaceMuted,
               borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: const Color(0xFFE3ECEA)),
+              border: Border.all(color: context.appBorder),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
-                  color: AppColors.muted,
+                  color: context.appMuted,
                   size: 17,
                 ),
                 const SizedBox(width: 7),
@@ -241,7 +239,7 @@ final DoctorReview item;
                   child: Text(
                     'الرد على التقييم غير متاح من الـ API الحالي.',
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: context.appMuted,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                     ),
@@ -257,10 +255,7 @@ final DoctorReview item;
 }
 
 class _Stars extends StatelessWidget {
-  const _Stars({
-    required this.rating,
-    this.small = false,
-  });
+  const _Stars({required this.rating, this.small = false});
 
   final double rating;
   final bool small;
@@ -278,7 +273,11 @@ class _Stars extends StatelessWidget {
         return Icon(
           Icons.star_rounded,
           size: size,
-          color: active ? const Color(0xFFFFC857) : Colors.white.withOpacity(.38),
+          color: active
+              ? const Color(0xFFFFC857)
+              : (context.isDark
+                    ? Colors.white.withOpacity(.24)
+                    : AppColors.border),
         );
       }),
     );
@@ -295,9 +294,15 @@ class _RatingBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7DF),
+        color: context.isDark
+            ? const Color(0xFF3A2A16)
+            : const Color(0xFFFFF7DF),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE8CF83)),
+        border: Border.all(
+          color: context.isDark
+              ? const Color(0xFF715A1D)
+              : const Color(0xFFE8CF83),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -325,10 +330,7 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-        ),
-      );
+    title,
+    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+  );
 }

@@ -135,6 +135,13 @@ class DoctorService {
     );
   }
 
+  Future<void> rejectPendingAppointment(int appointmentId) async {
+    await _client.dio.post(
+      '/Appointment/reject-pending',
+      queryParameters: {'appointmentId': appointmentId},
+    );
+  }
+
   Future<void> completeAppointment(int appointmentId) async {
     await _client.dio.post(
       '/Appointment/complete',

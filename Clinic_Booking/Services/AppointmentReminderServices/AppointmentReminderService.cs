@@ -85,7 +85,7 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
                         var marker = ReminderMarker(appointment.Id, today);
                         var alreadySent = await context.Notifications.AnyAsync(notification =>
                             notification.UserId == appointment.UserId &&
-                            notification.Message.Contains(marker),
+                            notification.ReferenceKey == marker,
                             cancellationToken);
 
                         if (alreadySent)
@@ -122,8 +122,9 @@ namespace Clinic_Booking.Services.AppointmentReminderServices
                         {
                             UserId = appointment.UserId,
                             DoctorId = appointment.DoctorId,
-                            Message = $"{marker} {body}",
-                            CreatedAt = DateTime.UtcNow,
+                            Message = body,
+                            ReferenceKey = marker,
+                            CreatedAt = BusinessClock.Now(),
                             Status = NotificationStatus.Unread,
                             CreatorId = appointment.UserId
                         });

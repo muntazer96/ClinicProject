@@ -1,15 +1,18 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
+    defaultValue: 'https://localhost:7136/api',
 
-    //defaultValue: 'https://localhost:7136/api',
     //defaultValue: 'http://localhost:81/api',
+    //defaultValue: 'http://localhost:8082/api',
     //defaultValue: 'http://192.168.1.102:8082/api',
     //defaultValue: 'http://192.168.100.7:8082/api',
-    defaultValue: 'http://192.174.0.120:81/api',
+    //defaultValue: 'http://192.174.0.120:81/api',
   );
 
   ApiClient()
@@ -27,10 +30,22 @@ class ApiClient {
           handler.next(response);
         },
         onError: (error, handler) async {
-          if (_isConnectivityError(error)) {
+          final request = error.requestOptions;
+          final isConnError = _isConnectivityError(error);
+          final alreadyRetriedConn = request.extra['retriedConn'] == true;
+          if (isConnError && !alreadyRetriedConn) {
+            debugPrint(
+              '[ApiClient] Retrying ${request.method} ${request.uri} due to ${error.type}',
+            );
+            request.extra['retriedConn'] = true;
+            try {
+              final response = await Dio(dio.options).fetch(request);
+              markServerAvailable();
+              handler.resolve(response);
+              return;
+            } catch (_) {}
             markServerUnavailable();
           }
-          final request = error.requestOptions;
           final alreadyRetried = request.extra['retriedAfterRefresh'] == true;
           if (error.response?.statusCode == 401 && !alreadyRetried) {
             final refreshed = await _refreshAccessToken();
@@ -76,7 +91,7 @@ class ApiClient {
           receiveTimeout: const Duration(seconds: 8),
           sendTimeout: const Duration(seconds: 8),
         ),
-      ).get('/Specialization');
+      ).get('/Health');
       final available = (response.statusCode ?? 500) < 500;
       if (available) {
         markServerAvailable();
@@ -85,8 +100,11 @@ class ApiClient {
       }
       return available;
     } catch (error) {
-      if (error is DioException && _isConnectivityError(error)) {
-        markServerUnavailable();
+      if (error is DioException) {
+        debugPrint('[HealthCheck] ${error.type}: ${error.requestOptions.uri}');
+        if (_isConnectivityError(error)) {
+          markServerUnavailable();
+        }
       }
       return false;
     }
@@ -107,6 +125,13 @@ class ApiClient {
           query: null,
           fragment: null,
         )
+        .toString();
+  }
+
+  static String messageImageUrl(String imageName) {
+    final apiUri = Uri.parse(_baseUrl);
+    return apiUri
+        .replace(path: '/MessageImages/$imageName', query: null, fragment: null)
         .toString();
   }
 
@@ -180,6 +205,10 @@ class ApiClient {
         return 'تعذر الاتصال بالخادم. تحقق من الإنترنت أو عنوان الخادم.';
       }
       return error.message ?? 'تعذر الاتصال بالخادم.';
+    }
+    final message = error.toString().trim();
+    if (message.isNotEmpty && message != 'Exception') {
+      return message.replaceFirst(RegExp(r'^Exception:\s*'), '');
     }
     return 'تعذر تنفيذ العملية. حاول مرة أخرى.';
   }

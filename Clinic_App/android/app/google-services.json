@@ -12,7 +12,20 @@
           "package_name": "com.clinicbooking.clinic_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "376580756051-pi8s8td384id969og3534aie7jlb10de.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.clinicbooking.clinic_app",
+            "certificate_hash": "819347d08c1bdceb7cf48e2f62fb454c501b89e2"
+          }
+        },
+        {
+          "client_id": "376580756051-kkide42qu74rqvo3fis1p1n28qeh3g50.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDlw1BVXBfaZIysaVHqBpcnFzVwlMWcurc"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "376580756051-kkide42qu74rqvo3fis1p1n28qeh3g50.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

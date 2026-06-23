@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Clinic_Booking.Enums
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum MessageType
     {
         [Display(Name = "رسالة عامة")]

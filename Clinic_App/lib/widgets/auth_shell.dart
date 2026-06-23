@@ -20,6 +20,9 @@ class AuthShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final surface = context.appSurface;
+    final text = context.appText;
+    final muted = context.appMuted;
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -102,11 +105,14 @@ class AuthShell extends StatelessWidget {
                           constraints: const BoxConstraints(maxWidth: 520),
                           padding: const EdgeInsets.all(22),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: surface,
                             borderRadius: BorderRadius.circular(22),
-                            boxShadow: const [
+                            border: Border.all(color: context.appBorder),
+                            boxShadow: [
                               BoxShadow(
-                                color: Color(0x180B514A),
+                                color: context.isDark
+                                    ? Colors.black.withValues(alpha: .34)
+                                    : const Color(0x180B514A),
                                 blurRadius: 28,
                                 offset: Offset(0, 12),
                               ),
@@ -117,8 +123,8 @@ class AuthShell extends StatelessWidget {
                             children: [
                               Text(
                                 title,
-                                style: const TextStyle(
-                                  color: AppColors.text,
+                                style: TextStyle(
+                                  color: text,
                                   fontSize: 25,
                                   fontWeight: FontWeight.w800,
                                 ),
@@ -126,10 +132,7 @@ class AuthShell extends StatelessWidget {
                               const SizedBox(height: 7),
                               Text(
                                 subtitle,
-                                style: const TextStyle(
-                                  color: Color(0xFF758C89),
-                                  height: 1.6,
-                                ),
+                                style: TextStyle(color: muted, height: 1.6),
                               ),
                               const SizedBox(height: 20),
                               child,

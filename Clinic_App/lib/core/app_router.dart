@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../features/account/change_password_screen.dart';
 import '../features/account/edit_name_screen.dart';
+import '../features/account/phone_setup_screen.dart';
 import '../features/account/profile_screen.dart';
 import '../features/auth/auth_controller.dart';
-import '../features/auth/screens/email_confirm_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/password_reset_screen.dart';
@@ -29,7 +29,6 @@ import '../features/doctor/pages/doctor_clinics_screen.dart';
 import '../features/doctor/pages/doctor_features_page.dart';
 import '../features/doctor/pages/doctor_home_screen.dart';
 import '../features/doctor/pages/doctor_manual_appointment_page.dart';
-import '../features/doctor/pages/doctor_notifications_screen.dart';
 import '../features/doctor/pages/doctor_offer_form_page.dart';
 import '../features/doctor/pages/doctor_offers_screen.dart';
 import '../features/doctor/pages/doctor_profile_edit_page.dart';
@@ -44,6 +43,9 @@ import '../features/home/home_screen.dart';
 import '../features/offers/offers_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/onboarding/startup_splash_screen.dart';
+import '../features/messages/screens/chat_screen.dart';
+import '../features/messages/screens/conversations_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/reviews/screens/doctor_reviews_screen.dart';
 import '../widgets/app_scaffold.dart';
 import 'app_theme.dart';
@@ -112,6 +114,15 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       ),
     ),
     GoRoute(
+      path: '/doctor/profile/change-password',
+      builder: (_, __) => const DoctorScaffold(
+        title: 'تغيير كلمة المرور',
+        showBackButton: true,
+        backRoute: '/doctor/profile',
+        child: ChangePasswordScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/doctor/features',
       builder: (_, state) => state.extra is DoctorManageProfile
           ? DoctorFeaturesPage(profile: state.extra! as DoctorManageProfile)
@@ -158,10 +169,51 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       builder: (_, __) => const DoctorSubscriptionScreen(),
     ),
     GoRoute(
+      path: '/doctor/messages',
+      builder: (_, __) => const DoctorScaffold(
+        title: 'الرسائل',
+        showBackButton: true,
+        child: ConversationsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/doctor/messages/:otherUserId',
+      builder: (_, state) {
+        final otherUserId = state.pathParameters['otherUserId'] ?? '';
+        final otherUserName = state.extra as String? ?? 'المستخدم';
+        return ChatScreen(
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        );
+      },
+    ),
+    GoRoute(
       path: '/doctor/notifications',
-      builder: (_, __) => const DoctorNotificationsScreen(),
+      builder: (_, __) => const NotificationsScreen(doctor: true),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (_, __) => const NotificationsScreen(doctor: false),
     ),
     GoRoute(path: '/offers', builder: (_, __) => const OffersScreen()),
+    GoRoute(
+      path: '/messages',
+      builder: (_, __) => const AppScaffold(
+        title: 'الرسائل',
+        child: ConversationsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/messages/:otherUserId',
+      builder: (_, state) {
+        final otherUserId = state.pathParameters['otherUserId'] ?? '';
+        final otherUserName = state.extra as String? ?? 'المستخدم';
+        return ChatScreen(
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        );
+      },
+    ),
     GoRoute(
       path: '/favorites',
       builder: (_, __) => const FavoriteDoctorsScreen(),
@@ -256,16 +308,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
     GoRoute(
       path: '/password-reset',
       builder: (_, state) => PasswordResetScreen(
-        userId: state.uri.queryParameters['userId'],
-        token: state.uri.queryParameters['token'],
-      ),
-    ),
-    GoRoute(
-      path: '/email-confirm',
-      builder: (_, state) => EmailConfirmScreen(
-        userId: state.uri.queryParameters['userId'],
-        token: state.uri.queryParameters['token'],
-        identifier: state.uri.queryParameters['identifier'],
+        phoneNumber: state.uri.queryParameters['phoneNumber'],
+        resetToken: state.uri.queryParameters['resetToken'],
       ),
     ),
     GoRoute(path: '/bookings', builder: (_, __) => const MyBookingsScreen()),
@@ -307,12 +351,25 @@ GoRouter createRouter(AuthController auth) => GoRouter(
             ),
     ),
     GoRoute(
+      path: '/profile/phone-setup',
+      builder: (_, __) => auth.isDoctor
+          ? const DoctorScaffold(
+              title: 'إضافة رقم الهاتف',
+              showBackButton: false,
+              child: PhoneSetupScreen(),
+            )
+          : const AppScaffold(
+              title: 'إضافة رقم الهاتف',
+              child: PhoneSetupScreen(),
+            ),
+    ),
+    GoRoute(
       path: '/guest-booking',
       builder: (_, __) => const GuestBookingScreen(),
     ),
   ],
   redirect: (_, state) {
-    final authPages = {'/login', '/register', '/forgot-password'};
+    final authPages = {'/login', '/register', '/forgot-password', '/password-reset'};
     if (state.uri.path == '/splash' || state.uri.path == '/onboarding') {
       return null;
     }
@@ -323,19 +380,33 @@ GoRouter createRouter(AuthController auth) => GoRouter(
       '/profile/change-password',
       '/profile/edit-name',
       '/profile/confirm-phone',
+      '/profile/phone-setup',
+      '/messages',
+      '/notifications',
     };
     final doctorPage =
         state.uri.path == '/doctor' || state.uri.path.startsWith('/doctor/');
     final phoneConfirmationPage = state.uri.path == '/profile/confirm-phone';
+    final phoneSetupPage = state.uri.path == '/profile/phone-setup';
     if ((protectedPages.contains(state.uri.path) || doctorPage) &&
         !auth.isAuthenticated) {
       return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+    }
+    if (auth.needsPhoneSetup && !phoneSetupPage && !phoneConfirmationPage) {
+      return '/profile/phone-setup';
+    }
+    if (!auth.needsPhoneSetup && phoneSetupPage) {
+      if (auth.needsPhoneConfirmation) {
+        return '/profile/confirm-phone';
+      }
+      return auth.isDoctor ? '/doctor' : '/';
     }
     if (doctorPage && !auth.isDoctor) return '/';
     if (auth.isDoctor &&
         (state.uri.path == '/' ||
             (protectedPages.contains(state.uri.path) &&
-                !phoneConfirmationPage) ||
+                !phoneConfirmationPage &&
+                !phoneSetupPage) ||
             authPages.contains(state.uri.path))) {
       return '/doctor';
     }
@@ -348,9 +419,7 @@ int? _tryParsePathParam(GoRouterState state, String key) =>
     int.tryParse(state.pathParameters[key] ?? '');
 
 class _MissingBookingData extends StatelessWidget {
-  const _MissingBookingData({this.redirectTo = '/search'});
-
-  final String redirectTo;
+  const _MissingBookingData();
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -365,7 +434,7 @@ class _MissingBookingData extends StatelessWidget {
             const SizedBox(height: 10),
             const Text('لا توجد بيانات حجز لعرضها.'),
             TextButton(
-              onPressed: () => context.go(redirectTo),
+              onPressed: () => context.go('/search'),
               child: const Text('عودة'),
             ),
           ],

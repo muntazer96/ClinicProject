@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.Data;
+using Clinic_Booking.Data;
 using Clinic_Booking.DTOs.DoctorAvailabilityDTO;
 using Clinic_Booking.DTOs.AppointmentDTO;
 using Clinic_Booking.DTOs.UserDTO;
@@ -61,7 +61,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
@@ -157,7 +157,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 {
                     availability.IsAvailable = false;
                     availability.ModifierId = _load.GetCurrentUserId();
-                    availability.ModifiedAt = DateTime.UtcNow;
+                    availability.ModifiedAt = BusinessClock.Now();
                 }
 
                 // تحديث أو إضافة الأيام الجديدة
@@ -172,7 +172,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                         existing.MaxAppointments = day.MaxAppointments;
                         existing.IsAvailable = true;
                         existing.ModifierId = _load.GetCurrentUserId();
-                        existing.ModifiedAt = DateTime.UtcNow;
+                        existing.ModifiedAt = BusinessClock.Now();
                     }
                     else
                     {
@@ -331,7 +331,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 });
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
 
             var activeSub = await _context.DoctorSubscriptions
                 .Include(ds => ds.Package)
@@ -430,7 +430,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             if (!isNewAvailability)
             {
                 availability.ModifierId = _load.GetCurrentUserId();
-                availability.ModifiedAt = DateTime.UtcNow;
+                availability.ModifiedAt = BusinessClock.Now();
             }
 
             List<PendingAppointmentNotification> pendingNotifications = [];
@@ -531,7 +531,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
 
                 appointment.AppointmentDate = moveTarget.Date;
                 appointment.QueueNumber = moveTarget.QueueNumber;
-                appointment.ModifiedAt = DateTime.UtcNow;
+                appointment.ModifiedAt = BusinessClock.Now();
                 appointment.ModifierId = _load.GetCurrentUserId();
                 notifications.Add(ToPendingNotification(
                     appointment,
@@ -546,7 +546,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
             Entities.Appointment.Appointment appointment,
             string reason)
         {
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             appointment.Status = AppointmentStatus.Cancelled;
             appointment.CancellationReason = reason;
             appointment.CancelledAt = now;
@@ -641,7 +641,7 @@ namespace Clinic_Booking.Services.DoctorAvailabilityServices
                 AppointmentId = appointmentId,
                 SubscriptionId = subscriptionId,
                 Details = details,
-                OccurredAt = DateTime.UtcNow
+                OccurredAt = BusinessClock.Now()
             });
         }
 

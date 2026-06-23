@@ -19,7 +19,7 @@ public class DataCleanupServiceTests
         var services = new ServiceCollection()
             .AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase(databaseName))
             .BuildServiceProvider();
-        var now = DateTime.UtcNow;
+        var now = BusinessClock.Now();
         var userId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
         await using (var scope = services.CreateAsyncScope())

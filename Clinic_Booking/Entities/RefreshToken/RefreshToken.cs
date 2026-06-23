@@ -11,7 +11,7 @@ namespace Clinic_Booking.Entities.RefreshToken
         public DateTime? RevokedAt { get; set; }
         public string? ReplacedByTokenHash { get; set; }
         public bool IsRevoked => RevokedAt.HasValue;
-        public bool IsExpired => ExpiresAt <= DateTime.UtcNow;
+        public bool IsExpired => ExpiresAt <= BusinessClock.Now();
         public bool IsActive => !IsRevoked && !IsExpired && !IsDeleted;
     }
 }

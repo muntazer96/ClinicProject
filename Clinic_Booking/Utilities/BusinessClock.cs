@@ -6,6 +6,8 @@ namespace Clinic_Booking.Utilities
 
         public static DateTime Now() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BaghdadTimeZone);
 
+        public static DateTimeOffset NowOffset() => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BaghdadTimeZone);
+
         public static DateTime Today() => Now().Date;
 
         public static DateOnly TodayDateOnly() => DateOnly.FromDateTime(Today());

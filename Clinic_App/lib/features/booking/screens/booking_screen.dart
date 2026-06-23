@@ -7,6 +7,7 @@ import '../../../core/analytics_service.dart';
 import '../../../core/api_client.dart';
 import '../../../core/app_snack_bar.dart';
 import '../../../core/app_theme.dart';
+import '../../../core/phone_number_validator.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../../auth/auth_controller.dart';
 import '../booking_service.dart';
@@ -114,12 +115,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
     if (_selected == null) return;
 
-    if (auth.isAuthenticated &&
-        auth.profile?.phoneConfirmed != true &&
-        auth.profile?.emailConfirmed != true) {
-      setState(
-        () => _error = 'يجب تأكيد رقم الهاتف أو البريد الإلكتروني قبل الحجز.',
-      );
+    if (auth.isAuthenticated && auth.profile?.phoneConfirmed != true) {
+      setState(() => _error = 'يجب تأكيد رقم الهاتف قبل الحجز.');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,6 +142,11 @@ class _BookingScreenState extends State<BookingScreen> {
         'أدخل الاسم الأول والاسم الثاني ورقم الهاتف لإكمال الحجز.',
         type: AppSnackBarType.warning,
       );
+      return;
+    }
+
+    if (!auth.isAuthenticated && !isValidIraqiPhone(_phone.text)) {
+      showAppSnackBar(context, iraqiPhoneError, type: AppSnackBarType.warning);
       return;
     }
 
@@ -333,6 +335,7 @@ class _BookingScreenState extends State<BookingScreen> {
             TextField(
               controller: _phone,
               keyboardType: TextInputType.phone,
+              inputFormatters: iraqiPhoneInputFormatters,
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'رقم الهاتف',
@@ -392,10 +395,10 @@ class _DayCard extends StatelessWidget {
       width: 132,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: selected ? AppColors.primary : Colors.white,
+        color: selected ? AppColors.primary : context.appSurface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: selected ? AppColors.primary : AppColors.border,
+          color: selected ? AppColors.primary : context.appBorder,
         ),
       ),
       child: Column(
@@ -405,14 +408,14 @@ class _DayCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: selected ? Colors.white : AppColors.text,
+              color: selected ? Colors.white : context.appText,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             DateFormat('d/M').format(day.date),
-            style: TextStyle(color: selected ? Colors.white : AppColors.muted),
+            style: TextStyle(color: selected ? Colors.white : context.appMuted),
           ),
           const SizedBox(height: 5),
           if (day.startTime?.isNotEmpty == true &&
@@ -422,7 +425,9 @@ class _DayCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: selected ? const Color(0xFFD7FFFA) : AppColors.primary,
+                color: selected
+                    ? const Color(0xFFD7FFFA)
+                    : Theme.of(context).colorScheme.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -434,7 +439,7 @@ class _DayCard extends StatelessWidget {
                 : 'غير متاح',
             style: TextStyle(
               fontSize: 11,
-              color: selected ? const Color(0xFFD7FFFA) : AppColors.muted,
+              color: selected ? const Color(0xFFD7FFFA) : context.appMuted,
             ),
           ),
         ],
@@ -455,9 +460,9 @@ class _SelectedDaySummary extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.softBlue,
+      color: context.appSoftBlue,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -481,19 +486,23 @@ class _Notice extends StatelessWidget {
   final bool error;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : AppColors.softBlue,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error ? Colors.red.shade800 : AppColors.primaryDark,
+  Widget build(BuildContext context) {
+    final background = error
+        ? (context.isDark ? const Color(0xFF3F1518) : Colors.red.shade50)
+        : context.appSoftBlue;
+    final foreground = error
+        ? (context.isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800)
+        : Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
       ),
-    ),
-  );
+      child: Text(text, style: TextStyle(color: foreground)),
+    );
+  }
 }
 
 class _DoctorHeader extends StatelessWidget {

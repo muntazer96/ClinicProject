@@ -117,6 +117,68 @@ namespace Clinic_Booking.Migrations
                     b.ToTable("AnalyticsEvents");
                 });
 
+            modelBuilder.Entity("Clinic_Booking.Entities.AppRelease.AppRelease", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DownloadCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("ModifierId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReleaseNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("VersionCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VersionName")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "IsDeleted");
+
+                    b.ToTable("AppReleases");
+                });
+
             modelBuilder.Entity("Clinic_Booking.Entities.AppVersion.AppVersionPolicy", b =>
                 {
                     b.Property<int>("Id")
@@ -220,7 +282,8 @@ namespace Clinic_Booking.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -625,7 +688,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2239),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1501),
                             IsDeleted = false,
                             Name = "السبت",
                             NormalizedName = "Saturday"
@@ -633,7 +696,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2249),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1518),
                             IsDeleted = false,
                             Name = "الاحد",
                             NormalizedName = "Sunday"
@@ -641,7 +704,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2250),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1519),
                             IsDeleted = false,
                             Name = "الاثنين",
                             NormalizedName = "Monday"
@@ -649,7 +712,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2251),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1521),
                             IsDeleted = false,
                             Name = "الثلاثاء",
                             NormalizedName = "Tuesday"
@@ -657,7 +720,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2252),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1522),
                             IsDeleted = false,
                             Name = "الاربعاء",
                             NormalizedName = "Wednesday"
@@ -665,7 +728,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2253),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1523),
                             IsDeleted = false,
                             Name = "الخميس",
                             NormalizedName = "Thursday"
@@ -673,7 +736,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(2254),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(1547),
                             IsDeleted = false,
                             Name = "الجمعة",
                             NormalizedName = "Friday"
@@ -1119,7 +1182,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(3137),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(2869),
                             Description = "",
                             IsDeleted = false,
                             IsPremiumOnly = true,
@@ -1129,7 +1192,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(3140),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(2880),
                             Description = "",
                             IsDeleted = false,
                             IsPremiumOnly = true,
@@ -1139,7 +1202,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(3141),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(2881),
                             Description = "",
                             IsDeleted = false,
                             IsPremiumOnly = true,
@@ -1149,7 +1212,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 344, DateTimeKind.Local).AddTicks(3142),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 841, DateTimeKind.Unspecified).AddTicks(2883),
                             Description = "",
                             IsDeleted = false,
                             IsPremiumOnly = true,
@@ -1168,7 +1231,8 @@ namespace Clinic_Booking.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1182,7 +1246,14 @@ namespace Clinic_Booking.Migrations
                     b.Property<Guid?>("DeleterId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ImageName")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRead")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ModifiedAt")
@@ -1191,8 +1262,11 @@ namespace Clinic_Booking.Migrations
                     b.Property<Guid?>("ModifierId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("ReceiverId")
-                        .HasColumnType("integer");
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("SenderId")
                         .HasColumnType("uuid");
@@ -1205,9 +1279,9 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReceiverId");
+                    b.HasIndex("ReceiverId", "IsRead");
 
-                    b.HasIndex("SenderId");
+                    b.HasIndex("SenderId", "ReceiverId", "SentAt");
 
                     b.ToTable("Messages");
                 });
@@ -1251,6 +1325,10 @@ namespace Clinic_Booking.Migrations
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("ReferenceKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1260,6 +1338,9 @@ namespace Clinic_Booking.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorId");
+
+                    b.HasIndex("ReferenceKey")
+                        .HasDatabaseName("IX_Notifications_ReferenceKey");
 
                     b.HasIndex("UserId");
 
@@ -1521,8 +1602,9 @@ namespace Clinic_Booking.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AppoinmentId")
-                        .HasColumnType("integer");
+                    b.Property<int?>("AppointmentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("AppoinmentId");
 
                     b.Property<string>("Comment")
                         .IsRequired()
@@ -1561,7 +1643,7 @@ namespace Clinic_Booking.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AppoinmentId")
+                    b.HasIndex("AppointmentId")
                         .IsUnique()
                         .HasFilter("\"AppoinmentId\" IS NOT NULL AND \"IsDeleted\" = false");
 
@@ -1626,7 +1708,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = new Guid("f6efb588-1fd1-4df4-a453-eb11f69f9046"),
-                            CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7316),
+                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7316),
                             IsDeleted = false,
                             Name = "SuperAdmin",
                             NormalizedName = "SUPERADMIN"
@@ -1634,7 +1716,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = new Guid("5ca230af-a98f-4d9e-b99d-0b58d33a4379"),
-                            CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7335),
+                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7335),
                             IsDeleted = false,
                             Name = "NormalUser",
                             NormalizedName = "NORMALUSER"
@@ -1642,7 +1724,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = new Guid("99f94c2e-be3b-4f90-b59f-81ac294980bf"),
-                            CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7338),
+                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7338),
                             IsDeleted = false,
                             Name = "DoctorUser",
                             NormalizedName = "DOCTORUSER"
@@ -1650,7 +1732,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = new Guid("6f03ef0f-c1ac-43f6-9df2-2be6d5385b72"),
-                            CreatedAt = new DateTime(2026, 6, 4, 15, 53, 15, 88, DateTimeKind.Local).AddTicks(7347),
+                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 88, DateTimeKind.Unspecified).AddTicks(7347),
                             IsDeleted = false,
                             Name = "ClinicStaff",
                             NormalizedName = "CLINICSTAFF"
@@ -1708,7 +1790,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2559),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3921),
                             IconName = "internal-medicine",
                             IsDeleted = false,
                             Name = "أخصائي باطنية",
@@ -1717,7 +1799,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2562),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3924),
                             IconName = "ent",
                             IsDeleted = false,
                             Name = "أخصائي أنف وأذن وحنجرة",
@@ -1726,7 +1808,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2563),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3925),
                             IconName = "cardiology",
                             IsDeleted = false,
                             Name = "أخصائي قلب",
@@ -1735,7 +1817,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2564),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3927),
                             IconName = "ophthalmology",
                             IsDeleted = false,
                             Name = "أخصائي عيون",
@@ -1744,7 +1826,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2565),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3928),
                             IconName = "dermatology",
                             IsDeleted = false,
                             Name = "أخصائي جلدية",
@@ -1753,7 +1835,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2566),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3929),
                             IconName = "neurology",
                             IsDeleted = false,
                             Name = "أخصائي أعصاب",
@@ -1762,7 +1844,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2567),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3930),
                             IconName = "general-surgery",
                             IsDeleted = false,
                             Name = "أخصائي جراحة عامة",
@@ -1771,7 +1853,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 8,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2568),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3931),
                             IconName = "orthopedics",
                             IsDeleted = false,
                             Name = "أخصائي جراحة عظام",
@@ -1780,7 +1862,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 9,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2568),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3932),
                             IconName = "gynecology",
                             IsDeleted = false,
                             Name = "أخصائي نسائية وتوليد",
@@ -1789,7 +1871,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 10,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2569),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3933),
                             IconName = "pediatrics",
                             IsDeleted = false,
                             Name = "أخصائي أطفال",
@@ -1798,7 +1880,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 11,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2570),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3934),
                             IconName = "oncology",
                             IsDeleted = false,
                             Name = "أخصائي أورام",
@@ -1807,7 +1889,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 12,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2571),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3935),
                             IconName = "nephrology",
                             IsDeleted = false,
                             Name = "أخصائي كلى",
@@ -1816,7 +1898,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 13,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2572),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3936),
                             IconName = "gastroenterology",
                             IsDeleted = false,
                             Name = "أخصائي جهاز هضمي",
@@ -1825,7 +1907,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 14,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2573),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3937),
                             IconName = "endocrinology",
                             IsDeleted = false,
                             Name = "أخصائي غدد صماء",
@@ -1834,7 +1916,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 15,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2573),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3939),
                             IconName = "plastic-surgery",
                             IsDeleted = false,
                             Name = "أخصائي جراحة تجميل",
@@ -1843,7 +1925,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 16,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2574),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3940),
                             IconName = "neurosurgery",
                             IsDeleted = false,
                             Name = "أخصائي جراحة دماغ وأعصاب",
@@ -1852,7 +1934,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 17,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2575),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3941),
                             IconName = "anesthesiology",
                             IsDeleted = false,
                             Name = "أخصائي تخدير",
@@ -1861,7 +1943,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 18,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2576),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3942),
                             IconName = "family-medicine",
                             IsDeleted = false,
                             Name = "أخصائي طب الأسرة",
@@ -1870,7 +1952,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 19,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2577),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3943),
                             IconName = "psychiatry",
                             IsDeleted = false,
                             Name = "أخصائي الطب النفسي",
@@ -1879,7 +1961,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 20,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2578),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3944),
                             IconName = "infectious-disease",
                             IsDeleted = false,
                             Name = "أخصائي أمراض معدية",
@@ -1888,7 +1970,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 21,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2578),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3945),
                             IconName = "radiology",
                             IsDeleted = false,
                             Name = "أخصائي أشعة",
@@ -1897,7 +1979,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 22,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2579),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3946),
                             IconName = "emergency",
                             IsDeleted = false,
                             Name = "أخصائي طب طوارئ",
@@ -1906,7 +1988,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 23,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2580),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3947),
                             IconName = "rheumatology",
                             IsDeleted = false,
                             Name = "أخصائي روماتيزم",
@@ -1915,7 +1997,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 24,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2581),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3948),
                             IconName = "pulmonology",
                             IsDeleted = false,
                             Name = "أخصائي صدرية",
@@ -1924,7 +2006,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 25,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2582),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3949),
                             IconName = "occupational-medicine",
                             IsDeleted = false,
                             Name = "أخصائي طب مهني",
@@ -1933,7 +2015,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 26,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2582),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3950),
                             IconName = "sports-medicine",
                             IsDeleted = false,
                             Name = "أخصائي طب رياضي",
@@ -1942,7 +2024,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 27,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2583),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3952),
                             IconName = "hematology",
                             IsDeleted = false,
                             Name = "أخصائي أمراض الدم",
@@ -1951,7 +2033,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 28,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2584),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3974),
                             IconName = "physiotherapy",
                             IsDeleted = false,
                             Name = "أخصائي علاج طبيعي",
@@ -1960,7 +2042,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 29,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2585),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3976),
                             IconName = "nutrition",
                             IsDeleted = false,
                             Name = "أخصائي تغذية",
@@ -1969,7 +2051,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 30,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(2586),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(3977),
                             IconName = "speech-therapy",
                             IsDeleted = false,
                             Name = "أخصائي نطق وتخاطب",
@@ -2056,7 +2138,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(8691),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(9827),
                             EBooking = false,
                             EPayments = false,
                             IsDeleted = false,
@@ -2075,7 +2157,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(8705),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(9846),
                             EBooking = false,
                             EPayments = false,
                             IsDeleted = false,
@@ -2094,7 +2176,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(8710),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(9851),
                             EBooking = true,
                             EPayments = true,
                             IsDeleted = false,
@@ -2104,7 +2186,7 @@ namespace Clinic_Booking.Migrations
                             MaxDailyAppointments = 35,
                             MaxWeeklyDays = 6,
                             Name = "ألماس",
-                            NormalizedName = "Diamond ",
+                            NormalizedName = "Diamond",
                             Price = 35m,
                             ShowMessages = true,
                             ShowReviews = true,
@@ -2113,7 +2195,7 @@ namespace Clinic_Booking.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 6, 13, 8, 58, 14, 342, DateTimeKind.Local).AddTicks(8712),
+                            CreatedAt = new DateTime(2026, 6, 21, 12, 1, 43, 839, DateTimeKind.Unspecified).AddTicks(9854),
                             EBooking = true,
                             EPayments = true,
                             IsDeleted = false,
@@ -2240,8 +2322,8 @@ namespace Clinic_Booking.Migrations
                         {
                             Id = new Guid("db3946f4-275b-4bc1-ac3a-a6e1f3f4badb"),
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "3e733150-2edb-4cf8-b807-fda7cf2b618f",
-                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 30, DateTimeKind.Utc).AddTicks(7963),
+                            ConcurrencyStamp = "ee174454-2175-44a7-9133-3a3280c7af38",
+                            CreatedAt = new DateTime(2026, 6, 4, 12, 53, 15, 30, DateTimeKind.Unspecified).AddTicks(7963),
                             EmailConfirmed = false,
                             IsDeleted = false,
                             IsFirstLogin = true,
@@ -2626,13 +2708,13 @@ namespace Clinic_Booking.Migrations
                     b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
                         .WithMany("DoctorSubscriptions")
                         .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Clinic_Booking.Entities.SubscriptionPackage.SubscriptionPackage", "Package")
                         .WithMany()
                         .HasForeignKey("PackageId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Doctor");
@@ -2642,8 +2724,8 @@ namespace Clinic_Booking.Migrations
 
             modelBuilder.Entity("Clinic_Booking.Entities.Message.Message", b =>
                 {
-                    b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Receiver")
-                        .WithMany("ReceivedMessages")
+                    b.HasOne("Clinic_Booking.Entities.User.AspNetUsers", "Receiver")
+                        .WithMany()
                         .HasForeignKey("ReceiverId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2681,7 +2763,7 @@ namespace Clinic_Booking.Migrations
                     b.HasOne("Clinic_Booking.Entities.Appointment.Appointment", "Appointment")
                         .WithMany()
                         .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Appointment");
@@ -2721,7 +2803,7 @@ namespace Clinic_Booking.Migrations
                 {
                     b.HasOne("Clinic_Booking.Entities.Appointment.Appointment", "Appointment")
                         .WithMany("Reviews")
-                        .HasForeignKey("AppoinmentId")
+                        .HasForeignKey("AppointmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Clinic_Booking.Entities.Doctor.Doctor", "Doctor")
@@ -2847,8 +2929,6 @@ namespace Clinic_Booking.Migrations
                     b.Navigation("DoctorSubscriptions");
 
                     b.Navigation("Notifications");
-
-                    b.Navigation("ReceivedMessages");
 
                     b.Navigation("Reviews");
                 });

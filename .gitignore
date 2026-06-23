@@ -391,3 +391,6 @@ appsettings.json
 .dotnet_home/
 .tmp_publish_check/
 /WhatsApp_Bridge
+/Clinic_Booking/Firebase/
+appsettings.Production.json
+/tmp-build

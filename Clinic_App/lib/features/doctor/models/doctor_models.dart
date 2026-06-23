@@ -40,6 +40,7 @@ class DoctorManageProfile {
     required this.location,
     required this.isPubliclyVisible,
     required this.subscriptionRank,
+    required this.canMessage,
   });
 
   final int id;
@@ -56,6 +57,7 @@ class DoctorManageProfile {
   final String location;
   final bool isPubliclyVisible;
   final int subscriptionRank;
+  final bool canMessage;
 
   String? get imageUrl =>
       imageName.trim().isEmpty ? null : ApiClient.doctorImageUrl(imageName);
@@ -79,6 +81,7 @@ class DoctorManageProfile {
       location: json['location'] as String? ?? '',
       isPubliclyVisible: json['isPubliclyVisible'] as bool? ?? false,
       subscriptionRank: json['subscriptionRank'] as int? ?? 0,
+      canMessage: json['canMessage'] as bool? ?? true,
     );
   }
 }
@@ -178,8 +181,9 @@ class DoctorAppointment {
     required this.isGuestBooking,
     required this.isPhoneConfirmed,
     required this.patientPhoneNumber,
-required this.hasReview,
-this.cancelledAt,
+    required this.hasReview,
+    this.cancelledAt,
+    this.patientUserId,
   });
 
   final int id;
@@ -195,8 +199,9 @@ this.cancelledAt,
   final bool isGuestBooking;
   final bool isPhoneConfirmed;
   final String patientPhoneNumber;
-final bool hasReview;
-final DateTime? cancelledAt;
+  final bool hasReview;
+  final DateTime? cancelledAt;
+  final String? patientUserId;
 
   bool get canToggle => status == 0 || status == 1;
   bool get canComplete => status == 1;
@@ -232,10 +237,11 @@ final DateTime? cancelledAt;
       isGuestBooking: json['isGuestBooking'] as bool? ?? false,
       isPhoneConfirmed: json['isPhoneConfirmed'] as bool? ?? false,
       patientPhoneNumber: json['patientPhoneNumber'] ?? '',
-hasReview: json['hasReview'] ?? false,
-cancelledAt: json['cancelledAt'] == null
-    ? null
-    : DateTime.parse(json['cancelledAt']),
+      hasReview: json['hasReview'] ?? false,
+      cancelledAt: json['cancelledAt'] == null
+          ? null
+          : DateTime.parse(json['cancelledAt']),
+      patientUserId: json['patientUserId'] as String?,
     );
   }
 }

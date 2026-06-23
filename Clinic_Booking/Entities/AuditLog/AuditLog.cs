@@ -13,6 +13,6 @@ namespace Clinic_Booking.Entities.AuditLog
         public int? AppointmentId { get; set; }
         public int? SubscriptionId { get; set; }
         public string? Details { get; set; }
-        public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+        public DateTime OccurredAt { get; set; } = BusinessClock.Now();
     }
 }

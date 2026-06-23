@@ -33,7 +33,7 @@ namespace Clinic_Booking.Data
                     existing.LatestBuildNumber = 0;
                     existing.MinimumSupportedVersion = "0.0.0";
                     existing.MinimumSupportedBuildNumber = 0;
-                    existing.ModifiedAt = DateTime.UtcNow;
+                    existing.ModifiedAt = BusinessClock.Now();
                 }
             }
 
@@ -51,7 +51,7 @@ namespace Clinic_Booking.Data
             IsEnabled = true,
             Title = title,
             Message = message,
-            CreatedAt = new DateTime(2026, 6, 5, 0, 0, 0, DateTimeKind.Utc)
+            CreatedAt = new DateTime(2026, 6, 5, 0, 0, 0, DateTimeKind.Unspecified)
         };
 
         private static bool IsOldInitialDefault(AppVersionPolicy policy) =>

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
@@ -30,6 +30,8 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   bool _loading = true;
   String _filter = 'active';
   String? _error;
+  late DateTime _fromDate;
+  late DateTime _toDate;
 
   List<BookingDetails> get _filteredBookings {
     final sorted = [..._bookings]
@@ -65,6 +67,9 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     super.initState();
     _service = BookingService(context.read<AuthController>().api);
     _reviewService = ReviewService(context.read<AuthController>().api);
+    final now = DateTime.now();
+    _fromDate = DateTime(now.year, now.month, now.day);
+    _toDate = _fromDate.add(const Duration(days: 30));
     _load();
   }
 
@@ -75,7 +80,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     });
 
     try {
-      final bookings = await _service.getMyBookings();
+      final bookings = await _service.getMyBookings(
+        fromDate: _fromDate,
+        toDate: _toDate,
+      );
       if (mounted) setState(() => _bookings = bookings);
     } catch (error) {
       if (mounted) setState(() => _error = ApiClient.errorMessage(error));
@@ -143,6 +151,35 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     }
   }
 
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(DateTime.now().year + 2, 12, 31),
+      initialDateRange: DateTimeRange(start: _fromDate, end: _toDate),
+      helpText: 'اختيار مدة الحجوزات',
+      cancelText: 'إلغاء',
+      confirmText: 'تطبيق',
+      saveText: 'تطبيق',
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Theme(data: Theme.of(context), child: child!),
+      ),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _fromDate = DateTime(
+        picked.start.year,
+        picked.start.month,
+        picked.start.day,
+      );
+      _toDate = DateTime(picked.end.year, picked.end.month, picked.end.day);
+    });
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredBookings;
@@ -169,6 +206,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             _BookingFilterBar(
               value: _filter,
               onChanged: (value) => setState(() => _filter = value),
+            ),
+            const SizedBox(height: 10),
+            _DateRangeFilter(
+              fromDate: _fromDate,
+              toDate: _toDate,
+              onTap: _loading ? null : _pickDateRange,
             ),
             const SizedBox(height: 14),
             if (_loading)
@@ -200,6 +243,39 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 }
 
+class _DateRangeFilter extends StatelessWidget {
+  const _DateRangeFilter({
+    required this.fromDate,
+    required this.toDate,
+    required this.onTap,
+  });
+
+  final DateTime fromDate;
+  final DateTime toDate;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('yyyy/MM/dd');
+
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.date_range_rounded),
+      label: Text(
+        'من ${formatter.format(fromDate)} إلى ${formatter.format(toDate)}',
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerRight,
+        foregroundColor: AppColors.primary,
+        side: BorderSide(color: context.appBorder),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
 class _PageHeader extends StatelessWidget {
   const _PageHeader({required this.loading, required this.onRefresh});
 
@@ -209,18 +285,18 @@ class _PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      const Expanded(
+      Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'حجوزاتي',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               'تابع حجوزاتك الحالية والسابقة بسهولة.',
-              style: TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.appMuted),
             ),
           ],
         ),
@@ -295,12 +371,12 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(.035),
+          color: Colors.black.withOpacity(context.isDark ? .18 : .035),
           blurRadius: 14,
           offset: const Offset(0, 6),
         ),
@@ -320,8 +396,8 @@ class _SummaryTile extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.muted,
+          style: TextStyle(
+            color: context.appMuted,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -339,9 +415,9 @@ class _NextBookingBanner extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppColors.softBlue,
+      color: context.appSoftBlue,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -349,7 +425,7 @@ class _NextBookingBanner extends StatelessWidget {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appSurface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(
@@ -371,7 +447,7 @@ class _NextBookingBanner extends StatelessWidget {
                 '${booking.doctorName} - ${DateFormat('yyyy/MM/dd').format(booking.appointmentDate)} - الدور #${booking.queueNumber}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.appMuted),
               ),
             ],
           ),
@@ -420,12 +496,12 @@ class _FilterChip extends StatelessWidget {
         label: Text(label),
         onSelected: (_) => onChanged(id),
         selectedColor: AppColors.primary,
-        backgroundColor: Colors.white,
+        backgroundColor: context.appSurface,
         side: BorderSide(
-          color: selected ? AppColors.primary : AppColors.border,
+          color: selected ? AppColors.primary : context.appBorder,
         ),
         labelStyle: TextStyle(
-          color: selected ? Colors.white : AppColors.muted,
+          color: selected ? Colors.white : context.appMuted,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -461,12 +537,12 @@ class BookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.06),
+            color: Colors.black.withOpacity(context.isDark ? .22 : .06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -631,7 +707,7 @@ class _BookingCardHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -689,9 +765,9 @@ class _BookingInfoTile extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
     decoration: BoxDecoration(
-      color: const Color(0xFFF6FAF9),
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Row(
       children: [
@@ -703,8 +779,8 @@ class _BookingInfoTile extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppColors.muted,
+                style: TextStyle(
+                  color: context.appMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -738,7 +814,7 @@ class _CancelReasonBox extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFECEC),
+      color: context.isDark ? const Color(0xFF3F1518) : const Color(0xFFFFECEC),
       borderRadius: BorderRadius.circular(16),
     ),
     child: Row(
@@ -767,7 +843,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _statusColor(booking.status);
-    final background = _statusBackground(booking.status);
+    final background = _statusBackground(context, booking.status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
@@ -796,7 +872,16 @@ Color _statusColor(int status) {
   };
 }
 
-Color _statusBackground(int status) {
+Color _statusBackground(BuildContext context, int status) {
+  if (context.isDark) {
+    return switch (status) {
+      1 => const Color(0xFF12382F),
+      2 => const Color(0xFF3F1518),
+      3 => const Color(0xFF12382F),
+      _ => const Color(0xFF3A2A16),
+    };
+  }
+
   return switch (status) {
     1 => const Color(0xFFE4F5F1),
     2 => const Color(0xFFFFECEC),
@@ -823,9 +908,9 @@ class BookingMessage extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Column(
       children: [

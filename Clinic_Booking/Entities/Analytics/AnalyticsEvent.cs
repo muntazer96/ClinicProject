@@ -18,6 +18,6 @@ namespace Clinic_Booking.Entities.Analytics
         public string? Province { get; set; }
         public string? SearchText { get; set; }
         public string? SessionId { get; set; }
-        public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+        public DateTime OccurredAt { get; set; } = BusinessClock.Now();
     }
 }

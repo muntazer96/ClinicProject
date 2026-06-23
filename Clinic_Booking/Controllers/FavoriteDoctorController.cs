@@ -31,7 +31,7 @@ namespace Clinic_Booking.Controllers
                 return Unauthorized();
             }
 
-            var now = DateTime.UtcNow;
+            var now = BusinessClock.Now();
             var doctors = await _context.UserFavoriteDoctors
                 .Where(favorite =>
                     favorite.UserId == userId &&
@@ -171,7 +171,7 @@ namespace Clinic_Booking.Controllers
                 favorite.IsDeleted = false;
                 favorite.DeletedAt = null;
                 favorite.DeleterId = null;
-                favorite.ModifiedAt = DateTime.UtcNow;
+                favorite.ModifiedAt = BusinessClock.Now();
                 favorite.ModifierId = userId;
             }
 
@@ -198,7 +198,7 @@ namespace Clinic_Booking.Controllers
             }
 
             favorite.IsDeleted = true;
-            favorite.DeletedAt = DateTime.UtcNow;
+            favorite.DeletedAt = BusinessClock.Now();
             favorite.DeleterId = userId;
             await _context.SaveChangesAsync();
 

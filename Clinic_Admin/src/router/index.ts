@@ -3,14 +3,15 @@ import { pinia } from '../stores'
 import { useAuthStore } from '../stores/auth'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import AnalyticsView from '../views/AnalyticsView.vue'
+import DownloadAppView from '../views/DownloadApp.vue'
 import AppointmentsView from '../views/AppointmentsView.vue'
+import AppVersionManagementView from '../views/AppVersionManagement.vue'
 import AppVersionsView from '../views/AppVersionsView.vue'
 import LoginView from '../views/LoginView.vue'
 import ClinicsView from '../views/ClinicsView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import DoctorDetailsView from '../views/DoctorDetailsView.vue'
 import DoctorsView from '../views/DoctorsView.vue'
-import EmailConfirmView from '../views/EmailConfirmView.vue'
 import ExceptionsView from '../views/ExceptionsView.vue'
 import GuestBookingView from '../views/GuestBookingView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
@@ -28,8 +29,8 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
-    { path: '/email-confirm', name: 'email-confirm', component: EmailConfirmView },
     { path: '/password-reset', name: 'password-reset', component: PasswordResetView },
+    { path: '/download', name: 'download-app', component: DownloadAppView },
     { path: '/directory', name: 'public-directory', component: PublicDirectoryView },
     { path: '/directory/:doctorId', name: 'public-doctor', component: PublicDoctorView },
     { path: '/guest-booking', name: 'guest-booking', component: GuestBookingView },
@@ -44,7 +45,8 @@ const router = createRouter({
         { path: 'doctors', name: 'doctors', component: DoctorsView, meta: { title: 'إدارة الأطباء', roles: ['SuperAdmin'] } },
         { path: 'doctors/:doctorId', name: 'doctor-details', component: DoctorDetailsView, meta: { title: 'تفاصيل الطبيب', roles: ['SuperAdmin'] } },
         { path: 'subscriptions', name: 'subscriptions', component: SubscriptionsView, meta: { title: 'الاشتراكات والباقات', roles: ['SuperAdmin'] } },
-        { path: 'app-versions', name: 'app-versions', component: AppVersionsView, meta: { title: 'إصدارات التطبيق', roles: ['SuperAdmin'] } },
+        { path: 'app-versions', name: 'app-versions', component: AppVersionsView, meta: { title: 'سياسات التحديث', roles: ['SuperAdmin'] } },
+        { path: 'app-releases', name: 'app-releases', component: AppVersionManagementView, meta: { title: 'إصدارات APK', roles: ['SuperAdmin'] } },
         { path: 'whatsapp', name: 'whatsapp', component: WhatsAppView, meta: { title: 'WhatsApp OTP', roles: ['SuperAdmin'] } },
         { path: 'offers', name: 'offers', component: OffersView, meta: { title: 'العروض', roles: ['SuperAdmin', 'DoctorUser'] } },
         { path: 'clinics', name: 'clinics', component: ClinicsView, meta: { title: 'عياداتي', roles: ['DoctorUser'] } },

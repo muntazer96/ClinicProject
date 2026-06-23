@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../../core/app_theme.dart';
 import '../../../widgets/app_logo.dart';
+import '../../../widgets/notification_bell.dart';
 import '../../auth/auth_controller.dart';
+import '../../messages/message_hub_service.dart';
 import '../services/doctor_service.dart';
 
 class DoctorScaffold extends StatefulWidget {
@@ -27,14 +29,15 @@ class DoctorScaffold extends StatefulWidget {
 
 class _DoctorScaffoldState extends State<DoctorScaffold> {
   String? _doctorName;
+  bool? _canMessage;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDoctorName());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDoctorProfile());
   }
 
-  Future<void> _loadDoctorName() async {
+  Future<void> _loadDoctorProfile() async {
     final auth = context.read<AuthController>();
     if (!auth.isDoctor) return;
     try {
@@ -43,6 +46,7 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
       if (mounted) {
         setState(() {
           _doctorName = profile.name;
+          _canMessage = profile.canMessage;
         });
       }
     } catch (_) {}
@@ -50,6 +54,8 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final surface = context.appSurface;
+    final muted = context.appMuted;
     final auth = context.watch<AuthController>();
     final path = GoRouterState.of(context).uri.path;
     final selectedIndex =
@@ -70,12 +76,20 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
               path == '/doctor/reviews'
         ? 4
         : 0;
+    final isMessagesPage =
+        path == '/doctor/messages' || path.startsWith('/doctor/messages/');
+    final hub = context.watch<MessageHubService>();
+    final unreadCount = hub.unreadCount;
     final displayName = _doctorName?.isNotEmpty == true
         ? _doctorName!
         : auth.displayName;
     const premiumColor = AppColors.primary;
 
     return Scaffold(
+      floatingActionButton: isMessagesPage || _canMessage != true
+          ? null
+          : _MessageFab(unreadCount: unreadCount),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       appBar: AppBar(
         foregroundColor: premiumColor,
         toolbarHeight: 76,
@@ -117,9 +131,8 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11,
-                      color: AppColors.muted,
                       fontWeight: FontWeight.w700,
-                    ),
+                    ).copyWith(color: muted),
                   ),
                 ],
               ),
@@ -127,21 +140,19 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'الإشعارات',
-            onPressed: () => context.go('/doctor/notifications'),
-            icon: const Icon(Icons.notifications_none_rounded),
-          ),
+          const NotificationBell(doctor: true),
           const SizedBox(width: 4),
         ],
       ),
       body: widget.child,
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: surface,
           boxShadow: [
             BoxShadow(
-              color: Color(0x121D4A44),
+              color: context.isDark
+                  ? Colors.black.withValues(alpha: .30)
+                  : const Color(0x121D4A44),
               blurRadius: 22,
               offset: Offset(0, -7),
             ),
@@ -157,33 +168,105 @@ class _DoctorScaffoldState extends State<DoctorScaffold> {
             if (index == 3) context.go('/doctor/offers');
             if (index == 4) context.go('/doctor/profile');
           },
-          destinations: const [
-            NavigationDestination(
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: 'الرئيسية',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month_rounded),
               label: 'الحجوزات',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.local_hospital_outlined),
               selectedIcon: Icon(Icons.local_hospital_rounded),
               label: 'عياداتي',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.local_offer_outlined),
               selectedIcon: Icon(Icons.local_offer_rounded),
               label: 'العروض',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded),
               label: 'الملف',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageFab extends StatefulWidget {
+  const _MessageFab({required this.unreadCount});
+
+  final int unreadCount;
+
+  @override
+  State<_MessageFab> createState() => _MessageFabState();
+}
+
+class _MessageFabState extends State<_MessageFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  int _lastCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void didUpdateWidget(_MessageFab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.unreadCount > 0 && widget.unreadCount != _lastCount) {
+      _lastCount = widget.unreadCount;
+      _controller.forward().then((_) => _controller.reverse());
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _scale,
+      builder: (context, child) =>
+          Transform.scale(scale: _scale.value, child: child),
+      child: FloatingActionButton(
+        heroTag: 'message_fab',
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        onPressed: () => context.push('/doctor/messages'),
+        tooltip: 'الرسائل',
+        child: Badge(
+          isLabelVisible: widget.unreadCount > 0,
+          label: widget.unreadCount > 0
+              ? Text(
+                  widget.unreadCount > 99 ? '99+' : '${widget.unreadCount}',
+                  style: const TextStyle(fontSize: 10),
+                )
+              : null,
+          child: const Icon(Icons.chat_rounded),
         ),
       ),
     );

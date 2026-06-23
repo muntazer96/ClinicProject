@@ -9,9 +9,7 @@ class UserProfile {
     required this.id,
     required this.name,
     required this.phoneNumber,
-    required this.email,
     required this.phoneConfirmed,
-    required this.emailConfirmed,
     this.roleName,
     this.imageName,
     this.lastLoginDate,
@@ -20,9 +18,7 @@ class UserProfile {
   final String id;
   final String name;
   final String phoneNumber;
-  final String email;
   final bool phoneConfirmed;
-  final bool emailConfirmed;
   final String? roleName;
   final String? imageName;
   final DateTime? lastLoginDate;
@@ -46,9 +42,7 @@ class UserProfile {
     id: json['id'] as String? ?? '',
     name: json['name'] as String? ?? '',
     phoneNumber: json['phoneNumber'] as String? ?? '',
-    email: json['email'] as String? ?? '',
     phoneConfirmed: json['phoneNumberConfirmed'] as bool? ?? false,
-    emailConfirmed: json['emailConfirmed'] as bool? ?? false,
     roleName: json['roleName'] as String?,
     imageName: json['imageName'] as String?,
     lastLoginDate: json['lastLoginDate'] == null
@@ -70,14 +64,12 @@ class ProfileService {
   Future<UserProfile> updateProfile({
     required String name,
     required String phoneNumber,
-    required String email,
   }) async {
     await _client.dio.put(
       '/User/me',
       data: {
         'name': name.trim(),
         'phoneNumber': phoneNumber.trim(),
-        'email': email.trim(),
       },
     );
     return getProfile();
@@ -90,8 +82,15 @@ class ProfileService {
     return updateProfile(
       name: name,
       phoneNumber: current.phoneNumber,
-      email: current.email,
     );
+  }
+
+  Future<UserProfile> setPhoneNumber(String phoneNumber) async {
+    await _client.dio.put(
+      '/User/me/phone-number',
+      data: {'phoneNumber': phoneNumber.trim()},
+    );
+    return getProfile();
   }
 
   Future<void> updateProfileImage({
@@ -113,13 +112,6 @@ class ProfileService {
     await _client.dio.post(
       '/User/password/change',
       data: {'currentPassword': currentPassword, 'newPassword': newPassword},
-    );
-  }
-
-  Future<void> sendEmailConfirmation(String identifier) async {
-    await _client.dio.post(
-      '/User/email-confirmation',
-      queryParameters: {'identifier': identifier},
     );
   }
 

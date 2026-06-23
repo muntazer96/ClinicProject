@@ -44,8 +44,8 @@ public class SubscriptionServiceTests
         {
             DoctorId = 1,
             PackageId = 1,
-            StartDate = DateTime.UtcNow.AddDays(-1),
-            EndDate = DateTime.UtcNow.AddDays(1),
+            StartDate = BusinessClock.Now().AddDays(-1),
+            EndDate = BusinessClock.Now().AddDays(1),
             Status = SubscriptionStatus.Active
         });
         await context.SaveChangesAsync();
@@ -122,8 +122,8 @@ public class SubscriptionServiceTests
             {
                 DoctorId = 1,
                 PackageId = 2,
-                StartDate = DateTime.UtcNow.AddDays(-30),
-                EndDate = DateTime.UtcNow.AddMinutes(-5),
+                StartDate = BusinessClock.Now().AddDays(-30),
+                EndDate = BusinessClock.Now().AddMinutes(-5),
                 Status = SubscriptionStatus.Active
             });
             context.DoctorFeature.Add(new DoctorFeature

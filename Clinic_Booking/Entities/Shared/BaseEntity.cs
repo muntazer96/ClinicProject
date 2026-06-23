@@ -1,4 +1,4 @@
-﻿namespace Clinic_Booking.Entities.Shared
+namespace Clinic_Booking.Entities.Shared
 {
     public class BaseEntity<T>
     {
@@ -7,7 +7,7 @@
         public DateTime? DeletedAt { get; set; }
         public bool IsDeleted { get; set; } = false;
         public Guid? CreatorId { get; set; }
-        public DateTime? CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CreatedAt { get; set; } = BusinessClock.Now();
         public Guid? ModifierId { get; set; }
         public DateTime? ModifiedAt { get; set; }
     }

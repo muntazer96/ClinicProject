@@ -15,7 +15,7 @@ type TabKey = 'overview' | 'offers' | 'doctors' | 'bookings' | 'search' | 'activ
 
 const auth = useAuthStore()
 const notifications = useNotificationsStore()
-const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']))
+const isAdmin = computed(() => auth.hasAnyRole(['SuperAdmin']) && !auth.hasAnyRole(['DoctorUser']))
 const loading = ref(false)
 const summary = ref<AnalyticsSummary | null>(null)
 const doctors = ref<DoctorItem[]>([])

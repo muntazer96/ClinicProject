@@ -59,14 +59,18 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
           date.day == now.day;
     }).toList();
 
-    final upcoming = _appointments
-        .where((item) => item.appointmentDate.isAfter(now) && item.status != 2)
-        .toList()
-      ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    final upcoming =
+        _appointments
+            .where(
+              (item) => item.appointmentDate.isAfter(now) && item.status != 2,
+            )
+            .toList()
+          ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
 
     final nextAppointment = upcoming.isEmpty ? null : upcoming.first;
-    final waitingToday =
-        todayItems.where((item) => item.status == 0 || item.status == 1).length;
+    final waitingToday = todayItems
+        .where((item) => item.status == 0 || item.status == 1)
+        .length;
     final completed = todayItems.where((item) => item.status == 3).length;
     final cancelled = todayItems.where((item) => item.status == 2).length;
 
@@ -162,18 +166,16 @@ class _DoctorHomeScreenState extends State<DoctorHomeScreen> {
 }
 
 class _DoctorHero extends StatelessWidget {
-  const _DoctorHero({
-    required this.profile,
-    required this.todayCount,
-  });
+  const _DoctorHero({required this.profile, required this.todayCount});
 
   final DoctorManageProfile? profile;
   final int todayCount;
 
   @override
   Widget build(BuildContext context) {
-    final name =
-        profile?.name.isNotEmpty == true ? profile!.name : 'أهلاً دكتور';
+    final name = profile?.name.isNotEmpty == true
+        ? profile!.name
+        : 'أهلاً دكتور';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -264,11 +266,7 @@ class _DoctorHero extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.today_rounded,
-                  color: Colors.white,
-                  size: 21,
-                ),
+                const Icon(Icons.today_rounded, color: Colors.white, size: 21),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -316,14 +314,12 @@ class _StatCard extends StatelessWidget {
       height: 128,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(
-          color: const Color(0xFFDDE9E7),
-        ),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -339,11 +335,7 @@ class _StatCard extends StatelessWidget {
               color: color.withOpacity(.10),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 22,
-            ),
+            child: Icon(icon, color: color, size: 22),
           ),
 
           const SizedBox(height: 10),
@@ -369,7 +361,7 @@ class _StatCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: context.appMuted,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
@@ -391,7 +383,7 @@ class _PremiumButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFFFF8E7),
+      color: context.isDark ? const Color(0xFF2F2817) : const Color(0xFFFFF8E7),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -400,7 +392,11 @@ class _PremiumButton extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE8CF83)),
+            border: Border.all(
+              color: context.isDark
+                  ? const Color(0xFF715A1D)
+                  : const Color(0xFFE8CF83),
+            ),
           ),
           child: Row(
             children: [
@@ -408,7 +404,9 @@ class _PremiumButton extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFE8A8),
+                  color: context.isDark
+                      ? const Color(0xFF3A2A16)
+                      : const Color(0xFFFFE8A8),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Icon(
@@ -418,7 +416,7 @@ class _PremiumButton extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 11),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -427,25 +425,26 @@ class _PremiumButton extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF4A3510),
+                        color: context.isDark
+                            ? const Color(0xFFFFE8A8)
+                            : const Color(0xFF4A3510),
                       ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 3),
                     Text(
                       'اطّلع على الباقات والمميزات المتاحة',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF8A6518),
+                        color: context.isDark
+                            ? const Color(0xFFE8C76D)
+                            : const Color(0xFF8A6518),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Color(0xFFD6A20B),
-              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFD6A20B)),
             ],
           ),
         ),
@@ -466,8 +465,8 @@ class _SubscriptionCountdownCard extends StatelessWidget {
     final color = daysLeft <= 1
         ? AppColors.danger
         : daysLeft <= 3
-            ? AppColors.warning
-            : AppColors.success;
+        ? AppColors.warning
+        : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -483,10 +482,7 @@ class _SubscriptionCountdownCard extends StatelessWidget {
           Expanded(
             child: Text(
               'متبقي $daysLeft يوم على انتهاء الاشتراك',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
             ),
           ),
           Text(
@@ -517,16 +513,10 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
         ),
-        TextButton(
-          onPressed: onActionTap,
-          child: Text(action),
-        ),
+        TextButton(onPressed: onActionTap, child: Text(action)),
       ],
     );
   }
@@ -545,12 +535,12 @@ class _NextAppointmentCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.025),
+            color: Colors.black.withOpacity(context.isDark ? .18 : .025),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -596,15 +586,17 @@ class _NextAppointmentCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.grey.shade600,
+                    color: context.appMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 7),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: sourceColor.withOpacity(.09),
                     borderRadius: BorderRadius.circular(999),
@@ -621,10 +613,7 @@ class _NextAppointmentCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
-            Icons.calendar_month_rounded,
-            color: AppColors.primary,
-          ),
+          const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
         ],
       ),
     );
@@ -639,18 +628,18 @@ class _EmptyNextAppointment extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.appSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDDE9E7)),
+        border: Border.all(color: context.appBorder),
       ),
       child: Row(
         children: [
-          const Icon(Icons.event_busy_rounded, color: AppColors.muted),
+          Icon(Icons.event_busy_rounded, color: context.appMuted),
           const SizedBox(width: 8),
           Text(
             'لا يوجد حجز قادم حالياً.',
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: context.appMuted,
               fontWeight: FontWeight.w700,
             ),
           ),

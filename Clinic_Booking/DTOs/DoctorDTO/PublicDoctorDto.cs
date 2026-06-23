@@ -35,12 +35,14 @@ namespace Clinic_Booking.DTOs.DoctorDTO
         public string Description { get; set; }
         public string ImageName { get; set; }
         public bool CanBookOnline { get; set; }
+        public bool CanMessage { get; set; }
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
         public bool IsFeatured { get; set; }
         public string? ActiveSubscriptionName { get; set; }
         public string? ActiveSubscriptionNormalizedName { get; set; }
         public decimal ActiveSubscriptionWeight { get; set; }
+        public Guid? UserId { get; set; }
         public List<PublicDoctorClinicDto> Clinics { get; set; } = [];
     }
 

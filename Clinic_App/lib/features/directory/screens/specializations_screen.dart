@@ -210,12 +210,14 @@ class _SpecializationCard extends StatelessWidget {
       onTap: () => context.go('/search?specialization=${item.id}'),
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.appSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.appBorder),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(.045),
+              color: context.isDark
+                  ? Colors.black.withValues(alpha: .20)
+                  : Colors.black.withOpacity(.045),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -229,7 +231,7 @@ class _SpecializationCard extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 122,
-                color: AppColors.primary.withOpacity(.075),
+                color: Theme.of(context).colorScheme.primary.withOpacity(.075),
               ),
             ),
             PositionedDirectional(
@@ -239,7 +241,7 @@ class _SpecializationCard extends StatelessWidget {
                 width: 86,
                 height: 86,
                 decoration: BoxDecoration(
-                  color: AppColors.softBlue.withOpacity(.5),
+                  color: context.appSoftBlue.withOpacity(.5),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -255,10 +257,16 @@ class _SpecializationCard extends StatelessWidget {
                       width: 43,
                       height: 43,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(.12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(.12),
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      child: Icon(icon, color: AppColors.primary, size: 23),
+                      child: Icon(
+                        icon,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 23,
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -279,7 +287,7 @@ class _SpecializationCard extends StatelessWidget {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.softBlue,
+                      color: context.appSoftBlue,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Row(
@@ -322,9 +330,9 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: context.appSurface,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: context.appBorder),
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,

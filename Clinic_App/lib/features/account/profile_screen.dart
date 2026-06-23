@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/app_snack_bar.dart';
 import '../../core/app_theme.dart';
+import '../../core/theme_controller.dart';
 import '../auth/auth_controller.dart';
 import 'profile_service.dart';
 
@@ -24,7 +25,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _savingName = false;
   bool _uploadingImage = false;
-  bool _sendingEmailConfirmation = false;
   bool _sendingPhoneConfirmation = false;
   String? _error;
 
@@ -198,35 +198,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _sendEmailConfirmation() async {
-    final profile = _profile;
-    if (profile == null || profile.email.isEmpty) return;
-    setState(() {
-      _sendingEmailConfirmation = true;
-      _error = null;
-    });
-    try {
-      await _service.sendEmailConfirmation(profile.email);
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          'تم إرسال رابط تأكيد البريد الإلكتروني.',
-          type: AppSnackBarType.success,
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        showAppSnackBar(
-          context,
-          ApiClient.errorMessage(error),
-          type: AppSnackBarType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _sendingEmailConfirmation = false);
-    }
-  }
-
   Future<void> _sendPhoneConfirmation() async {
     setState(() {
       _sendingPhoneConfirmation = true;
@@ -288,6 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final profile = _profile!;
+    final isDoctor = context.watch<AuthController>().isDoctor;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -313,15 +285,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: 'رقم الهاتف',
                   value: profile.phoneNumber,
                 ),
-                _InfoTile(
-                  icon: Icons.email_outlined,
-                  label: 'البريد الإلكتروني',
-                  value: profile.email,
-                ),
               ],
             ),
           ),
-          if (!profile.phoneConfirmed || !profile.emailConfirmed) ...[
+          if (!profile.phoneConfirmed) ...[
             const SizedBox(height: 12),
             _SectionCard(
               title: 'تأكيد الحساب',
@@ -342,22 +309,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                  if (!profile.phoneConfirmed && !profile.emailConfirmed)
-                    const SizedBox(height: 10),
-                  if (!profile.emailConfirmed)
-                    _FullWidthButton(
-                      child: OutlinedButton.icon(
-                        onPressed: _sendingEmailConfirmation
-                            ? null
-                            : _sendEmailConfirmation,
-                        icon: const Icon(Icons.email_outlined),
-                        label: Text(
-                          _sendingEmailConfirmation
-                              ? 'جاري الإرسال...'
-                              : 'تأكيد البريد الإلكتروني',
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -368,33 +319,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.lock_outline,
             child: _FullWidthButton(
               child: FilledButton.icon(
-                onPressed: () => context.go('/profile/change-password'),
+                onPressed: () => context.go(
+                  isDoctor
+                      ? '/doctor/profile/change-password'
+                      : '/profile/change-password',
+                ),
                 icon: const Icon(Icons.lock_reset_rounded),
                 label: const Text('تغيير كلمة المرور'),
               ),
             ),
           ),
           const SizedBox(height: 12),
-          _SectionCard(
-            title: 'اختصارات',
-            icon: Icons.grid_view_rounded,
-            child: Column(
-              children: [
-                _ActionTile(
-                  icon: Icons.calendar_month_outlined,
-                  title: 'حجوزاتي',
-                  subtitle: 'تابع الحجوزات النشطة والسابقة',
-                  onTap: () => context.go('/bookings'),
-                ),
-                _ActionTile(
-                  icon: Icons.search_rounded,
-                  title: 'البحث عن طبيب',
-                  subtitle: 'اختر الاختصاص والمحافظة واحجز دورك',
-                  onTap: () => context.go('/search'),
-                ),
-              ],
+          const _ThemeModeSection(),
+          if (!isDoctor) ...[
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'اختصارات',
+              icon: Icons.grid_view_rounded,
+              child: Column(
+                children: [
+                  _ActionTile(
+                    icon: Icons.calendar_month_outlined,
+                    title: 'حجوزاتي',
+                    subtitle: 'تابع الحجوزات النشطة والسابقة',
+                    onTap: () => context.go('/bookings'),
+                  ),
+                  _ActionTile(
+                    icon: Icons.search_rounded,
+                    title: 'البحث عن طبيب',
+                    subtitle: 'اختر الاختصاص والمحافظة واحجز دورك',
+                    onTap: () => context.go('/search'),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           _FullWidthButton(
             child: OutlinedButton.icon(
@@ -528,10 +487,6 @@ class _ProfileHero extends StatelessWidget {
           runSpacing: 8,
           children: [
             _StatusPill(
-              label: profile.emailConfirmed ? 'البريد مؤكد' : 'البريد غير مؤكد',
-              active: profile.emailConfirmed,
-            ),
-            _StatusPill(
               label: profile.phoneConfirmed ? 'الهاتف مؤكد' : 'الهاتف غير مؤكد',
               active: profile.phoneConfirmed,
             ),
@@ -620,7 +575,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.primary),
+              Icon(icon, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -657,12 +612,12 @@ class _InfoTile extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
       children: [
-        Icon(icon, color: AppColors.primary),
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -670,7 +625,7 @@ class _InfoTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                style: TextStyle(color: context.appMuted, fontSize: 12),
               ),
               Text(
                 value.isEmpty ? '-' : value,
@@ -703,8 +658,8 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     contentPadding: EdgeInsets.zero,
     leading: CircleAvatar(
-      backgroundColor: AppColors.softBlue,
-      child: Icon(icon, color: AppColors.primary),
+      backgroundColor: context.appSoftBlue,
+      child: Icon(icon, color: Theme.of(context).colorScheme.primary),
     ),
     title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
     subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -713,28 +668,73 @@ class _ActionTile extends StatelessWidget {
   );
 }
 
+class _ThemeModeSection extends StatelessWidget {
+  const _ThemeModeSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<ThemeController>();
+    return _SectionCard(
+      title: 'مظهر التطبيق',
+      icon: Icons.contrast_rounded,
+      child: SegmentedButton<ThemeMode>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(
+            value: ThemeMode.system,
+            icon: Icon(Icons.phone_android_rounded, size: 18),
+            label: Text('النظام'),
+          ),
+          ButtonSegment(
+            value: ThemeMode.light,
+            icon: Icon(Icons.light_mode_rounded, size: 18),
+            label: Text('فاتح'),
+          ),
+          ButtonSegment(
+            value: ThemeMode.dark,
+            icon: Icon(Icons.dark_mode_rounded, size: 18),
+            label: Text('داكن'),
+          ),
+        ],
+        selected: {controller.mode},
+        onSelectionChanged: (selection) {
+          controller.setMode(selection.first);
+        },
+      ),
+    );
+  }
+}
+
 class _Notice extends StatelessWidget {
   const _Notice({required this.text, this.error = false});
   final String text;
   final bool error;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
-    decoration: BoxDecoration(
-      color: error ? Colors.red.shade50 : const Color(0xFFEAF7F3),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: error ? Colors.red.shade100 : const Color(0xFFCDECE4),
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final background = error
+        ? (isDark ? const Color(0xFF3F1518) : Colors.red.shade50)
+        : context.appSoftBlue;
+    final border = error
+        ? (isDark ? const Color(0xFF7F1D1D) : Colors.red.shade100)
+        : context.appBorder;
+    final foreground = error
+        ? (isDark ? const Color(0xFFFCA5A5) : Colors.red.shade800)
+        : Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
       ),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: error ? Colors.red.shade800 : AppColors.primaryDark,
+      child: Text(
+        text,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ProfileMessage extends StatelessWidget {
@@ -774,7 +774,7 @@ class _ProfileMessage extends StatelessWidget {
               Text(
                 text,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.appMuted),
               ),
               const SizedBox(height: 16),
               _FullWidthButton(

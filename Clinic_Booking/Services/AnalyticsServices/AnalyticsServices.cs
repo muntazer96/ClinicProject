@@ -49,7 +49,7 @@ namespace Clinic_Booking.Services.AnalyticsServices
                 Province = TrimOrNull(form.Province, 80),
                 SearchText = TrimOrNull(form.SearchText, 300),
                 SessionId = TrimOrNull(form.SessionId, 120),
-                OccurredAt = form.OccurredAt ?? DateTime.UtcNow,
+                OccurredAt = form.OccurredAt ?? BusinessClock.Now(),
                 CreatorId = userId
             });
 

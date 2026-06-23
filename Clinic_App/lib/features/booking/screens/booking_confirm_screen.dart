@@ -124,7 +124,7 @@ class _SummaryLine extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(10),
     decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
+      color: context.appSurfaceMuted,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Row(
@@ -132,7 +132,7 @@ class _SummaryLine extends StatelessWidget {
       children: [
         SizedBox(
           width: 82,
-          child: Text(label, style: const TextStyle(color: AppColors.muted)),
+          child: Text(label, style: TextStyle(color: context.appMuted)),
         ),
         Expanded(
           child: Text(

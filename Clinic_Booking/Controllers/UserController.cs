@@ -1,4 +1,4 @@
-﻿using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.DTOs.UserDTO;
 using Clinic_Booking.Data;
 using Clinic_Booking.IServices.IUserServices;
 using Clinic_Booking.IServices.IPushNotificationServices;
@@ -45,6 +45,13 @@ namespace Clinic_Booking.Controllers
             return await _service.LoginAsync(form);
         }
 
+        [HttpPost("google-signin")]
+        [EnableRateLimiting("Auth")]
+        public async Task<IActionResult> GoogleSignInAsync([FromBody] GoogleSignInDto form)
+        {
+            return await _service.GoogleSignInAsync(form);
+        }
+
         [HttpPost("refresh")]
         [EnableRateLimiting("Auth")]
         public async Task<IActionResult> RefreshTokenAsync([FromBody] RefreshTokenDto form)
@@ -70,6 +77,13 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UserUpdateDto form)
         {
             return await _service.UpdateMyProfileAsync(form);
+        }
+
+        [HttpPut("me/phone-number")]
+        [Authorize]
+        public async Task<IActionResult> SetMyPhoneNumberAsync([FromBody] SetPhoneNumberDto form)
+        {
+            return await _service.SetMyPhoneNumberAsync(form);
         }
 
         [HttpPut("{id}")]
@@ -114,19 +128,6 @@ namespace Clinic_Booking.Controllers
         public async Task<IActionResult> UpdateProfileImageAsync(IFormFile file)
         {
             return await _service.UploadImgAsync(file);
-        }
-
-        [HttpPost("email-confirmation")]
-        [EnableRateLimiting("AccountRecovery")]
-        public async Task<IActionResult> SendEmailConfirmationAsync(string identifier)
-        {
-            return await _service.SendEmailConfirmationAsync(identifier);
-        }
-
-        [HttpGet("email-confirm")]
-        public async Task<IActionResult> ConfirmEmailAsync(Guid userId, string token)
-        {
-            return await _service.ConfirmEmailAsync(userId, token);
         }
 
         [HttpPost("phone-confirmation")]
@@ -180,7 +181,7 @@ namespace Clinic_Booking.Controllers
             var data = new Dictionary<string, string>
             {
                 ["type"] = "test",
-                ["createdAt"] = DateTime.UtcNow.ToString("O")
+                ["createdAt"] = BusinessClock.Now().ToString("O")
             };
             var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,
@@ -208,7 +209,7 @@ namespace Clinic_Booking.Controllers
             var data = new Dictionary<string, string>
             {
                 ["type"] = "test",
-                ["createdAt"] = DateTime.UtcNow.ToString("O")
+                ["createdAt"] = BusinessClock.Now().ToString("O")
             };
             var sent = await _pushNotificationServices.SendToUserAsync(
                 userId,
@@ -226,11 +227,18 @@ namespace Clinic_Booking.Controllers
             });
         }
 
-        [HttpPost("password/reset-link")]
-        [EnableRateLimiting("AccountRecovery")]
-        public async Task<IActionResult> SendResetPasswordLinkAsync(string identifier)
+        [HttpPost("password/forgot/send-otp")]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> SendPasswordResetOtpAsync([FromBody] PasswordResetOtpRequestDto form)
         {
-            return await _service.SendResetPasswordLinkAsync(identifier);
+            return await _service.SendPasswordResetOtpAsync(form);
+        }
+
+        [HttpPost("password/forgot/verify-otp")]
+        [EnableRateLimiting("Otp")]
+        public async Task<IActionResult> VerifyPasswordResetOtpAsync([FromBody] PasswordResetOtpVerifyDto form)
+        {
+            return await _service.VerifyPasswordResetOtpAsync(form);
         }
 
         [HttpPost("password/reset")]
