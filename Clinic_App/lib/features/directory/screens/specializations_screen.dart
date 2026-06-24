@@ -49,6 +49,8 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
   @override
   Widget build(BuildContext context) => AppScaffold(
     title: 'الاختصاصات',
+    showBackButton: true,
+    backRoute: '/',
     child: RefreshIndicator(
       onRefresh: _load,
       child: CustomScrollView(
@@ -97,10 +99,10 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
                   return _SpecializationCard(item: item);
                 }, childCount: _items.length),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: 1.05,
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.2,
                 ),
               ),
             ),
@@ -206,111 +208,46 @@ class _SpecializationCard extends StatelessWidget {
     final icon = specializationIconFor(item.iconName);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(14),
       onTap: () => context.go('/search?specialization=${item.id}'),
-      child: Ink(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
           color: context.appSurface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: context.appBorder),
           boxShadow: [
             BoxShadow(
               color: context.isDark
                   ? Colors.black.withValues(alpha: .20)
                   : Colors.black.withOpacity(.045),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            PositionedDirectional(
-              top: -18,
-              end: -26,
-              child: Icon(
-                icon,
-                size: 122,
-                color: Theme.of(context).colorScheme.primary.withOpacity(.075),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(.10),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(icon, color: AppColors.primary, size: 18),
             ),
-            PositionedDirectional(
-              bottom: -28,
-              start: -28,
-              child: Container(
-                width: 86,
-                height: 86,
-                decoration: BoxDecoration(
-                  color: context.appSoftBlue.withOpacity(.5),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Align(
-                    alignment: AlignmentDirectional.topEnd,
-                    child: Container(
-                      width: 43,
-                      height: 43,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(.12),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 23,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.start,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.appSoftBlue,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'عرض الأطباء',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                          ),
-                        ),
-                        SizedBox(width: 6),
-                        Icon(
-                          Icons.arrow_back_rounded,
-                          color: AppColors.primary,
-                          size: 15,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 4),
+            Text(
+              item.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                height: 1.3,
               ),
             ),
           ],

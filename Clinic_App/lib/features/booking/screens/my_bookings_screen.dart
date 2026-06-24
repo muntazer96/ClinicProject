@@ -688,7 +688,7 @@ class _BookingCardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(15),
+    padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 12),
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: [AppColors.primary, AppColors.primary.withOpacity(.82)],
@@ -696,52 +696,53 @@ class _BookingCardHeader extends StatelessWidget {
     ),
     child: Row(
       children: [
-        _StatusChip(booking: booking),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                booking.doctorName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                booking.clinicName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.85),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
         Container(
-          width: 54,
-          height: 54,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(.16),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Colors.white.withOpacity(.25)),
           ),
           child: const Icon(
             Icons.medical_services_outlined,
             color: Colors.white,
-            size: 28,
+            size: 24,
           ),
         ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                booking.doctorName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (booking.clinicName.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  booking.clinicName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.85),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        _StatusChip(booking: booking),
       ],
     ),
   );

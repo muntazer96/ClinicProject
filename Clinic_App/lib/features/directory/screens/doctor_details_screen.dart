@@ -238,233 +238,87 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!doctor.isFeatured) {
-      return _StandardProfileCard(
-        doctor: doctor,
-        isFavorite: isFavorite,
-        onFavoriteTap: onFavoriteTap,
-      );
-    }
+    final isPremium = doctor.isFeatured;
 
     return Card(
       color: context.appSurface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: _premiumColor.withValues(alpha: .82),
-          width: 1.2,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        side: isPremium
+            ? BorderSide(
+                color: _premiumColor.withValues(alpha: .7),
+                width: 1.2,
+              )
+            : BorderSide.none,
       ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: context.isDark
-                    ? const [
-                        Color(0xFF5C4311),
-                        Color(0xFF2B2518),
-                        Color(0xFF4A3814),
-                      ]
-                    : const [
-                        Color(0xFFFFD86B),
-                        Color(0xFFFFF9E8),
-                        Color(0xFFF8E2A8),
-                      ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+        child: Column(
+          children: [
+            // Compact avatar
+            DoctorAvatar(
+              imageName: doctor.imageName,
+              size: 88,
+              foreground: isPremium ? _premiumColor : AppColors.primary,
+              background: isPremium
+                  ? (context.isDark
+                      ? const Color(0xFF33270F)
+                      : const Color(0xFFFFF4D8))
+                  : context.appSoftBlue,
+            ),
+            const SizedBox(height: 10),
+            // Name
+            Text(
+              doctor.name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
               ),
             ),
-            child: Column(
+            const SizedBox(height: 6),
+            // Specialty + badge + favorite in one row
+            Row(
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 30),
-                      child: DoctorAvatar(
-                        imageName: doctor.imageName,
-                        size: 138,
-                        foreground: AppColors.primary,
-                        background: context.appSoftBlue,
-                      ),
+                Expanded(
+                  child: Text(
+                    doctor.specializationName,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
                     ),
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: context.appSurface,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: context.isDark
-                              ? const Color(0xFF8D6B17)
-                              : const Color(0xFFF0C253),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _premiumColor.withValues(alpha: .16),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium_rounded,
-                        color: _premiumColor,
-                        size: 34,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 17),
-            child: Column(
-              children: [
-                Text(
-                  doctor.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
+                if (isPremium) ...[
+                  const _PremiumDoctorBadge(),
+                  const SizedBox(width: 8),
+                ],
+                SizedBox(
+                  width: 36,
+                  height: 36,
                   child: IconButton.filledTonal(
                     onPressed: onFavoriteTap,
+                    padding: EdgeInsets.zero,
                     icon: Icon(
                       isFavorite
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
+                      size: 18,
                     ),
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  doctor.specializationName,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const _PremiumDoctorBadge(),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: context.appSurfaceMuted,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: context.appBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      _DoctorMetric(
-                        icon: Icons.star_rounded,
-                        value: doctor.averageRating?.toStringAsFixed(1) ?? '-',
-                        label: 'التقييم',
-                        iconColor: AppColors.warning,
-                      ),
-                      const _MetricDivider(),
-                      _DoctorMetric(
-                        icon: Icons.rate_review_rounded,
-                        value: '${doctor.reviewCount}+',
-                        label: 'تقييم',
-                      ),
-                      const _MetricDivider(),
-                      _DoctorMetric(
-                        icon: Icons.local_hospital_rounded,
-                        value: '${doctor.clinicDetails.length}',
-                        label: 'عيادات',
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                //const _PremiumBenefitsPanel(),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StandardProfileCard extends StatelessWidget {
-  const _StandardProfileCard({
-    required this.doctor,
-    required this.isFavorite,
-    required this.onFavoriteTap,
-  });
-  final DoctorProfile doctor;
-  final bool isFavorite;
-  final VoidCallback onFavoriteTap;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    child: Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.only(top: 18),
-          decoration: BoxDecoration(
-            color: context.appSoftBlue,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-          ),
-          child: Center(
-            child: DoctorAvatar(
-              imageName: doctor.imageName,
-              size: 174,
-              foreground: AppColors.primary,
-              background: context.isDark
-                  ? const Color(0xFF183A3F)
-                  : const Color(0xFFD7FFFA),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 17),
-          child: Column(
-            children: [
-              Text(
-                doctor.name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w900,
-                ),
+            const SizedBox(height: 12),
+            // Compact metrics
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: context.appSurfaceMuted,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: context.appBorder),
               ),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: IconButton.filledTonal(
-                  onPressed: onFavoriteTap,
-                  icon: Icon(
-                    isFavorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                doctor.specializationName,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 15),
-              Row(
+              child: Row(
                 children: [
                   _DoctorMetric(
                     icon: Icons.star_rounded,
@@ -472,11 +326,13 @@ class _StandardProfileCard extends StatelessWidget {
                     label: 'التقييم',
                     iconColor: AppColors.warning,
                   ),
+                  const _MetricDivider(),
                   _DoctorMetric(
                     icon: Icons.rate_review_rounded,
                     value: '${doctor.reviewCount}+',
                     label: 'تقييم',
                   ),
+                  const _MetricDivider(),
                   _DoctorMetric(
                     icon: Icons.local_hospital_rounded,
                     value: '${doctor.clinicDetails.length}',
@@ -484,12 +340,12 @@ class _StandardProfileCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _PremiumDoctorBadge extends StatelessWidget {
@@ -497,26 +353,27 @@ class _PremiumDoctorBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
       color: context.isDark ? const Color(0xFF2F2817) : const Color(0xFFFFFBF0),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(6),
       border: Border.all(
         color: context.isDark
             ? const Color(0xFF715A1D)
             : const Color(0xFFE4B23C),
-        width: 1.1,
+        width: 1,
       ),
     ),
     child: const Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.diamond_outlined, color: Color(0xFFD49A00), size: 18),
-        SizedBox(width: 5),
+        Icon(Icons.diamond_outlined, color: Color(0xFFD49A00), size: 13),
+        SizedBox(width: 3),
         Text(
           'طبيب مميز',
           style: TextStyle(
             color: Color(0xFFD49A00),
+            fontSize: 11,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -530,7 +387,7 @@ class _MetricDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 72, color: context.appBorder);
+      Container(width: 1, height: 44, color: context.appBorder);
 }
 
 // class _PremiumBenefitsPanel extends StatelessWidget {
@@ -615,17 +472,17 @@ class _DoctorMetric extends StatelessWidget {
     child: Column(
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
             color: iconColor.withValues(alpha: .12),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: iconColor, size: 17),
         ),
-        const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        Text(label, style: TextStyle(color: context.appMuted, fontSize: 11)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+        Text(label, style: TextStyle(color: context.appMuted, fontSize: 10)),
       ],
     ),
   );
