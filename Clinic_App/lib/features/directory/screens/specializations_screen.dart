@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/api_client.dart';
@@ -7,7 +6,7 @@ import '../../../core/app_theme.dart';
 import '../../../widgets/app_scaffold.dart';
 import '../directory_service.dart';
 import '../models/directory_models.dart';
-import '../specialization_icons.dart';
+import '../widgets/specialty_card.dart';
 
 class SpecializationsScreen extends StatefulWidget {
   const SpecializationsScreen({super.key});
@@ -93,17 +92,30 @@ class _SpecializationsScreenState extends State<SpecializationsScreen> {
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final item = _items[index];
-                  return _SpecializationCard(item: item);
-                }, childCount: _items.length),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                ),
+              sliver: SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.crossAxisExtent;
+                  final columns = width >= 900
+                      ? 5
+                      : width >= 680
+                      ? 4
+                      : width >= 430
+                      ? 3
+                      : 2;
+
+                  return SliverGrid(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = _items[index];
+                      return SpecialtyCard(item: item, index: index);
+                    }, childCount: _items.length),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: columns == 2 ? 1.18 : .95,
+                    ),
+                  );
+                },
               ),
             ),
         ],
@@ -130,7 +142,7 @@ class _Header extends StatelessWidget {
       gradient: LinearGradient(
         colors: [AppColors.primary, AppColors.primary.withOpacity(.82)],
       ),
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(8),
       boxShadow: [
         BoxShadow(
           color: AppColors.primary.withOpacity(.18),
@@ -184,7 +196,7 @@ class _Header extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(.16),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.white.withOpacity(.25)),
           ),
           child: const Icon(
@@ -196,65 +208,6 @@ class _Header extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _SpecializationCard extends StatelessWidget {
-  const _SpecializationCard({required this.item});
-
-  final Specialization item;
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = specializationIconFor(item.iconName);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => context.go('/search?specialization=${item.id}'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: context.appSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.appBorder),
-          boxShadow: [
-            BoxShadow(
-              color: context.isDark
-                  ? Colors.black.withValues(alpha: .20)
-                  : Colors.black.withOpacity(.045),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(.10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _Message extends StatelessWidget {

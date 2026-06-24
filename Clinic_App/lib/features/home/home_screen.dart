@@ -11,7 +11,7 @@ import '../../widgets/app_scaffold.dart';
 import '../auth/auth_controller.dart';
 import '../directory/directory_service.dart';
 import '../directory/models/directory_models.dart';
-import '../directory/specialization_icons.dart';
+import '../directory/widgets/specialty_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _SectionTitle(
               title: 'الاختصاصات الطبية',
               action: 'عرض الكل',
-              onAction: () => context.go('/specializations'),
+              onAction: () => context.push('/specializations'),
             ),
             const SizedBox(height: 12),
             _SpecializationPreview(
@@ -634,78 +634,34 @@ class _SpecializationPreview extends StatelessWidget {
       return const _EmptySpecializations();
     }
 
-    return GridView.builder(
-      itemCount: items.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: .72,
-      ),
-      itemBuilder: (context, index) {
-        return _SpecializationCard(item: items[index]);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 680
+            ? 4
+            : width >= 430
+            ? 3
+            : 2;
+
+        return GridView.builder(
+          itemCount: items.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: columns == 2 ? 1.55 : 1.28,
+          ),
+          itemBuilder: (context, index) {
+            return SpecialtyCard(
+              item: items[index],
+              index: index,
+              compact: true,
+            );
+          },
+        );
       },
-    );
-  }
-}
-
-class _SpecializationCard extends StatelessWidget {
-  const _SpecializationCard({required this.item});
-
-  final Specialization item;
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = specializationIconFor(item.iconName);
-
-    return InkWell(
-      onTap: () => context.go('/search?specialization=${item.id}'),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-        decoration: BoxDecoration(
-          color: context.appSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.appBorder),
-          boxShadow: [
-            BoxShadow(
-              color: context.isDark
-                  ? Colors.black.withValues(alpha: .20)
-                  : Colors.black.withOpacity(.045),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(.10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              item.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
