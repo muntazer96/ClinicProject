@@ -256,7 +256,24 @@ namespace Clinic_Booking.Data
     new Specialization { Id = 27, Name = "أخصائي أمراض الدم", NormalizedName = "Hematologist", IconName = "hematology" },
     new Specialization { Id = 28, Name = "أخصائي علاج طبيعي", NormalizedName = "Physiotherapist", IconName = "physiotherapy" },
     new Specialization { Id = 29, Name = "أخصائي تغذية", NormalizedName = "Nutritionist", IconName = "nutrition" },
-    new Specialization { Id = 30, Name = "أخصائي نطق وتخاطب", NormalizedName = "Speech Therapist", IconName = "speech-therapy" });
+    new Specialization { Id = 30, Name = "أخصائي نطق وتخاطب", NormalizedName = "Speech Therapist", IconName = "speech-therapy" },
+    new Specialization { Id = 31, Name = "أخصائي مسالك بولية", NormalizedName = "Urologist", IconName = "urology" },
+new Specialization { Id = 32, Name = "أخصائي جراحة الأوعية الدموية", NormalizedName = "Vascular Surgeon", IconName = "vascular-surgery" },
+new Specialization { Id = 33, Name = "أخصائي جراحة الصدر", NormalizedName = "Thoracic Surgeon", IconName = "thoracic-surgery" },
+new Specialization { Id = 34, Name = "أخصائي جراحة القلب", NormalizedName = "Cardiac Surgeon", IconName = "cardiac-surgery" },
+new Specialization { Id = 35, Name = "أخصائي طب الأسنان", NormalizedName = "Dentist", IconName = "dentistry" },
+new Specialization { Id = 36, Name = "أخصائي تقويم الأسنان", NormalizedName = "Orthodontist", IconName = "orthodontics" },
+new Specialization { Id = 37, Name = "أخصائي جراحة الفم والفكين", NormalizedName = "Oral and Maxillofacial Surgeon", IconName = "oral-surgery" },
+new Specialization { Id = 38, Name = "أخصائي أمراض الحساسية والمناعة", NormalizedName = "Allergist and Immunologist", IconName = "allergy-immunology" },
+new Specialization { Id = 39, Name = "أخصائي الطب النووي", NormalizedName = "Nuclear Medicine Specialist", IconName = "nuclear-medicine" },
+new Specialization { Id = 40, Name = "أخصائي العناية المركزة", NormalizedName = "Intensive Care Specialist", IconName = "intensive-care" },
+new Specialization { Id = 41, Name = "أخصائي إعادة التأهيل", NormalizedName = "Physical Medicine and Rehabilitation Specialist", IconName = "rehabilitation" },
+new Specialization { Id = 42, Name = "أخصائي طب الشيخوخة", NormalizedName = "Geriatrician", IconName = "geriatrics" },
+new Specialization { Id = 43, Name = "أخصائي الطب الشرعي", NormalizedName = "Forensic Medicine Specialist", IconName = "forensic-medicine" },
+new Specialization { Id = 44, Name = "أخصائي الوراثة الطبية", NormalizedName = "Medical Geneticist", IconName = "medical-genetics" }
+    );
+            
+            
             });
 
             // Doctor

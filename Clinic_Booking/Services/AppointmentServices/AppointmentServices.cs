@@ -728,11 +728,13 @@ namespace Clinic_Booking.Services.AppointmentServices
                     a.UserId == userId &&
                     a.Status != AppointmentStatus.Cancelled &&
                     a.AppointmentDate.Date == appointmentDate.Date &&
+                    a.DoctorId == form.DoctorId &&
                     !a.IsDeleted)
                 : await _context.Appointments.AnyAsync(a =>
                     a.GuestPhoneNumber == guestPhoneNumber &&
                     a.Status != AppointmentStatus.Cancelled &&
                     a.AppointmentDate.Date == appointmentDate.Date &&
+                    a.DoctorId == form.DoctorId &&
                     !a.IsDeleted);
 
             if (hasDuplicate)

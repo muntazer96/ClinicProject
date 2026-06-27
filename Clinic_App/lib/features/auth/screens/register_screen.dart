@@ -107,6 +107,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('تم إنشاء الحساب بنجاح. سجل دخولك للمتابعة.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         context.go('/login');
       }
     } catch (e) {

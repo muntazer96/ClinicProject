@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/account/change_password_screen.dart';
+import '../widgets/exit_guard.dart';
 import '../features/account/edit_name_screen.dart';
 import '../features/account/phone_setup_screen.dart';
 import '../features/account/profile_screen.dart';
@@ -56,8 +57,8 @@ GoRouter createRouter(AuthController auth) => GoRouter(
   routes: [
     GoRoute(path: '/splash', builder: (_, __) => const StartupSplashScreen()),
     GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
-    GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/doctor', builder: (_, __) => const DoctorHomeScreen()),
+    GoRoute(path: '/', builder: (_, __) => const ExitGuard(child: HomeScreen())),
+    GoRoute(path: '/doctor', builder: (_, __) => const ExitGuard(child: DoctorHomeScreen())),
     GoRoute(
       path: '/doctor/appointments',
       builder: (_, __) => const DoctorAppointmentsScreen(),

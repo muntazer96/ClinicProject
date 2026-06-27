@@ -294,6 +294,12 @@ class _FiltersCard extends StatelessWidget {
         ? specialization
         : null;
 
+    final provinceName = province != null
+        ? provinces.where((p) => p.id == province).firstOrNull?.name
+        : null;
+
+    final sortLabel = _sortOptions[sort] ?? 'الترتيب الافتراضي';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(13),
@@ -306,71 +312,54 @@ class _FiltersCard extends StatelessWidget {
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
                 labelText: 'اسم الطبيب',
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
             const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
+            _FilterDropdown<int?>(
+              icon: Icons.location_on_outlined,
+              label: 'المحافظة',
+              selectedLabel: provinceName,
               value: province,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.location_on_outlined),
-                labelText: 'المحافظة',
-              ),
               items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text('كل المحافظات'),
-                ),
+                const _DropdownItem<int?>(value: null, label: 'كل المحافظات'),
                 ...provinces.map(
-                  (item) =>
-                      DropdownMenuItem(value: item.id, child: Text(item.name)),
+                  (item) => _DropdownItem<int?>(value: item.id, label: item.name),
                 ),
               ],
               onChanged: onProvinceChanged,
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
+            const SizedBox(height: 8),
+            _FilterDropdown<int?>(
+              icon: Icons.medical_services_outlined,
+              label: 'الاختصاص',
+              selectedLabel: selectedSpecialization != null
+                  ? specializations
+                      .where((s) => s.id == selectedSpecialization)
+                      .firstOrNull
+                      ?.name
+                  : null,
               value: selectedSpecialization,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.medical_services_outlined),
-                labelText: 'الاختصاص',
-              ),
               items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text('كل الاختصاصات'),
-                ),
+                const _DropdownItem<int?>(value: null, label: 'كل الاختصاصات'),
                 ...specializations.map(
-                  (item) =>
-                      DropdownMenuItem(value: item.id, child: Text(item.name)),
+                  (item) => _DropdownItem<int?>(value: item.id, label: item.name),
                 ),
               ],
               onChanged: onSpecializationChanged,
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
+            const SizedBox(height: 8),
+            _FilterDropdown<String>(
+              icon: Icons.sort_rounded,
+              label: 'ترتيب النتائج',
+              selectedLabel: sortLabel,
               value: sort,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.sort_rounded),
-                labelText: 'ترتيب النتائج',
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'default',
-                  child: Text('الترتيب الافتراضي'),
-                ),
-                DropdownMenuItem(
-                  value: 'rating',
-                  child: Text('الأعلى تقييماً'),
-                ),
-                DropdownMenuItem(
-                  value: 'reviews',
-                  child: Text('الأكثر مراجعات'),
-                ),
-                DropdownMenuItem(
-                  value: 'booking',
-                  child: Text('الحجز الإلكتروني أولاً'),
-                ),
-              ],
+              items: _sortOptions.entries.map(
+                (e) => _DropdownItem(value: e.key, label: e.value),
+              ).toList(),
               onChanged: onSortChanged,
             ),
             const SizedBox(height: 12),
@@ -391,6 +380,273 @@ class _FiltersCard extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const _sortOptions = <String, String>{
+  'default': 'الترتيب الافتراضي',
+  'rating': 'الأعلى تقييماً',
+  'reviews': 'الأكثر مراجعات',
+  'booking': 'الحجز الإلكتروني أولاً',
+};
+
+class _DropdownItem<T> {
+  const _DropdownItem({required this.value, required this.label});
+  final T value;
+  final String label;
+}
+
+class _FilterDropdown<T> extends StatelessWidget {
+  const _FilterDropdown({
+    required this.icon,
+    required this.label,
+    this.selectedLabel,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.loading = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? selectedLabel;
+  final T value;
+  final List<_DropdownItem<T>> items;
+  final ValueChanged<T> onChanged;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = selectedLabel != null;
+
+    return InkWell(
+      onTap: loading ? null : () => _showPicker(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: hasValue
+              ? AppColors.primary.withOpacity(.08)
+              : context.appSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasValue ? AppColors.primary : context.appBorder,
+            width: hasValue ? 1.2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: hasValue ? AppColors.primary : context.appMuted,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                selectedLabel ?? label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: hasValue ? AppColors.primary : context.appMuted,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            if (loading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: context.appMuted,
+                ),
+              )
+            else
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: hasValue ? AppColors.primary : context.appMuted,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _SearchablePicker<T>(
+        icon: icon,
+        label: label,
+        value: value,
+        items: items,
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _SearchablePicker<T> extends StatefulWidget {
+  const _SearchablePicker({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final T value;
+  final List<_DropdownItem<T>> items;
+  final ValueChanged<T> onChanged;
+
+  @override
+  State<_SearchablePicker<T>> createState() => _SearchablePickerState<T>();
+}
+
+class _SearchablePickerState<T> extends State<_SearchablePicker<T>> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  List<_DropdownItem<T>> get _filteredItems {
+    if (_query.isEmpty) return widget.items;
+    final query = _query.trim().toLowerCase();
+    return widget.items.where(
+      (item) => item.label.toLowerCase().contains(query),
+    ).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _filteredItems;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.appBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(
+                widget.label,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  prefixIcon: Icon(widget.icon, size: 20),
+                  hintText: 'بحث...',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (value) => setState(() => _query = value),
+              ),
+            ),
+            const Divider(height: 1),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: 40,
+                      color: context.appMuted,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'لا توجد نتائج مطابقة',
+                      style: TextStyle(color: context.appMuted),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: items.length,
+                  itemBuilder: (ctx, index) {
+                    final item = items[index];
+                    final selected = item.value == widget.value;
+
+                    return ListTile(
+                      leading: Icon(
+                        widget.icon,
+                        color: selected ? AppColors.primary : context.appMuted,
+                      ),
+                      title: Text(
+                        item.label,
+                        style: TextStyle(
+                          fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                          color: selected ? AppColors.primary : null,
+                        ),
+                      ),
+                      trailing: selected
+                          ? const Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onChanged(item.value);
+                      },
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

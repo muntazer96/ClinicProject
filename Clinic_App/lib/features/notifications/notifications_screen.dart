@@ -12,6 +12,7 @@ import '../../widgets/app_scaffold.dart';
 import '../auth/auth_controller.dart';
 import '../doctor/widgets/doctor_scaffold.dart';
 import '../messages/message_hub_service.dart';
+import 'notification_center.dart';
 import 'notification_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -71,6 +72,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _page = 1;
           _hasMore = items.length == _pageSize;
         });
+        await _markLoadedNotificationsRead();
       }
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
@@ -95,6 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _page = nextPage;
           _hasMore = items.length == _pageSize;
         });
+        await _markLoadedNotificationsRead();
       }
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
@@ -131,6 +134,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             )
             .toList();
       });
+      context
+          .read<NotificationCenter>()
+          .notifyChanged(doctor: widget.doctor);
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     }
@@ -140,24 +146,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       await _service.markAllRead(doctor: widget.doctor);
       if (!mounted) return;
-      setState(() {
-        _items = _items
-            .map(
-              (item) => item.isRead
-                  ? item
-                  : AppNotificationItem(
-                      id: item.id,
-                      message: item.message,
-                      createdAt: item.createdAt,
-                      status: 1,
-                      readAt: DateTime.now(),
-                    ),
-            )
-            .toList();
-      });
+      _markItemsReadLocally();
+      context
+          .read<NotificationCenter>()
+          .notifyChanged(doctor: widget.doctor);
     } catch (error) {
       if (mounted) showAppSnackBar(context, ApiClient.errorMessage(error));
     }
+  }
+
+  Future<void> _markLoadedNotificationsRead() async {
+    if (!_items.any((item) => !item.isRead)) return;
+    try {
+      await _service.markAllRead(doctor: widget.doctor);
+      if (!mounted) return;
+      _markItemsReadLocally();
+      context
+          .read<NotificationCenter>()
+          .notifyChanged(doctor: widget.doctor);
+    } catch (_) {}
+  }
+
+  void _markItemsReadLocally() {
+    setState(() {
+      _items = _items
+          .map(
+            (item) => item.isRead
+                ? item
+                : AppNotificationItem(
+                    id: item.id,
+                    message: item.message,
+                    createdAt: item.createdAt,
+                    status: 1,
+                    readAt: DateTime.now(),
+                  ),
+          )
+          .toList();
+    });
   }
 
   @override

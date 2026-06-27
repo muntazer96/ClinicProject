@@ -1,314 +1,1127 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>خطوات تحديث مشروع العيادة على السيرفر</title>
-  <style>
-    :root {
-      --bg: #f5f7f8;
-      --paper: #ffffff;
-      --ink: #17212b;
-      --muted: #5f6b76;
-      --primary: #0f766e;
-      --primary-soft: #e7f6f4;
-      --line: #dce4e8;
-      --code-bg: #111827;
-      --code-fg: #e5e7eb;
-      --warn-bg: #fff7ed;
-      --warn-border: #fed7aa;
-      --warn-ink: #9a3412;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دليل تحديث السيرفر — مشروع العيادة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-50:  #f0fdfa;
+    --teal-100: #ccfbf1;
+    --teal-200: #99f6e4;
+    --teal-400: #2dd4bf;
+    --teal-600: #0d9488;
+    --teal-700: #0f766e;
+    --teal-800: #115e59;
+    --teal-900: #134e4a;
 
-    * {
-      box-sizing: border-box;
-    }
+    --slate-50:  #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
 
-    body {
-      margin: 0;
-      font-family: Tahoma, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      line-height: 1.8;
-    }
+    --amber-50:  #fffbeb;
+    --amber-100: #fef3c7;
+    --amber-200: #fde68a;
+    --amber-600: #d97706;
+    --amber-700: #b45309;
+    --amber-800: #92400e;
 
-    .page {
-      width: min(100% - 32px, 980px);
-      margin: 32px auto;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
-    }
+    --red-50:   #fef2f2;
+    --red-100:  #fee2e2;
+    --red-600:  #dc2626;
+    --red-700:  #b91c1c;
+    --red-800:  #991b1b;
 
-    header {
-      padding: 30px 34px;
-      background: var(--primary);
-      color: #fff;
-    }
+    --green-50:  #f0fdf4;
+    --green-100: #dcfce7;
+    --green-600: #16a34a;
+    --green-800: #166534;
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-      line-height: 1.35;
-    }
+    --code-bg: #0d1117;
+    --code-fg: #e6edf3;
+    --code-comment: #8b949e;
+    --code-keyword: #79c0ff;
+    --code-string: #a5d6ff;
 
-    header p {
-      margin: 0;
-      color: rgba(255, 255, 255, 0.86);
-      font-size: 15px;
-    }
+    --font-sans: 'Cairo', Tahoma, Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
 
-    main {
-      padding: 28px 34px 36px;
-    }
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
 
-    section {
-      padding: 22px 0;
-      border-bottom: 1px solid var(--line);
-    }
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.05);
+  }
 
-    section:last-child {
-      border-bottom: 0;
-    }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    h2 {
-      margin: 0 0 12px;
-      color: var(--primary);
-      font-size: 21px;
-    }
+  html { scroll-behavior: smooth; }
 
-    p {
-      margin: 0 0 12px;
-      color: var(--muted);
-    }
+  body {
+    font-family: var(--font-sans);
+    background: var(--slate-100);
+    color: var(--slate-800);
+    line-height: 1.75;
+    font-size: 15px;
+  }
 
-    ol {
-      margin: 0;
-      padding: 0 24px 0 0;
-    }
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+  }
 
-    li {
-      margin: 0 0 18px;
-    }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--teal-900);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+  }
 
-    code {
-      direction: ltr;
-      unicode-bidi: embed;
-      font-family: Consolas, "Courier New", monospace;
-    }
+  .sidebar-brand {
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    margin-bottom: .75rem;
+  }
 
-    pre {
-      direction: ltr;
-      text-align: left;
-      margin: 10px 0 0;
-      padding: 16px;
-      overflow-x: auto;
-      color: var(--code-fg);
-      background: var(--code-bg);
-      border-radius: 8px;
-      line-height: 1.55;
-      font-size: 14px;
-    }
+  .sidebar-brand-icon {
+    width: 36px; height: 36px;
+    background: var(--teal-600);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: .75rem;
+  }
 
-    .note {
-      margin: 12px 0 0;
-      padding: 13px 15px;
-      background: var(--primary-soft);
-      border: 1px solid #bde7e0;
-      border-radius: 8px;
-      color: #115e59;
-    }
+  .sidebar-brand-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-    .warn {
-      margin: 12px 0 0;
-      padding: 13px 15px;
-      background: var(--warn-bg);
-      border: 1px solid var(--warn-border);
-      border-radius: 8px;
-      color: var(--warn-ink);
-    }
+  .sidebar-brand h1 { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.4; }
+  .sidebar-brand p  { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 3px; }
 
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 18px;
-    }
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: .08em;
+    color: rgba(255,255,255,.35); text-transform: uppercase;
+    padding: .75rem 1.25rem .3rem;
+  }
 
-    .meta div {
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 8px;
-    }
+  .sidebar-nav { list-style: none; }
+  .sidebar-nav li { padding: 0 .75rem; margin-bottom: 2px; }
 
-    .meta strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 13px;
-    }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 9px;
+    padding: .45rem .75rem;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; color: rgba(255,255,255,.65);
+    text-decoration: none;
+    transition: all .15s;
+  }
 
-    .meta span {
-      direction: ltr;
-      display: block;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 13px;
-    }
+  .sidebar-nav a:hover  { background: rgba(255,255,255,.08); color: #fff; }
+  .sidebar-nav a.active { background: var(--teal-700); color: #fff; }
 
-    .quick {
-      background: #f8fafc;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
-    }
+  .nav-dot {
+    width: 7px; height: 7px; flex-shrink: 0;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .45;
+  }
 
-    @media (max-width: 720px) {
-      .page {
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-      }
+  .sidebar-nav a.active .nav-dot { opacity: 1; background: var(--teal-400); }
 
-      header,
-      main {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
+  .meta-pills {
+    margin: auto 1.25rem 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
 
-      .meta {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  .meta-pill {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .4rem .75rem;
+    background: rgba(255,255,255,.06);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+  }
+
+  .meta-pill span { font-size: 11px; color: rgba(255,255,255,.45); }
+  .meta-pill code { font-family: var(--font-mono); font-size: 10.5px; color: var(--teal-200); direction: ltr; }
+
+  /* ── MAIN ── */
+  main { overflow-x: hidden; }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--teal-800) 0%, var(--teal-900) 60%, #0a2a28 100%);
+    color: #fff;
+    padding: 3rem 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(45,212,191,.15);
+    border: 1px solid rgba(45,212,191,.3);
+    border-radius: 99px;
+    padding: 4px 14px;
+    font-size: 11.5px; font-weight: 600; color: var(--teal-200);
+    letter-spacing: .04em;
+    margin-bottom: 1rem;
+  }
+
+  .hero-eyebrow-dot { width: 6px; height: 6px; background: var(--teal-400); border-radius: 50%; animation: pulse 2s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .6; transform: scale(.85); }
+  }
+
+  .hero h2 { font-size: 30px; font-weight: 700; line-height: 1.3; margin-bottom: .6rem; }
+  .hero p  { font-size: 15px; color: rgba(255,255,255,.65); max-width: 540px; }
+
+  .hero-stats {
+    display: flex; gap: 1.5rem; margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
+
+  .hero-stat { }
+  .hero-stat-val { font-size: 20px; font-weight: 700; color: var(--teal-200); }
+  .hero-stat-lbl { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+  /* ── CONTENT ── */
+  .content { padding: 2.5rem 3rem; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--slate-200);
+  }
+
+  .section-icon {
+    width: 38px; height: 38px; flex-shrink: 0;
+    background: var(--teal-50);
+    border: 1px solid var(--teal-200);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .section-icon svg { width: 18px; height: 18px; stroke: var(--teal-700); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .section-header h3 { font-size: 17px; font-weight: 700; color: var(--slate-800); }
+  .section-header p  { font-size: 13px; color: var(--slate-500); margin-top: 1px; }
+
+  /* ── STEP ── */
+  .steps { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2.5rem; }
+
+  .step {
+    display: flex; gap: 1rem;
+    background: #fff;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .2s;
+  }
+
+  .step:hover { box-shadow: var(--shadow-md); }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 30px; height: 30px;
+    background: var(--teal-700);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    margin-top: 1px;
+  }
+
+  .step-body { flex: 1; min-width: 0; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--slate-800); margin-bottom: 4px; }
+  .step-desc  { font-size: 13px; color: var(--slate-500); margin-bottom: 8px; line-height: 1.65; }
+
+  /* ── CODE BLOCK ── */
+  .code-wrap {
+    position: relative;
+    background: var(--code-bg);
+    border-radius: var(--radius-md);
+    margin: 8px 0;
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 14px;
+    background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .code-dots { display: flex; gap: 5px; }
+  .code-dot  { width: 9px; height: 9px; border-radius: 50%; }
+  .code-dot:nth-child(1) { background: #ff5f57; }
+  .code-dot:nth-child(2) { background: #febc2e; }
+  .code-dot:nth-child(3) { background: #28c840; }
+
+  .code-label { font-family: var(--font-mono); font-size: 10.5px; color: rgba(255,255,255,.3); }
+
+  .copy-btn {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 5px;
+    color: rgba(255,255,255,.5);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-btn:hover  { background: rgba(255,255,255,.13); color: #fff; }
+  .copy-btn.copied { color: var(--teal-400); border-color: var(--teal-400); }
+
+  .code-body { padding: 13px 16px; overflow-x: auto; }
+
+  .code-body pre {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--code-fg);
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+    line-height: 1.7;
+  }
+
+  .code-body pre .c  { color: var(--code-comment); }
+  .code-body pre .k  { color: var(--code-keyword); }
+  .code-body pre .s  { color: var(--code-string); }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    display: flex; gap: 10px;
+    padding: 11px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13px; line-height: 1.65;
+    margin: 8px 0;
+  }
+
+  .callout-icon { flex-shrink: 0; margin-top: 1px; }
+  .callout-icon svg { width: 16px; height: 16px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .callout.note  { background: var(--teal-50);  border: 1px solid var(--teal-200);  color: var(--teal-800); }
+  .callout.warn  { background: var(--amber-50); border: 1px solid var(--amber-200); color: var(--amber-800); }
+  .callout.danger{ background: var(--red-50);   border: 1px solid var(--red-100);   color: var(--red-800);  }
+
+  .callout.note   .callout-icon svg { stroke: var(--teal-600); }
+  .callout.warn   .callout-icon svg { stroke: var(--amber-600); }
+  .callout.danger .callout-icon svg { stroke: var(--red-600); }
+
+  /* ── QUICK CHEATSHEET ── */
+  .quick-card {
+    background: var(--slate-900);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 2.5rem;
+  }
+
+  .quick-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(90deg, var(--teal-800), var(--teal-900));
+  }
+
+  .quick-card-title { font-size: 14px; font-weight: 600; color: #fff; }
+  .quick-card-sub   { font-size: 12px; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+  .copy-all-btn {
+    background: rgba(45,212,191,.15);
+    border: 1px solid rgba(45,212,191,.3);
+    border-radius: var(--radius-sm);
+    color: var(--teal-200);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-all-btn:hover { background: rgba(45,212,191,.25); }
+
+  .quick-body { padding: 1.5rem; }
+
+  .quick-body pre {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--code-fg);
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+    line-height: 1.85;
+  }
+
+  .hl-comment  { color: #8b949e; }
+  .hl-cmd      { color: #79c0ff; }
+  .hl-path     { color: #a5d6ff; }
+  .hl-flag     { color: #ffa657; }
+
+  /* ── SERVICE BADGES ── */
+  .services {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 2.5rem;
+  }
+
+  .svc-card {
+    background: #fff;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    padding: 1.1rem;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .svc-icon {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto .75rem;
+  }
+
+  .svc-icon svg { width: 20px; height: 20px; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .svc-icon.dotnet  { background: #e8f4f8; } .svc-icon.dotnet  svg { stroke: #512BD4; }
+  .svc-icon.vue     { background: #f0fdf4; } .svc-icon.vue     svg { stroke: #42b883; }
+  .svc-icon.wa      { background: #f0fdf4; } .svc-icon.wa      svg { stroke: #25D366; }
+
+  .svc-card h4 { font-size: 13.5px; font-weight: 600; color: var(--slate-800); }
+  .svc-card p  { font-size: 11.5px; color: var(--slate-500); margin-top: 3px; }
+  .svc-card code { font-family: var(--font-mono); font-size: 11px; background: var(--slate-100); padding: 2px 7px; border-radius: 4px; color: var(--slate-600); display: inline-block; margin-top: 6px; }
+
+  /* ── DIVIDER ── */
+  .section-divider { border: none; border-top: 1px solid var(--slate-200); margin: 2.5rem 0; }
+
+  /* ── FOOTER ── */
+  .footer {
+    padding: .75rem 3rem;
+    border-top: 1px solid var(--slate-200);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--slate-400);
+  }
+
+  .footer-badge {
+    background: var(--teal-50);
+    border: 1px solid var(--teal-200);
+    border-radius: 99px;
+    color: var(--teal-700);
+    font-size: 11px; font-weight: 600;
+    padding: 3px 12px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: .75rem; }
+    .sidebar-brand { border: none; margin: 0; padding: .5rem .75rem; }
+    .sidebar-section-label { display: none; }
+    .sidebar-nav { display: flex; flex-wrap: wrap; }
+    .sidebar-nav li { padding: 2px; }
+    .sidebar-nav a { padding: .3rem .65rem; font-size: 12px; }
+    .meta-pills { display: none; }
+    .hero, .content { padding: 1.5rem; }
+    .services { grid-template-columns: 1fr 1fr; }
+    .hero h2 { font-size: 22px; }
+  }
+
+  @media print {
+    .sidebar { display: none; }
+    .layout  { grid-template-columns: 1fr; }
+    .step    { break-inside: avoid; }
+  }
+</style>
 </head>
 <body>
-  <article class="page">
-    <header>
-      <h1>خطوات تحديث مشروع العيادة على السيرفر</h1>
-      <p>استخدم هذا الملف كل مرة ترفع تحديث جديد على GitHub وتريد تحدث السيرفر.</p>
-      <div class="meta">
-        <div>
-          <strong>مسار المشروع</strong>
-          <span>/opt/clinic/ClinicProject</span>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" aria-label="قائمة التنقل">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M5 12l4-4M5 12l4 4M19 12l-4-4M19 12l-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>دليل تحديث<br>مشروع العيادة</h1>
+      <p>message-version branch</p>
+    </div>
+
+    <div class="sidebar-section-label">Git</div>
+    <ul class="sidebar-nav">
+      <li><a href="#git-connect" class="active"><span class="nav-dot"></span>الاتصال والتنقل</a></li>
+      <li><a href="#git-stash"><span class="nav-dot"></span>حفظ التغييرات</a></li>
+      <li><a href="#git-pull"><span class="nav-dot"></span>سحب التحديث</a></li>
+      <li><a href="#git-env"><span class="nav-dot"></span>إرجاع ملف البيئة</a></li>
+    </ul>
+
+    <div class="sidebar-section-label">الخدمات</div>
+    <ul class="sidebar-nav">
+      <li><a href="#backend"><span class="nav-dot"></span>الباكند .NET</a></li>
+      <li><a href="#frontend"><span class="nav-dot"></span>الفرونت Vue</a></li>
+      <li><a href="#whatsapp"><span class="nav-dot"></span>WhatsApp Bridge</a></li>
+    </ul>
+
+    <div class="sidebar-section-label">أدوات</div>
+    <ul class="sidebar-nav">
+      <li><a href="#monitor"><span class="nav-dot"></span>المراقبة والأخطاء</a></li>
+      <li><a href="#cleanup"><span class="nav-dot"></span>التنظيف بعد النشر</a></li>
+      <li><a href="#quick"><span class="nav-dot"></span>مختصر سريع</a></li>
+    </ul>
+
+    <div class="meta-pills">
+      <div class="meta-pill"><span>السيرفر</span><code>167.86.119.12</code></div>
+      <div class="meta-pill"><span>البرانش</span><code>message-version</code></div>
+      <div class="meta-pill"><span>المسار</span><code>/opt/clinic/…</code></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div>
+    <main>
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-eyebrow">
+          <span class="hero-eyebrow-dot"></span>
+          دليل النشر الرسمي
         </div>
-        <div>
-          <strong>البرانج</strong>
-          <span>message-version</span>
-        </div>
-        <div>
-          <strong>عنوان السيرفر</strong>
-          <span>167.86.119.12</span>
+        <h2>خطوات تحديث مشروع العيادة على السيرفر</h2>
+        <p>استخدم هذا الدليل كل مرة ترفع تحديثاً على GitHub وتريد تحديث السيرفر. اتبع الترتيب بدقة لتجنب أي مشاكل.</p>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-val">13</div>
+            <div class="hero-stat-lbl">خطوة موثقة</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">3</div>
+            <div class="hero-stat-lbl">خدمات للتحديث</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">~10</div>
+            <div class="hero-stat-lbl">دقائق للتحديث الكامل</div>
+          </div>
         </div>
       </div>
-    </header>
 
-    <main>
-      <section>
-        <h2>1. الدخول للسيرفر</h2>
-        <p>ادخل إلى السيرفر عن طريق SSH:</p>
-        <pre><code>ssh root@167.86.119.12</code></pre>
-      </section>
+      <div class="content">
 
-      <section>
-        <h2>2. الانتقال إلى المشروع</h2>
-        <pre><code>cd /opt/clinic/ClinicProject</code></pre>
-      </section>
-
-      <section>
-        <h2>3. التأكد من البرانج الصحيح</h2>
-        <p>تأكد أنك على برانج <code>message-version</code>:</p>
-        <pre><code>git branch</code></pre>
-        <p>إذا لم تكن عليه، نفذ:</p>
-        <pre><code>git checkout message-version</code></pre>
-      </section>
-
-      <section>
-        <h2>4. سحب آخر تحديث من GitHub</h2>
-        <pre><code>git pull origin message-version</code></pre>
-        <div class="warn">
-          إذا ظهر تعارض بسبب ملفات السيرفر مثل <code>.env.production</code> أو <code>package-lock.json</code>، لا تستخدم <code>git reset</code> مباشرة. انسخ الخطأ وراجعه قبل المتابعة.
+        <!-- SERVICES OVERVIEW -->
+        <div class="services">
+          <div class="svc-card">
+            <div class="svc-icon dotnet">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h4>الباكند .NET</h4>
+            <p>Clinic_Booking API</p>
+            <code>clinic-api</code>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon vue">
+              <svg viewBox="0 0 24 24"><polygon points="12,2 22,20 2,20"/><polygon points="12,7 18,18 6,18"/></svg>
+            </div>
+            <h4>الفرونت Vue</h4>
+            <p>Clinic_Admin Dashboard</p>
+            <code>nginx</code>
+          </div>
+          <div class="svc-card">
+            <div class="svc-icon wa">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h4>WhatsApp Bridge</h4>
+            <p>WhatsApp_Bridge service</p>
+            <code>clinic-whatsapp</code>
+          </div>
         </div>
-      </section>
 
-      <section>
-        <h2>5. تحديث الباكند .NET</h2>
-        <pre><code>cd /opt/clinic/ClinicProject/Clinic_Booking
+        <!-- SECTION: GIT -->
+        <section id="git-connect">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div>
+              <h3>الاتصال بالسيرفر والتنقل</h3>
+              <p>أول خطوة في كل عملية تحديث</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">الدخول عبر SSH</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">terminal</span>
+                    <button class="copy-btn" data-copy="ssh root@167.86.119.12">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>ssh root@167.86.119.12</pre></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">الانتقال إلى مجلد المشروع</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">bash</span>
+                    <button class="copy-btn" data-copy="cd /opt/clinic/ClinicProject">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>cd /opt/clinic/ClinicProject</pre></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">التأكد من البرانش الصحيح</div>
+                <div class="step-desc">تأكد أنك على برانش <code style="font-family:var(--font-mono);background:var(--slate-100);padding:1px 6px;border-radius:4px;font-size:12.5px">message-version</code></div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy="git branch&#10;git checkout message-version">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git branch
+git checkout message-version</pre></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- SECTION: STASH -->
+        <section id="git-stash">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <div>
+              <h3>فحص وحفظ التغييرات المحلية</h3>
+              <p>قبل سحب أي تحديث من GitHub</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">فحص حالة Git</div>
+                <div class="step-desc">قبل السحب، افحص الملفات المعدلة على السيرفر.</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy="git status">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git status</pre></div>
+                </div>
+                <div class="callout warn">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                  <div>لا تستخدم <code style="font-family:var(--font-mono);font-size:11.5px">git reset --hard</code> مباشرة إذا ظهرت تغييرات محلية — قد تحذف إعدادات مهمة كملف <code style="font-family:var(--font-mono);font-size:11.5px">.env.production</code>.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">5</div>
+              <div class="step-body">
+                <div class="step-title">حفظ التغييرات المحلية في stash</div>
+                <div class="step-desc">احفظ كل التغييرات بما فيها الملفات غير المتتبعة مثل <code style="font-family:var(--font-mono);background:var(--slate-100);padding:1px 6px;border-radius:4px;font-size:12.5px">.env.production</code></div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy='git stash push -u -m "server local changes before update"'>نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git stash push -u -m "server local changes before update"</pre></div>
+                </div>
+                <div class="code-wrap" style="margin-top:6px">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">تحقق</span>
+                    <button class="copy-btn" data-copy="git status">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git status</pre></div>
+                </div>
+                <div class="callout note">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div>يجب أن تظهر: <code style="font-family:var(--font-mono);font-size:11.5px">nothing to commit, working tree clean</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- SECTION: PULL -->
+        <section id="git-pull">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/><path d="M9 18H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>
+            </div>
+            <div>
+              <h3>سحب آخر تحديث من GitHub</h3>
+              <p>جلب الكود الجديد من remote</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">6</div>
+              <div class="step-body">
+                <div class="step-title">git pull</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy="git pull origin message-version">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git pull origin message-version</pre></div>
+                </div>
+                <div class="callout danger">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+                  <div>إذا ظهر تعارض (conflict)، <strong>توقف فوراً</strong> ولا تكمل النشر. انسخ رسالة الخطأ وراجعها قبل تنفيذ أي أمر.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- SECTION: ENV -->
+        <section id="git-env">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="12" y1="9" x2="12" y2="9"/></svg>
+            </div>
+            <div>
+              <h3>إرجاع ملف بيئة الفرونت</h3>
+              <p>استعادة .env.production الخاص بالسيرفر</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">7</div>
+              <div class="step-body">
+                <div class="step-title">استعادة .env.production من stash</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy="git checkout stash@{0} -- Clinic_Admin/.env.production">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git checkout stash@{0} -- Clinic_Admin/.env.production</pre></div>
+                </div>
+                <div class="code-wrap" style="margin-top:6px">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">فحص المحتوى</span>
+                    <button class="copy-btn" data-copy="nano Clinic_Admin/.env.production">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>nano Clinic_Admin/.env.production</pre></div>
+                </div>
+                <div class="code-wrap" style="margin-top:6px">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">المحتوى المتوقع</span>
+                  </div>
+                  <div class="code-body"><pre>VITE_API_BASE_URL=http://167.86.119.12/api
+VITE_APP_VERSION=1.0.0
+VITE_APP_BUILD_NUMBER=1</pre></div>
+                </div>
+                <div class="callout note">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div>لا ترجع <code style="font-family:var(--font-mono);font-size:11.5px">package-lock.json</code> من الـ stash إلا إذا كنت متأكداً — الأفضل الاعتماد على النسخة القادمة من GitHub.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- SECTION: BACKEND -->
+        <section id="backend">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div>
+              <h3>تحديث الباكند .NET</h3>
+              <p>Build & publish Clinic_Booking</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">8</div>
+              <div class="step-body">
+                <div class="step-title">بناء ونشر الباكند</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">bash</span>
+                    <button class="copy-btn" data-copy="cd /opt/clinic/ClinicProject/Clinic_Booking&#10;dotnet restore&#10;dotnet publish /opt/clinic/ClinicProject/Clinic_Booking/Clinic_Booking.csproj -c Release -o /var/www/clinic-api&#10;systemctl restart clinic-api">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>cd /opt/clinic/ClinicProject/Clinic_Booking
 dotnet restore
-dotnet publish -c Release -o /var/www/clinic-api
-systemctl restart clinic-api</code></pre>
-        <p>تأكد أن الخدمة اشتغلت بدون مشاكل:</p>
-        <pre><code>systemctl status clinic-api</code></pre>
-      </section>
+dotnet publish /opt/clinic/ClinicProject/Clinic_Booking/Clinic_Booking.csproj \
+  -c Release -o /var/www/clinic-api
+systemctl restart clinic-api</pre></div>
+                </div>
+                <div class="code-wrap" style="margin-top:6px">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">التحقق</span>
+                    <button class="copy-btn" data-copy="systemctl status clinic-api">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>systemctl status clinic-api</pre></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <section>
-        <h2>6. تحديث الفرونت Vue</h2>
-        <pre><code>cd /opt/clinic/ClinicProject/Clinic_Admin
+        <hr class="section-divider">
+
+        <!-- SECTION: FRONTEND -->
+        <section id="frontend">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div>
+              <h3>تحديث الفرونت Vue</h3>
+              <p>Build & deploy Clinic_Admin</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">9</div>
+              <div class="step-body">
+                <div class="step-title">بناء ونشر الفرونت</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">bash</span>
+                    <button class="copy-btn" data-copy="cd /opt/clinic/ClinicProject/Clinic_Admin&#10;npm install&#10;npm run build&#10;rm -rf /var/www/clinic-admin/*&#10;cp -r dist/* /var/www/clinic-admin/&#10;chown -R www-data:www-data /var/www/clinic-admin&#10;systemctl reload nginx">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>cd /opt/clinic/ClinicProject/Clinic_Admin
 npm install
 npm run build
 rm -rf /var/www/clinic-admin/*
 cp -r dist/* /var/www/clinic-admin/
 chown -R www-data:www-data /var/www/clinic-admin
-systemctl reload nginx</code></pre>
-        <div class="note">
-          بعد تحديث الفرونت، افتح الموقع من نافذة Incognito أو استخدم <code>Ctrl + Shift + R</code> حتى تتجاوز كاش المتصفح.
-        </div>
-      </section>
+systemctl reload nginx</pre></div>
+                </div>
+                <div class="callout note">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  <div>بعد التحديث، افتح الموقع من نافذة Incognito أو اضغط <code style="font-family:var(--font-mono);font-size:11.5px">Ctrl + Shift + R</code> لتجاوز الكاش.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <section>
-        <h2>7. تحديث WhatsApp Bridge</h2>
-        <p>نفذ هذه الخطوات إذا كان التحديث يشمل ملفات داخل <code>WhatsApp_Bridge</code>:</p>
-        <pre><code>cd /opt/clinic/ClinicProject/WhatsApp_Bridge
+        <hr class="section-divider">
+
+        <!-- SECTION: WHATSAPP -->
+        <section id="whatsapp">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div>
+              <h3>تحديث WhatsApp Bridge</h3>
+              <p>فقط إذا شمل التحديث WhatsApp_Bridge</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">10</div>
+              <div class="step-body">
+                <div class="step-title">تحديث وإعادة تشغيل الخدمة</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">bash</span>
+                    <button class="copy-btn" data-copy="cd /opt/clinic/ClinicProject/WhatsApp_Bridge&#10;npm install --omit=dev&#10;systemctl restart clinic-whatsapp&#10;systemctl status clinic-whatsapp">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>cd /opt/clinic/ClinicProject/WhatsApp_Bridge
 npm install --omit=dev
-systemctl restart clinic-whatsapp</code></pre>
-        <p>تأكد أن الخدمة تعمل:</p>
-        <pre><code>systemctl status clinic-whatsapp</code></pre>
-      </section>
+systemctl restart clinic-whatsapp
+systemctl status clinic-whatsapp</pre></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <section>
-        <h2>8. فحص Nginx والخدمات</h2>
-        <pre><code>nginx -t
+        <hr class="section-divider">
+
+        <!-- SECTION: MONITOR -->
+        <section id="monitor">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <h3>مراقبة الأخطاء والخدمات</h3>
+              <p>إذا ظهرت مشكلة بعد التحديث</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">11</div>
+              <div class="step-body">
+                <div class="step-title">فحص Nginx والـ endpoints</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">bash</span>
+                    <button class="copy-btn" data-copy="nginx -t&#10;systemctl reload nginx&#10;curl -I http://167.86.119.12&#10;curl -I http://167.86.119.12/api/Health">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>nginx -t
 systemctl reload nginx
 curl -I http://167.86.119.12
-curl -I http://167.86.119.12/api/Health</code></pre>
-        <p>إذا لم يكن endpoint <code>/api/Health</code> متاحاً، افحص Swagger أو أي endpoint موجود:</p>
-        <pre><code>curl -I http://167.86.119.12/swagger</code></pre>
-      </section>
+curl -I http://167.86.119.12/api/Health</pre></div>
+                </div>
+              </div>
+            </div>
 
-      <section>
-        <h2>9. مراقبة الأخطاء</h2>
-        <p>إذا ظهرت مشكلة بعد التحديث، استخدم هذه الأوامر لمعرفة السبب:</p>
-        <pre><code>journalctl -u clinic-api -n 120 --no-pager
+            <div class="step">
+              <div class="step-num">12</div>
+              <div class="step-body">
+                <div class="step-title">قراءة اللوقات</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">journalctl</span>
+                    <button class="copy-btn" data-copy="journalctl -u clinic-api -n 120 --no-pager&#10;journalctl -u clinic-whatsapp -n 120 --no-pager&#10;journalctl -u nginx -n 120 --no-pager">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>journalctl -u clinic-api -n 120 --no-pager
 journalctl -u clinic-whatsapp -n 120 --no-pager
-journalctl -u nginx -n 120 --no-pager</code></pre>
-        <p>وللمتابعة المباشرة أثناء التجربة:</p>
-        <pre><code>journalctl -u clinic-api -f</code></pre>
-      </section>
+journalctl -u nginx -n 120 --no-pager</pre></div>
+                </div>
+                <div class="code-wrap" style="margin-top:6px">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">متابعة مباشرة</span>
+                    <button class="copy-btn" data-copy="journalctl -u clinic-api -f">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>journalctl -u clinic-api -f</pre></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <section>
-        <h2>مختصر التحديث اليومي</h2>
-        <div class="quick">
-          <pre><code>cd /opt/clinic/ClinicProject
+        <hr class="section-divider">
+
+        <!-- SECTION: CLEANUP -->
+        <section id="cleanup">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+            <div>
+              <h3>تنظيف الـ stash بعد النجاح</h3>
+              <p>بعد التأكد من أن كل شيء يعمل</p>
+            </div>
+          </div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">13</div>
+              <div class="step-body">
+                <div class="step-title">حذف الـ stash القديم</div>
+                <div class="code-wrap">
+                  <div class="code-header">
+                    <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+                    <span class="code-label">git</span>
+                    <button class="copy-btn" data-copy="git stash list&#10;git stash drop stash@{0}">نسخ</button>
+                  </div>
+                  <div class="code-body"><pre>git stash list
+git stash drop stash@{0}</pre></div>
+                </div>
+                <div class="callout warn">
+                  <div class="callout-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                  <div>لا تحذف الـ stash إلا بعد التأكد أن ملف <code style="font-family:var(--font-mono);font-size:11.5px">.env.production</code> موجود وأن الموقع يعمل. إذا لم تكن متأكداً، اتركه — وجوده لا يضر.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr class="section-divider">
+
+        <!-- QUICK CHEATSHEET -->
+        <section id="quick">
+          <div class="section-header">
+            <div class="section-icon">
+              <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div>
+              <h3>مختصر التحديث اليومي</h3>
+              <p>كل الأوامر مرتبة في مكان واحد</p>
+            </div>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-card-header">
+              <div>
+                <div class="quick-card-title">🚀 Full deployment cheatsheet</div>
+                <div class="quick-card-sub">انسخ الكل وشغّله خطوة بخطوة</div>
+              </div>
+              <button class="copy-all-btn" id="copyAllBtn">نسخ الكل</button>
+            </div>
+            <div class="quick-body">
+              <pre id="quickCode"><span class="hl-comment"># ── 1. Git ──────────────────────────────────────</span>
+<span class="hl-cmd">cd</span> <span class="hl-path">/opt/clinic/ClinicProject</span>
+<span class="hl-cmd">git</span> status
+<span class="hl-cmd">git</span> stash push -u -m "server local changes before update"
+<span class="hl-cmd">git</span> pull origin message-version
+<span class="hl-cmd">git</span> checkout stash@{0} -- Clinic_Admin/.env.production
+
+<span class="hl-comment"># ── 2. Backend .NET ─────────────────────────────</span>
+<span class="hl-cmd">cd</span> <span class="hl-path">Clinic_Booking</span>
+<span class="hl-cmd">dotnet</span> publish /opt/clinic/ClinicProject/Clinic_Booking/Clinic_Booking.csproj \
+  <span class="hl-flag">-c</span> Release <span class="hl-flag">-o</span> /var/www/clinic-api
+<span class="hl-cmd">systemctl</span> restart clinic-api
+
+<span class="hl-comment"># ── 3. Frontend Vue ─────────────────────────────</span>
+<span class="hl-cmd">cd</span> <span class="hl-path">../Clinic_Admin</span>
+<span class="hl-cmd">npm</span> install && npm run build
+<span class="hl-cmd">rm</span> -rf /var/www/clinic-admin/*
+<span class="hl-cmd">cp</span> -r dist/* /var/www/clinic-admin/
+<span class="hl-cmd">systemctl</span> reload nginx
+
+<span class="hl-comment"># ── 4. WhatsApp Bridge ──────────────────────────</span>
+<span class="hl-cmd">cd</span> <span class="hl-path">../WhatsApp_Bridge</span>
+<span class="hl-cmd">npm</span> install --omit=dev
+<span class="hl-cmd">systemctl</span> restart clinic-whatsapp</pre>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /content -->
+    </main>
+
+    <footer class="footer">
+      <span>مشروع عيادة — دليل النشر على السيرفر</span>
+      <span class="footer-badge">message-version</span>
+    </footer>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+  // Copy buttons
+  document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = btn.getAttribute('data-copy').replace(/&#10;/g, '\n');
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ تم';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+  });
+
+  // Copy all
+  const copyAllBtn = document.getElementById('copyAllBtn');
+  if (copyAllBtn) {
+    copyAllBtn.addEventListener('click', () => {
+      const raw = `cd /opt/clinic/ClinicProject
+git status
+git stash push -u -m "server local changes before update"
 git pull origin message-version
+git checkout stash@{0} -- Clinic_Admin/.env.production
 
 cd Clinic_Booking
-dotnet publish -c Release -o /var/www/clinic-api
+dotnet publish /opt/clinic/ClinicProject/Clinic_Booking/Clinic_Booking.csproj -c Release -o /var/www/clinic-api
 systemctl restart clinic-api
 
 cd ../Clinic_Admin
-npm install
-npm run build
+npm install && npm run build
 rm -rf /var/www/clinic-admin/*
 cp -r dist/* /var/www/clinic-admin/
 systemctl reload nginx
 
 cd ../WhatsApp_Bridge
 npm install --omit=dev
-systemctl restart clinic-whatsapp</code></pre>
-        </div>
-      </section>
-    </main>
-  </article>
+systemctl restart clinic-whatsapp`;
+      navigator.clipboard.writeText(raw).then(() => {
+        const orig = copyAllBtn.textContent;
+        copyAllBtn.textContent = '✓ تم النسخ';
+        setTimeout(() => copyAllBtn.textContent = orig, 2000);
+      });
+    });
+  }
+
+  // Active nav highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const link = document.querySelector(`.sidebar-nav a[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
 </body>
 </html>

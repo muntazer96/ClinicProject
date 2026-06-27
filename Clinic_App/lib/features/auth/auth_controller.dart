@@ -33,6 +33,7 @@ class AuthController extends ChangeNotifier {
   String? profileError;
   bool _restoring = false;
   bool _googleInitialized = false;
+  Future<GoogleSignIn>? _googleInitialization;
   StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
 
   bool get isAuthenticated => _token?.isNotEmpty == true;
@@ -142,11 +143,21 @@ class AuthController extends ChangeNotifier {
 
     final googleSignIn = GoogleSignIn.instance;
     if (!_googleInitialized) {
-      await googleSignIn.initialize(
-        clientId: kIsWeb ? _googleServerClientId : null,
-        serverClientId: kIsWeb ? null : _googleServerClientId,
-      );
-      _googleInitialized = true;
+      _googleInitialization ??= googleSignIn
+          .initialize(
+            clientId: kIsWeb ? _googleServerClientId : null,
+            serverClientId: kIsWeb ? null : _googleServerClientId,
+          )
+          .then((_) {
+            _googleInitialized = true;
+            return googleSignIn;
+          });
+      try {
+        await _googleInitialization;
+      } catch (_) {
+        _googleInitialization = null;
+        rethrow;
+      }
     }
 
     if (kIsWeb && _googleAuthSubscription == null) {

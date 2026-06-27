@@ -8,6 +8,7 @@ import '../core/app_theme.dart';
 import '../core/push_notification_service.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/messages/message_hub_service.dart';
+import '../features/notifications/notification_center.dart';
 import '../features/notifications/notification_service.dart';
 
 class NotificationBell extends StatefulWidget {
@@ -24,6 +25,7 @@ class _NotificationBellState extends State<NotificationBell> {
   StreamSubscription<ForegroundAppNotification>? _hubSub;
   StreamSubscription<ForegroundAppNotification>? _pushSub;
   int _unreadCount = 0;
+  int _lastVersion = -1;
 
   @override
   void initState() {
@@ -55,6 +57,14 @@ class _NotificationBellState extends State<NotificationBell> {
 
   @override
   Widget build(BuildContext context) {
+    final version = context
+        .watch<NotificationCenter>()
+        .versionFor(doctor: widget.doctor);
+    if (version != _lastVersion) {
+      _lastVersion = version;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    }
+
     final icon = IconButton.filledTonal(
       tooltip: 'الإشعارات',
       style: IconButton.styleFrom(

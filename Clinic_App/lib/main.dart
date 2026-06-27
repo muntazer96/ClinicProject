@@ -11,6 +11,7 @@ import 'core/push_notification_service.dart';
 import 'core/theme_controller.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/messages/message_hub_service.dart';
+import 'features/notifications/notification_center.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -48,6 +49,9 @@ Future<void> main() async {
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
         ChangeNotifierProvider<AuthController>.value(value: auth),
         ChangeNotifierProvider<MessageHubService>.value(value: messageHub),
+        ChangeNotifierProvider<NotificationCenter>(
+          create: (_) => NotificationCenter(),
+        ),
       ],
       child: const ClinicApp(),
     ),
