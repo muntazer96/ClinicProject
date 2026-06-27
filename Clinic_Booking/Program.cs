@@ -63,6 +63,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.FileProviders;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -302,7 +303,13 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<MessageHub>("/hubs/message");
 
-app.UseStaticFiles();
+// Only serve AppDownloads publicly; image folders are secured via /api/files/*
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "AppDownloads")),
+    RequestPath = "/AppDownloads"
+});
 
 //app.Use(async (context, next) =>
 //{
