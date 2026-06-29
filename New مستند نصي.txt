@@ -1,3 +1,0 @@
-cd "C:\Users\Global PC\source\repos\ClinicProject\WhatsApp_Bridge"
-$env:PUPPETEER_CACHE_DIR="C:\Users\Global PC\source\repos\ClinicProject\.puppeteer-cache"
-npm start
