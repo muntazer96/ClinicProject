@@ -364,6 +364,13 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/AppDownloads"
 });
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "DoctorImage")),
+    RequestPath = "/DoctorImage"
+});
+
 //app.Use(async (context, next) =>
 //{
 //context.Response.Headers["Content-Security-Policy"] =

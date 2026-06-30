@@ -48,7 +48,7 @@ namespace Clinic_Booking.Controllers
 
             return PhysicalFile(path, GetContentType(safeName));
         }
-
+        [AllowAnonymous]
         [HttpGet("doctor-image/{fileName}")]
         public IActionResult GetDoctorImage(string fileName)
         {
