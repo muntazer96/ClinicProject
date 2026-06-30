@@ -1,0 +1,111 @@
+﻿using Clinic_Booking.DTOs.DoctorDTO;
+using Clinic_Booking.DTOs.UserDTO;
+using Clinic_Booking.Authorization;
+using Clinic_Booking.IServices.IDoctorServices;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace Clinic_Booking.Controllers
+{
+    public class DoctorController : BaseApiController
+    {
+        private readonly IDoctorServices _services;
+
+        public DoctorController(IDoctorServices services)
+        {
+            _services = services;
+        }
+
+        [HttpGet]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<ActionResult<PaginationDto.PageResult<GetDoctorDto>>> GetDoctorsAsync(
+            [FromQuery] SearchDoctorDto filter,
+            int page = 1,
+            int pageSize = 10)
+        {
+            return await _services.GetListAsync(filter, page, pageSize);
+        }
+
+        [HttpGet("public")]
+        [EnableRateLimiting("PublicRead")]
+        public async Task<ActionResult<PaginationDto.PageResult<PublicDoctorListDto>>> SearchPublicAsync(
+            [FromQuery] SearchDoctorDto filter,
+            int page = 1,
+            int pageSize = 10)
+        {
+            return await _services.SearchPublicAsync(filter, page, pageSize);
+        }
+
+        [HttpGet("public/{doctorId}")]
+        [EnableRateLimiting("PublicRead")]
+        public async Task<IActionResult> GetPublicProfileAsync(int doctorId)
+        {
+            return await _services.GetPublicProfileAsync(doctorId);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> CreateDoctorAsync(DoctorAddDto form)
+        {
+            return await _services.AddDoctorAsync(form);
+        }
+
+        [HttpGet("my")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> GetMyProfileAsync()
+        {
+            return await _services.GetMyProfileAsync();
+        }
+
+        [HttpPut("my")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        public async Task<IActionResult> UpdateMyProfileAsync(DoctorProfileUpdateDto form)
+        {
+            return await _services.UpdateMyProfileAsync(form);
+        }
+
+        [HttpPut("image")]
+        [Authorize(Roles = AppRoles.DoctorUser)]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        public async Task<IActionResult> UpdateMyImageAsync(IFormFile file)
+        {
+            return await _services.UpdateMyImageAsync(file);
+        }
+
+        [HttpPut]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> UpdateDoctorAsync(DoctorUpdateDto form)
+        {
+            return await _services.UpdateDoctorAsync(form);
+        }
+
+        [HttpPost("{doctorId}/link-account")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> LinkAccountAsync(int doctorId, LinkDoctorAccountDto form)
+        {
+            return await _services.LinkAccountAsync(doctorId, form);
+        }
+
+        [HttpDelete("{doctorId}/link-account")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> UnlinkAccountAsync(int doctorId)
+        {
+            return await _services.UnlinkAccountAsync(doctorId);
+        }
+
+        [HttpPut("{doctorId}/visibility")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> UpdateVisibilityAsync(int doctorId, DoctorVisibilityUpdateDto form)
+        {
+            return await _services.UpdateVisibilityAsync(doctorId, form);
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = AppRoles.SuperAdmin)]
+        public async Task<IActionResult> DeleteDoctorAsync(int id)
+        {
+            return await _services.DeleteAsync(id);
+        }
+    }
+}
