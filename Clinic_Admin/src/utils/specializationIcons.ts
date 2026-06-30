@@ -1,0 +1,36 @@
+const specializationIcons: Record<string, string> = {
+  'internal-medicine': 'mdi-briefcase-medical',
+  ent: 'mdi-ear-hearing',
+  cardiology: 'mdi-heart-pulse',
+  ophthalmology: 'mdi-eye',
+  dermatology: 'mdi-emoticon-outline',
+  neurology: 'mdi-brain',
+  'general-surgery': 'mdi-content-cut',
+  orthopedics: 'mdi-bone',
+  gynecology: 'mdi-account-group',
+  pediatrics: 'mdi-baby-face-outline',
+  oncology: 'mdi-microscope',
+  nephrology: 'mdi-water',
+  gastroenterology: 'mdi-food-apple',
+  endocrinology: 'mdi-chart-bell-curve',
+  'plastic-surgery': 'mdi-face-man-shimmer',
+  neurosurgery: 'mdi-brain',
+  anesthesiology: 'mdi-needle',
+  'family-medicine': 'mdi-hospital-building',
+  psychiatry: 'mdi-brain',
+  'infectious-disease': 'mdi-shield-alert',
+  radiology: 'mdi-radioactive',
+  emergency: 'mdi-heart-pulse',
+  rheumatology: 'mdi-human-cane',
+  pulmonology: 'mdi-weather-windy',
+  'occupational-medicine': 'mdi-briefcase-medical',
+  'sports-medicine': 'mdi-dumbbell',
+  hematology: 'mdi-water',
+  physiotherapy: 'mdi-human-cane',
+  nutrition: 'mdi-food-apple',
+  'speech-therapy': 'mdi-message-text-outline',
+}
+
+export function specializationIcon(iconName?: string): string {
+  return specializationIcons[iconName ?? ''] ?? 'mdi-stethoscope'
+}

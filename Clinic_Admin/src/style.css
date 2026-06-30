@@ -1,0 +1,610 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Tajawal', 'Roboto', sans-serif;
+  direction: rtl;
+  
+  /* Color tokens */
+  --color-primary: #13796b;
+  --color-primary-dark: #0b5c51;
+  --color-primary-light: #42a799;
+  --color-primary-soft: #e4f4f0;
+  
+  --color-success: #167163;
+  --color-success-light: #e1f4ef;
+  --color-warning: #b56b2f;
+  --color-warning-light: #fff1df;
+  --color-error: #b33c3c;
+  --color-error-light: #ffeded;
+  --color-info: #346fb1;
+  --color-info-light: #eaf3ff;
+  
+  --color-text: #16312d;
+  --color-text-muted: #71827f;
+  --color-text-secondary: #58706c;
+  --color-border: #e2ebe9;
+  --color-border-light: #edf2f1;
+  --color-background: #f6f9f8;
+  --color-surface: #ffffff;
+  --color-surface-variant: #fbfdfc;
+  
+  /* Typography */
+  --font-family-primary: 'Tajawal', 'Roboto', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+  
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(29, 74, 68, 0.06);
+  --shadow-md: 0 4px 12px rgba(29, 74, 68, 0.08);
+  --shadow-lg: 0 8px 24px rgba(29, 74, 68, 0.10);
+  --shadow-xl: 0 14px 35px rgba(29, 74, 68, 0.12);
+  
+  /* Z-index */
+  --z-drawer: 1000;
+  --z-appbar: 1100;
+  --z-modal: 1200;
+  --z-tooltip: 1300;
+}
+
+/* Reset & Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family-primary);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+.v-application {
+  overflow-x: clip;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-family: var(--font-family-primary);
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Focus visible for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(19, 121, 107, 0.24);
+  outline-offset: 2px;
+}
+
+/* Vuetify Component Overrides */
+
+/* Override Vuetify font family */
+.v-application {
+  font-family: var(--font-family-primary) !important;
+}
+
+.v-field__input {
+  font-family: var(--font-family-primary);
+}
+
+/* Unified system fields: keep Vuetify as the source of truth for selects/autocomplete,
+   and make native inputs visually match Vuetify outlined fields. */
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input,
+  .date-input
+).v-input {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input,
+  .date-input
+).v-input .v-field {
+  border-radius: 4px !important;
+  background: var(--color-surface) !important;
+  font-family: var(--font-family-primary) !important;
+}
+
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input,
+  .date-input
+).v-input input,
+.v-application .v-field__input input {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+).v-input .v-field__input {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+).v-input .v-field__input > input {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+).v-input .v-field__append-inner,
+.v-application :is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+).v-input .v-field__prepend-inner {
+  padding-top: 0 !important;
+  align-items: center !important;
+}
+
+/* Final guard for migrated dropdowns: page-scoped legacy `.form-select` /
+   `.filter-select` styles must not wrap Vuetify fields in a second box. */
+:where(.v-select, .v-autocomplete):is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+) {
+  width: 100% !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+:where(.v-select, .v-autocomplete):is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+) .v-field {
+  min-height: 40px !important;
+  border-radius: 4px !important;
+  background: var(--color-surface) !important;
+}
+
+:where(.v-select, .v-autocomplete):is(
+  .filter-select,
+  .form-select,
+  .doctor-select,
+  .dr-select,
+  .status-select,
+  .select-input
+) :is(input, .v-field__input, .v-field__field) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.v-application :is(
+  input.form-input,
+  input.filter-input,
+  input.search-input,
+  input.dr-input,
+  input.sr-input,
+  input.time-input,
+  input.number-input
+) {
+  min-height: 40px !important;
+  border: 1px solid rgba(0, 0, 0, 0.38) !important;
+  border-radius: 4px !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-family-primary) !important;
+  font-size: 14px !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.v-application :is(input.form-input, input.filter-input, input.time-input) {
+  padding: 0 12px !important;
+}
+
+.v-application input.search-input {
+  padding: 0 12px 0 36px !important;
+}
+
+.v-application :is(input.dr-input, input.sr-input) {
+  padding: 0 42px 0 14px !important;
+}
+
+.v-application input.number-input {
+  padding: 0 8px !important;
+}
+
+.v-application textarea.form-textarea {
+  min-height: 90px !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.38) !important;
+  border-radius: 4px !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-family-primary) !important;
+  font-size: 14px !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  resize: vertical;
+}
+
+.v-application :is(
+  input.form-input,
+  input.filter-input,
+  input.search-input,
+  input.dr-input,
+  input.sr-input,
+  input.time-input,
+  input.number-input,
+  textarea.form-textarea
+):hover {
+  border-color: rgba(0, 0, 0, 0.72) !important;
+}
+
+.v-application :is(
+  input.form-input,
+  input.filter-input,
+  input.search-input,
+  input.dr-input,
+  input.sr-input,
+  input.time-input,
+  input.number-input,
+  textarea.form-textarea
+):focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--color-primary) !important;
+}
+
+.v-application :is(
+  input.form-input,
+  input.filter-input,
+  input.search-input,
+  input.dr-input,
+  input.sr-input,
+  input.time-input,
+  input.number-input,
+  textarea.form-textarea
+):disabled {
+  background: var(--color-background) !important;
+  color: var(--color-text-muted) !important;
+  cursor: not-allowed !important;
+}
+
+/* Custom utility classes */
+
+/* Text utilities */
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+/* Background utilities */
+.bg-soft-primary {
+  background-color: var(--color-primary-soft);
+}
+
+.bg-soft-success {
+  background-color: var(--color-success-light);
+}
+
+.bg-soft-warning {
+  background-color: var(--color-warning-light);
+}
+
+.bg-soft-error {
+  background-color: var(--color-error-light);
+}
+
+.bg-soft-info {
+  background-color: var(--color-info-light);
+}
+
+/* Border utilities */
+.border-primary {
+  border-color: var(--color-primary);
+}
+
+.border-light {
+  border-color: var(--color-border-light);
+}
+
+/* Shadow utilities */
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+.shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+
+/* Hover effects */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease both;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.45s ease both;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.4s ease both;
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulseDot 1.8s ease infinite;
+  background-color: var(--color-primary);
+}
+
+/* RTL-specific adjustments */
+[dir='rtl'] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir='rtl'] button,
+[dir='rtl'] a {
+  text-align: right;
+}
+
+/* Vuetify RTL overrides for custom behavior */
+.v-navigation-drawer--right {
+  left: auto;
+  right: 0;
+}
+
+/* Responsive utilities */
+@media (max-width: 1264px) {
+  /* Tablet adjustments */
+}
+
+@media (max-width: 960px) {
+  /* Mobile adjustments */
+  .v-navigation-drawer:not(.v-navigation-drawer--active) {
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Small mobile adjustments */
+  body {
+    font-size: 14px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  .no-print {
+    display: none;
+  }
+}
+
+/* Fix Vuetify button hover icon color */
+.v-btn:hover .v-icon { color: inherit !important; }
+.v-btn--icon:hover .v-icon { color: inherit !important; }
+.v-btn__overlay { opacity: 0 !important; }
+.v-btn:hover > .v-btn__overlay { opacity: 0.08 !important; }
+
+/* Vuetify hover/active contrast fixes */
+.v-overlay-container .v-list {
+  font-family: var(--font-family-primary) !important;
+  color: var(--color-text) !important;
+}
+
+.v-overlay-container .v-list-item {
+  color: var(--color-text) !important;
+}
+
+.v-overlay-container .v-list-item .v-list-item__overlay {
+  opacity: 0 !important;
+}
+
+.v-overlay-container .v-list-item:hover,
+.v-overlay-container .v-list-item--active,
+.v-overlay-container .v-list-item[aria-selected='true'] {
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+}
+
+.v-overlay-container .v-list-item:hover .v-list-item-title,
+.v-overlay-container .v-list-item:hover .v-list-item-subtitle,
+.v-overlay-container .v-list-item:hover .v-icon,
+.v-overlay-container .v-list-item--active .v-list-item-title,
+.v-overlay-container .v-list-item--active .v-list-item-subtitle,
+.v-overlay-container .v-list-item--active .v-icon,
+.v-overlay-container .v-list-item[aria-selected='true'] .v-list-item-title,
+.v-overlay-container .v-list-item[aria-selected='true'] .v-list-item-subtitle,
+.v-overlay-container .v-list-item[aria-selected='true'] .v-icon {
+  color: var(--color-primary) !important;
+}
+
+.v-overlay-container .v-list-item:focus-visible {
+  outline: 2px solid rgba(19, 121, 107, 0.28) !important;
+  outline-offset: -2px;
+}
+
+.v-btn:hover .v-btn__content,
+.v-btn:hover .v-btn__prepend,
+.v-btn:hover .v-btn__append,
+.v-btn:hover .v-icon {
+  opacity: 1 !important;
+}

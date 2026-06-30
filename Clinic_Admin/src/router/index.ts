@@ -1,0 +1,82 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { pinia } from '../stores/index.ts'
+import { useAuthStore } from '../stores/auth.ts'
+import AdminLayout from '../layouts/AdminLayout.vue'
+import AnalyticsView from '../views/AnalyticsView.vue'
+import DownloadAppView from '../views/DownloadApp.vue'
+import AppointmentsView from '../views/AppointmentsView.vue'
+import AppVersionManagementView from '../views/AppVersionManagement.vue'
+import AppVersionsView from '../views/AppVersionsView.vue'
+import LoginView from '../views/LoginView.vue'
+import ClinicsView from '../views/ClinicsView.vue'
+import DashboardView from '../views/DashboardView.vue'
+import DoctorDetailsView from '../views/DoctorDetailsView.vue'
+import DoctorsView from '../views/DoctorsView.vue'
+import ExceptionsView from '../views/ExceptionsView.vue'
+import NotificationsView from '../views/NotificationsView.vue'
+import OffersView from '../views/OffersView.vue'
+import PasswordResetView from '../views/PasswordResetView.vue'
+import ProfileView from '../views/ProfileView.vue'
+
+import ReviewsView from '../views/ReviewsView.vue'
+import SubscriptionsView from '../views/SubscriptionsView.vue'
+import UsersView from '../views/UsersView.vue'
+import WhatsAppView from '../views/WhatsAppView.vue'
+import BackupRestoreView from '../views/BackupRestoreView.vue'
+import DoctorRequestFlowView from '../views/DoctorRequestFlowView.vue'
+import DoctorRequestStatusView from '../views/DoctorRequestStatusView.vue'
+import AdminDoctorRequestListView from '../views/admin/DoctorRequestListView.vue'
+import AdminDoctorRequestDetailView from '../views/admin/DoctorRequestDetailView.vue'
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
+    { path: '/password-reset', name: 'password-reset', component: PasswordResetView },
+    { path: '/download', name: 'download-app', component: DownloadAppView },
+    { path: '/doctor-request', name: 'doctor-request', component: DoctorRequestFlowView },
+    { path: '/doctor-request/status', name: 'doctor-request-status', component: DoctorRequestStatusView },
+
+    {
+      path: '/',
+      component: AdminLayout,
+      meta: { requiresAuth: true, roles: ['SuperAdmin', 'DoctorUser'] },
+      children: [
+        { path: '', name: 'dashboard', component: DashboardView, meta: { title: 'الرئيسية' } },
+        { path: 'analytics', name: 'analytics', component: AnalyticsView, meta: { title: 'الإحصائيات', roles: ['SuperAdmin', 'DoctorUser'] } },
+        { path: 'users', name: 'users', component: UsersView, meta: { title: 'إدارة المستخدمين', roles: ['SuperAdmin'] } },
+        { path: 'doctors', name: 'doctors', component: DoctorsView, meta: { title: 'إدارة الأطباء', roles: ['SuperAdmin'] } },
+        { path: 'doctors/:doctorId', name: 'doctor-details', component: DoctorDetailsView, meta: { title: 'تفاصيل الطبيب', roles: ['SuperAdmin'] } },
+        { path: 'subscriptions', name: 'subscriptions', component: SubscriptionsView, meta: { title: 'الاشتراكات والباقات', roles: ['SuperAdmin'] } },
+        { path: 'app-versions', name: 'app-versions', component: AppVersionsView, meta: { title: 'سياسات التحديث', roles: ['SuperAdmin'] } },
+        { path: 'app-releases', name: 'app-releases', component: AppVersionManagementView, meta: { title: 'إصدارات APK', roles: ['SuperAdmin'] } },
+        { path: 'whatsapp', name: 'whatsapp', component: WhatsAppView, meta: { title: 'WhatsApp OTP', roles: ['SuperAdmin'] } },
+        { path: 'backup-restore', name: 'backup-restore', component: BackupRestoreView, meta: { title: 'النسخ الاحتياطي', roles: ['SuperAdmin'] } },
+        { path: 'doctor-requests', name: 'doctor-requests', component: AdminDoctorRequestListView, meta: { title: 'طلبات التحويل', roles: ['SuperAdmin'] } },
+        { path: 'doctor-requests/:id', name: 'doctor-request-detail', component: AdminDoctorRequestDetailView, meta: { title: 'تفاصيل الطلب', roles: ['SuperAdmin'] } },
+        { path: 'offers', name: 'offers', component: OffersView, meta: { title: 'العروض', roles: ['SuperAdmin', 'DoctorUser'] } },
+        { path: 'clinics', name: 'clinics', component: ClinicsView, meta: { title: 'عياداتي', roles: ['DoctorUser'] } },
+        { path: 'appointments', name: 'appointments', component: AppointmentsView, meta: { title: 'الحجوزات اليومية', roles: ['SuperAdmin', 'DoctorUser'] } },
+        { path: 'exceptions', name: 'exceptions', component: ExceptionsView, meta: { title: 'الإجازات والاستثناءات', roles: ['DoctorUser'] } },
+        { path: 'notifications', name: 'notifications', component: NotificationsView, meta: { title: 'إشعارات الطبيب', roles: ['DoctorUser'] } },
+        { path: 'reviews', name: 'reviews', component: ReviewsView, meta: { title: 'التقييمات', roles: ['DoctorUser'] } },
+        { path: 'profile', name: 'profile', component: ProfileView, meta: { title: 'الملف الشخصي', roles: ['DoctorUser'] } },
+      ],
+    },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
+  ],
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore(pinia)
+  const needsSession = Boolean(to.meta.requiresAuth || to.meta.guestOnly || to.meta.roles)
+  const hasSession = needsSession ? await auth.ensureSession() : false
+
+  if (to.meta.guestOnly && hasSession) return { name: 'dashboard' }
+  if (to.meta.requiresAuth && !hasSession) return { name: 'login' }
+
+  const roles = (to.meta.roles as string[] | undefined) ?? []
+  if (roles.length && !auth.hasAnyRole(roles)) return { name: 'dashboard' }
+})
+
+export default router
